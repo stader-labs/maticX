@@ -1,0 +1,10 @@
+node_modules
+.env
+.env.test
+
+#Hardhat files
+cache
+artifacts
+typechain
+
+.openzeppelin
