@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./interfaces/IValidatorShare.sol";
 import "./interfaces/INodeOperatorRegistry.sol";
 import "./interfaces/IMaticX.sol";
+import "./lib/OperationToggles.sol";
 
 contract MaticX is
     IMaticX,
@@ -29,15 +30,17 @@ contract MaticX is
     FeeDistribution public override entityFees;
 
     string public override version;
-    address public override dao;
+    // address to accrue revenue
+    address public override treasury;
+    // address to cover for funds insurance.
     address public override insurance;
     address public override token;
+    address public override proposed_manager;
     uint256 public override totalBuffered;
-    uint256 public override delegationLowerBound;
     uint256 public override rewardDistributionLowerBound;
     uint256 public override reservedFunds;
 
-    bytes32 public constant override DAO = keccak256("DAO");
+    bytes32 public constant override MANAGER = keccak256("MANAGER");
 
     /**
      * @param _nodeOperatorRegistry - Address of the node operator registry
@@ -48,22 +51,25 @@ contract MaticX is
     function initialize(
         address _nodeOperatorRegistry,
         address _token,
-        address _dao,
+        address _manager,
+        address _treasury,
         address _insurance
     ) external override initializer {
         __AccessControl_init();
         __Pausable_init();
-        __ERC20_init("MATICX", "maticX");
+        // Why not reentrancy guard here?
+        __ERC20_init("Liquid Staking Matic", "maticX");
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(DAO, _dao);
+        _setupRole(MANAGER, _manager);
+        proposed_manager = address(0);
 
         nodeOperatorRegistry = INodeOperatorRegistry(_nodeOperatorRegistry);
-        dao = _dao;
+        treasury = _treasury;
         token = _token;
         insurance = _insurance;
 
-        entityFees = FeeDistribution(25, 50, 25);
+        entityFees = FeeDistribution(80, 20);
     }
 
     /**
@@ -245,6 +251,7 @@ contract MaticX is
             uint256
         )
     {
+        // TODO - GM. Where is this totalSupply function?
         uint256 totalShares = totalSupply();
         totalShares = totalShares == 0 ? 1 : totalShares;
 
@@ -330,41 +337,54 @@ contract MaticX is
      * @param _insuranceFee - Insurance fee in %
      */
     function setFees(
-        uint8 _daoFee,
-        uint8 _operatorsFee,
+        uint8 _treasuryFee,
         uint8 _insuranceFee
-    ) external override onlyRole(DAO) {
+    ) external override onlyRole(MANAGER) {
         require(
-            _daoFee + _operatorsFee + _insuranceFee == 100,
-            "sum(fee)!=100"
+            staderFee + _insuranceFee == 100,
+            "sum(fee) is not equal to 100"
         );
-        entityFees.dao = _daoFee;
-        entityFees.operators = _operatorsFee;
+        entityFees.treasury = _treasuryFee;
         entityFees.insurance = _insuranceFee;
     }
 
     /**
-     * @dev Function that sets new dao address
-     * @notice Callable only by dao
-     * @param _address - New dao address
+     * @dev Function that sets new manager address
+     * @notice Callable only by manager
+     * @param _address - New manager address
      */
-    function setDaoAddress(address _address) external override onlyRole(DAO) {
-        revokeRole(DAO, dao);
-        dao = _address;
-        _setupRole(DAO, dao);
+    function setTreasuryAddress(address _address) external override onlyRole(MANAGER) {
+        treasury = _address;
     }
 
     /**
      * @dev Function that sets new insurance address
-     * @notice Callable only by dao
+     * @notice Callable only by manager
      * @param _address - New insurance address
      */
     function setInsuranceAddress(address _address)
         external
         override
-        onlyRole(DAO)
+        onlyRole(MANAGER)
     {
         insurance = _address;
+    }
+
+    /**
+     * @dev Function that sets new insurance address
+     * @notice Callable only by manager
+     * @param _address - New manager address
+     */
+    function proposeManagerAddress(address _address) external override onlyRole(MANAGER) {
+        proposed_manager = _address;
+    }
+
+    function acceptProposedManagerAddress() external override {
+        // TODO - GM. Is this address validation sufficient?
+        require(proposed_manager != address(0) && msg.sender == proposed_manager,
+            "You are not the proposed manager");
+        _revokeRole(MANAGER, manager);
+        _setupRole(MANAGER, _address);
     }
 
     /**
@@ -375,32 +395,19 @@ contract MaticX is
     function setNodeOperatorRegistryAddress(address _address)
         external
         override
-        onlyRole(DAO)
+        onlyRole(MANAGER)
     {
         nodeOperatorRegistry = INodeOperatorRegistry(_address);
     }
 
     /**
-     * @dev Function that sets new lower bound for delegation
-     * @notice Only callable by dao
-     * @param _delegationLowerBound - New lower bound for delegation
-     */
-    function setDelegationLowerBound(uint256 _delegationLowerBound)
-        external
-        override
-        onlyRole(DAO)
-    {
-        delegationLowerBound = _delegationLowerBound;
-    }
-
-    /**
      * @dev Function that sets new lower bound for rewards distribution
-     * @notice Only callable by dao
+     * @notice Only callable by manager
      * @param _rewardDistributionLowerBound - New lower bound for rewards distribution
      */
     function setRewardDistributionLowerBound(
         uint256 _rewardDistributionLowerBound
-    ) external override onlyRole(DAO) {
+    ) external override onlyRole(MANAGER) {
         rewardDistributionLowerBound = _rewardDistributionLowerBound;
     }
 
