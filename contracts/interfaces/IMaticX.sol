@@ -19,13 +19,10 @@ interface IMaticX is IERC20Upgradeable {
         external
         returns (
             uint8,
-            uint8,
             uint8
         );
 
     function version() external view returns (string memory);
-
-    function dao() external view returns (address);
 
     function insurance() external view returns (address);
 
@@ -33,20 +30,17 @@ interface IMaticX is IERC20Upgradeable {
 
     function totalBuffered() external view returns (uint256);
 
-    function delegationLowerBound() external view returns (uint256);
-
     function rewardDistributionLowerBound() external view returns (uint256);
 
     function reservedFunds() external view returns (uint256);
 
     function getMinValidatorBalance() external view returns (uint256);
 
-    function DAO() external view returns (bytes32);
-
     function initialize(
         address _nodeOperatorRegistry,
         address _token,
-        address _dao,
+        address _manager,
+        address _treasury,
         address _insurance
     ) external;
 
@@ -82,18 +76,13 @@ interface IMaticX is IERC20Upgradeable {
         );
 
     function setFees(
-        uint8 _daoFee,
-        uint8 _operatorsFee,
+        uint8 _treasuryFee,
         uint8 _insuranceFee
     ) external;
-
-    function setDaoAddress(address _address) external;
 
     function setInsuranceAddress(address _address) external;
 
     function setNodeOperatorRegistryAddress(address _address) external;
-
-    function setDelegationLowerBound(uint256 _delegationLowerBound) external;
 
     function setRewardDistributionLowerBound(
         uint256 _rewardDistributionLowerBound

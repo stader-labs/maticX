@@ -14,6 +14,10 @@ interface INodeOperatorRegistry {
     /// @param _operator node operator address.
     function addOperator(address _operator) external;
 
+    /// @notice Allows to set the preferred operator id.
+    /// @param _operatorId node operator id.
+    function setPrefferedOperatorId(uint256 _operatorId) external;
+
     /// @notice Allows to pause/unpause the node operator contract.
     function togglePause() external;
 
@@ -58,4 +62,7 @@ interface INodeOperatorRegistry {
 
     /// @notice Allows to get all the operator ids.
     function getOperatorIds() external view returns (uint256[] memory);
+
+    /// @notice Allows to get preferred operator id.
+    function getPreferredOperatorId() external view returns (uint256);
 }

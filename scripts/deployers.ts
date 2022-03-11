@@ -5,7 +5,13 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 import { predictContractAddress } from './utils'
 import { NodeOperatorRegistry, MaticX } from '../typechain'
-import { STAKE_MANAGER, MATIC_TOKEN, DAO, INSURANCE } from '../environment'
+import {
+  STAKE_MANAGER,
+  MATIC_TOKEN,
+  MANAGER,
+  INSURANCE,
+  TREASURY,
+} from '../environment'
 import path from 'path'
 
 type DeploymentData = {
@@ -134,8 +140,9 @@ export class MaticXDeployer extends MultichainDeployer
       'MaticX',
       this.data.NodeOperatorRegistry,
       MATIC_TOKEN,
-      DAO,
+      MANAGER,
       INSURANCE,
+      TREASURY,
     )
   }
 
@@ -150,8 +157,9 @@ export class MaticXDeployer extends MultichainDeployer
       network: chainId,
       multisig_upgrader: { address: '0x', owners: [] },
       root_deployer: this.rootDeployer.signer.address,
-      dao: DAO,
-      treasury: INSURANCE,
+      manager: MANAGER,
+      insurace: INSURANCE,
+      treasury: TREASURY,
       matic_erc20_address: MATIC_TOKEN,
       matic_stake_manager_proxy: STAKE_MANAGER,
       proxy_admin: this.data.ProxyAdmin,

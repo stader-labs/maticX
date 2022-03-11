@@ -14,8 +14,9 @@ const VALIDATOR_PRIVATE_KEY = process.env.VALIDATOR_PRIVATE_KEY || ''
 const ROOT_CHAIN_RPC = process.env.ROOT_CHAIN_RPC || ''
 const STAKE_MANAGER = process.env.STAKE_MANAGER || ''
 const MATIC_TOKEN = process.env.MATIC_TOKEN || ''
-const DAO = process.env.DAO || ''
+const MANAGER = process.env.MANAGER || ''
 const INSURANCE = process.env.INSURANCE || ''
+const TREASURY = process.env.TREASURY || ''
 const ROOT_GAS_PRICE = process.env.ROOT_GAS_PRICE || 0
 const ROOT_GAS_LIMIT = process.env.ROOT_GAS_LIMIT || 0
 const DEFENDER_TEAM_API_KEY = process.env.DEFENDER_TEAM_API_KEY || ''
@@ -29,8 +30,9 @@ export {
   ROOT_CHAIN_RPC,
   STAKE_MANAGER,
   MATIC_TOKEN,
-  DAO,
+  MANAGER,
   INSURANCE,
+  TREASURY,
   ROOT_GAS_PRICE,
   ROOT_GAS_LIMIT,
   DEFENDER_TEAM_API_KEY,

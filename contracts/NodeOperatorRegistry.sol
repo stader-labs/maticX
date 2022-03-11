@@ -72,6 +72,9 @@ contract NodeOperatorRegistry is
     /// @notice keeps track of total number of operators
     uint256 nodeOperatorCounter;
 
+    /// @notice This stores the preferred operator id
+    uint256 private preferredOperatorId;
+
     /// @notice min amount allowed to stake per validator.
     uint256 public minAmountStake;
 
@@ -160,6 +163,7 @@ contract NodeOperatorRegistry is
         minAmountStake = 10 * 10**18;
         minHeimdallFees = 20 * 10**18;
         defaultMaxDelegateLimit = 10 ether;
+        preferredOperatorId = 0;
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(REMOVE_OPERATOR_ROLE, msg.sender);
@@ -242,6 +246,17 @@ contract NodeOperatorRegistry is
         delete operators[_operatorId];
 
         emit RemoveOperator(_operatorId);
+    }
+
+    /// @notice Allows to set the preffered operator id
+    /// @param _operatorId the node operator id.
+    function setPrefferedOperatorId(uint256 _operatorId)
+        external
+        override
+        whenNotPaused
+        userHasRole(DAO_ROLE)
+    {
+        preferredOperatorId = _operatorId;
     }
 
     /// ------------------------Stake Manager API-------------------------------
@@ -478,6 +493,12 @@ contract NodeOperatorRegistry is
             return operatorInfosOut;
         }
         return operatorInfos;
+    }
+
+    /// @notice Retrieve the preferred operator id
+    /// @return prefferedOperatorId
+    function getPreferredOperatorId() external view override returns (uint256) {
+        return preferredOperatorId;
     }
 
     /// @notice Checks condition and displays the message

@@ -10,7 +10,6 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./interfaces/IValidatorShare.sol";
 import "./interfaces/INodeOperatorRegistry.sol";
 import "./interfaces/IMaticX.sol";
-import "./lib/OperationToggles.sol";
 
 contract MaticX is
     IMaticX,
@@ -20,8 +19,7 @@ contract MaticX is
 {
     event SubmitEvent(address indexed _from, uint256 indexed _amount);
     event DelegateEvent(
-        uint256 indexed _amountDelegated,
-        uint256 indexed _remainder
+        uint256 indexed _amountDelegated
     );
 
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -31,21 +29,22 @@ contract MaticX is
 
     string public override version;
     // address to accrue revenue
-    address public override treasury;
+    address public treasury;
     // address to cover for funds insurance.
     address public override insurance;
     address public override token;
-    address public override proposed_manager;
+    address public proposed_manager;
+    address public manager;
     uint256 public override totalBuffered;
     uint256 public override rewardDistributionLowerBound;
     uint256 public override reservedFunds;
 
-    bytes32 public constant override MANAGER = keccak256("MANAGER");
+    bytes32 public constant MANAGER = keccak256("MANAGER");
 
     /**
      * @param _nodeOperatorRegistry - Address of the node operator registry
      * @param _token - Address of matic token on Ethereum Mainnet
-     * @param _dao - Address of the DAO
+     * @param _treasury - Address of the treasury
      * @param _insurance - Address of the insurance
      */
     function initialize(
@@ -57,11 +56,11 @@ contract MaticX is
     ) external override initializer {
         __AccessControl_init();
         __Pausable_init();
-        // Why not reentrancy guard here?
         __ERC20_init("Liquid Staking Matic", "maticX");
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(MANAGER, _manager);
+        manager = _manager;
         proposed_manager = address(0);
 
         nodeOperatorRegistry = INodeOperatorRegistry(_nodeOperatorRegistry);
@@ -99,8 +98,6 @@ contract MaticX is
 
         _mint(msg.sender, amountToMint);
 
-        totalBuffered += _amount;
-
         emit SubmitEvent(msg.sender, _amount);
 
         Operator.OperatorInfo[] memory operatorInfos = nodeOperatorRegistry
@@ -109,41 +106,14 @@ contract MaticX is
 
         require(operatorInfosLength > 0, "No operator shares, cannot delegate");
 
-        uint256 availableAmountToDelegate = totalBuffered - reservedFunds;
-        uint256 maxDelegateLimitsSum;
-        uint256 remainder;
+        uint256 preferredOperatorId = nodeOperatorRegistry.getPreferredOperatorId();
+        buyVoucher(
+            operatorInfos[preferredOperatorId].validatorShare,
+            _amount,
+            0
+        );
 
-        for (uint256 i = 0; i < operatorInfosLength; i++) {
-            maxDelegateLimitsSum += operatorInfos[i].maxDelegateLimit;
-        }
-
-        require(maxDelegateLimitsSum > 0, "maxDelegateLimitsSum=0");
-
-        uint256 totalToDelegatedAmount = maxDelegateLimitsSum <=
-            availableAmountToDelegate
-            ? maxDelegateLimitsSum
-            : availableAmountToDelegate;
-
-        uint256 amountDelegated;
-
-        for (uint256 i = 0; i < operatorInfosLength; i++) {
-            uint256 amountToDelegatePerOperator = (operatorInfos[i]
-                .maxDelegateLimit * totalToDelegatedAmount) /
-                maxDelegateLimitsSum;
-
-            buyVoucher(
-                operatorInfos[i].validatorShare,
-                amountToDelegatePerOperator,
-                0
-            );
-
-            amountDelegated += amountToDelegatePerOperator;
-        }
-
-        remainder = availableAmountToDelegate - amountDelegated;
-        totalBuffered = remainder + reservedFunds;
-
-        emit DelegateEvent(amountDelegated, remainder);
+        emit DelegateEvent(_amount);
 
         return amountToMint;
     }
@@ -331,9 +301,8 @@ contract MaticX is
 
     /**
      * @dev Function that sets entity fees
-     * @notice Callable only by dao
-     * @param _daoFee - DAO fee in %
-     * @param _operatorsFee - Operator fees in %
+     * @notice Callable only by manager
+     * @param _treasuryFee - Treasury fee in %
      * @param _insuranceFee - Insurance fee in %
      */
     function setFees(
@@ -341,7 +310,7 @@ contract MaticX is
         uint8 _insuranceFee
     ) external override onlyRole(MANAGER) {
         require(
-            staderFee + _insuranceFee == 100,
+            _treasuryFee + _insuranceFee == 100,
             "sum(fee) is not equal to 100"
         );
         entityFees.treasury = _treasuryFee;
@@ -353,7 +322,7 @@ contract MaticX is
      * @notice Callable only by manager
      * @param _address - New manager address
      */
-    function setTreasuryAddress(address _address) external override onlyRole(MANAGER) {
+    function setTreasuryAddress(address _address) external onlyRole(MANAGER) {
         treasury = _address;
     }
 
@@ -375,16 +344,18 @@ contract MaticX is
      * @notice Callable only by manager
      * @param _address - New manager address
      */
-    function proposeManagerAddress(address _address) external override onlyRole(MANAGER) {
+    function proposeManagerAddress(address _address) external onlyRole(MANAGER) {
         proposed_manager = _address;
     }
 
-    function acceptProposedManagerAddress() external override {
+    function acceptProposedManagerAddress() external {
         // TODO - GM. Is this address validation sufficient?
         require(proposed_manager != address(0) && msg.sender == proposed_manager,
             "You are not the proposed manager");
         _revokeRole(MANAGER, manager);
-        _setupRole(MANAGER, _address);
+        _setupRole(MANAGER, proposed_manager);
+        manager = proposed_manager;
+        proposed_manager = address(0);
     }
 
     /**

@@ -1,4 +1,5 @@
-import { HardhatUserConfig } from 'hardhat/config'
+import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import { HardhatUserConfig, task } from 'hardhat/config'
 
 import '@typechain/hardhat'
 import '@nomiclabs/hardhat-waffle'
@@ -6,6 +7,8 @@ import '@nomiclabs/hardhat-ethers'
 import '@openzeppelin/hardhat-upgrades'
 import '@nomiclabs/hardhat-etherscan'
 import '@openzeppelin/hardhat-defender'
+
+import { verify } from './scripts/tasks'
 
 import {
   DEPLOYER_PRIVATE_KEY,
@@ -16,6 +19,12 @@ import {
   DEFENDER_TEAM_API_KEY,
   DEFENDER_TEAM_API_SECRET_KEY,
 } from './environment'
+
+task('verifyMaticX', 'MaticX contracts verification').setAction(
+  async (args, hre: HardhatRuntimeEnvironment) => {
+    await verify(hre)
+  },
+)
 
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
