@@ -9,8 +9,7 @@ import "./INodeOperatorRegistry.sol";
 /// @title MaticX interface.
 interface IMaticX is IERC20Upgradeable {
     struct FeeDistribution {
-        uint8 dao;
-        uint8 operators;
+        uint8 treasury;
         uint8 insurance;
     }
 
