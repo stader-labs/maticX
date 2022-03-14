@@ -1,10 +1,3 @@
-export type OperatorArgs = {
-  operatorName: string
-  rewardAddress: string
-  pubKey?: string
-  privateKey?: string
-}
-
 interface Multisig {
   address: string
   owners: Array<string>
@@ -20,7 +13,7 @@ export interface DeployDetails {
   matic_stake_manager_proxy: string
   maticX_proxy: string
   maticX_implementation: string
-  node_operator_registry_proxy: string
-  node_operator_registry_implementation: string
+  validator_registry_proxy: string
+  validator_registry_implementation: string
   default?: string
 }

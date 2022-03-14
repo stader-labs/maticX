@@ -1,13 +1,13 @@
 import hardhat, { ethers } from 'hardhat'
-import { NodeOperatorRegistry, MaticX } from '../typechain'
+import { ValidatorRegistry, MaticX } from '../typechain'
 import { getUpgradeContext } from './utils'
 
 const checkDeployIntegrity = async () => {
   const { deployDetails } = getUpgradeContext(hardhat)
-  const nodeOperatorRegistry: NodeOperatorRegistry = (await ethers.getContractAt(
-    'NodeOperatorRegistry',
-    deployDetails.node_operator_registry_proxy,
-  )) as NodeOperatorRegistry
+  const validatorRegistry: ValidatorRegistry = (await ethers.getContractAt(
+    'ValidatorRegistry',
+    deployDetails.validator_registry_proxy,
+  )) as ValidatorRegistry
 
   const maticX: MaticX = (await ethers.getContractAt(
     'MaticX',
@@ -16,31 +16,31 @@ const checkDeployIntegrity = async () => {
 
   console.log('Checking contracts integrity...')
 
-  const res = await nodeOperatorRegistry.getContracts()
+  const res = await validatorRegistry.getContracts()
   isValid(
     res._polygonERC20,
     deployDetails.matic_erc20_address,
-    'NodeOperatorRegistry',
+    'ValidatorRegistry',
     'ERC20',
   )
   isValid(
     res._maticX,
     deployDetails.maticX_proxy,
-    'NodeOperatorRegistry',
+    'ValidatorRegistry',
     'MaticX',
   )
   isValid(
     res._stakeManager,
     deployDetails.matic_stake_manager_proxy,
-    'NodeOperatorRegistry',
+    'ValidatorRegistry',
     'StakeManager',
   )
 
   isValid(
-    await maticX.nodeOperatorRegistry(),
-    deployDetails.node_operator_registry_proxy,
+    await maticX.validatorRegistry(),
+    deployDetails.validator_registry_proxy,
     'maticX',
-    'nodeOperatorRegistry',
+    'validatorRegistry',
   )
   isValid(
     await maticX.token(),

@@ -14,7 +14,7 @@ const verifyContract = async (
 export const verify = async (hre: HardhatRuntimeEnvironment) => {
   const contracts = [
     GOERLI_DEPLOYMENT_DETAILS.maticX_impl,
-    GOERLI_DEPLOYMENT_DETAILS.node_operator_registry_impl,
+    GOERLI_DEPLOYMENT_DETAILS.validator_registry_impl,
   ]
 
   for (const contract of contracts) {
