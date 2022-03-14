@@ -4,7 +4,7 @@ import { ethers, network, upgrades } from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 import { predictContractAddress } from './utils'
-import { NodeOperatorRegistry, MaticX } from '../typechain'
+import { ValidatorRegistry, MaticX } from '../typechain'
 import {
   STAKE_MANAGER,
   MATIC_TOKEN,
@@ -19,13 +19,13 @@ type DeploymentData = {
   Signer: string
   Dao: string
   MaticX: string
-  NodeOperatorRegistry: string
+  ValidatorRegistry: string
 }
 
 type ContractNames =
   | 'ProxyAdmin'
-  | 'NodeOperatorRegistryImplementation'
-  | 'NodeOperatorRegistry'
+  | 'ValidatorRegistryImplementation'
+  | 'ValidatorRegistry'
   | 'MaticXImplementation'
   | 'MaticX'
 
@@ -34,8 +34,8 @@ type RootDeploymentOrder = Record<RootContractNames, number>
 
 const rootDeploymentOrder: RootDeploymentOrder = {
   ProxyAdmin: 0,
-  NodeOperatorRegistryImplementation: 1,
-  NodeOperatorRegistry: 2,
+  ValidatorRegistryImplementation: 1,
+  ValidatorRegistry: 2,
   MaticXImplementation: 3,
   MaticX: 4,
 }
@@ -114,31 +114,25 @@ export class MaticXDeployer extends MultichainDeployer
   }
 
   deploy = async () => {
-    await this.deployNodeOperatorRegistry()
+    await this.deployValidatorRegistry()
     await this.deployMaticX()
   }
 
-  private checkAddress = (expected: string, computed: string) => {
-    if (expected.toLowerCase() !== computed.toLowerCase()) {
-      throw new Error(
-        `Invalid address: expected ==> ${expected} || computed ==> ${computed}`,
-      )
-    }
-  }
-
-  private deployNodeOperatorRegistry = async () => {
-    return this.rootDeployer.deployProxy<NodeOperatorRegistry>(
-      'NodeOperatorRegistry',
+  private deployValidatorRegistry = async () => {
+    return this.rootDeployer.deployProxy<ValidatorRegistry>(
+      'ValidatorRegistry',
       STAKE_MANAGER,
       MATIC_TOKEN,
       this.data.MaticX,
+      MANAGER,
     )
   }
 
   private deployMaticX = async () => {
     return this.rootDeployer.deployProxy<MaticX>(
       'MaticX',
-      this.data.NodeOperatorRegistry,
+      this.data.ValidatorRegistry,
+      STAKE_MANAGER,
       MATIC_TOKEN,
       MANAGER,
       INSURANCE,
@@ -165,8 +159,8 @@ export class MaticXDeployer extends MultichainDeployer
       proxy_admin: this.data.ProxyAdmin,
       maticX_proxy: this.data.MaticX,
       maticX_impl: this.data.MaticXImplementation,
-      node_operator_registry_proxy: this.data.NodeOperatorRegistry,
-      node_operator_registry_impl: this.data.NodeOperatorRegistryImplementation,
+      node_validator_registry_proxy: this.data.ValidatorRegistry,
+      node_validator_registry_impl: this.data.ValidatorRegistryImplementation,
     }
     fs.writeFileSync(fileName, JSON.stringify(out))
   }

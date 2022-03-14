@@ -8,7 +8,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
 import "./interfaces/IValidatorShare.sol";
-import "./interfaces/INodeOperatorRegistry.sol";
+import "./interfaces/IValidatorRegistry.sol";
+import "./interfaces/IStakeManager.sol";
 import "./interfaces/IMaticX.sol";
 
 contract MaticX is
@@ -24,7 +25,8 @@ contract MaticX is
 
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    INodeOperatorRegistry public override nodeOperatorRegistry;
+    IValidatorRegistry public override validatorRegistry;
+    IStakeManager public stakeManager;
     FeeDistribution public override entityFees;
 
     string public override version;
@@ -42,13 +44,15 @@ contract MaticX is
     bytes32 public constant MANAGER = keccak256("MANAGER");
 
     /**
-     * @param _nodeOperatorRegistry - Address of the node operator registry
+     * @param _validatorRegistry - Address of the validator registry
+     * @param _stakeManager - Address of the stake manager
      * @param _token - Address of matic token on Ethereum Mainnet
      * @param _treasury - Address of the treasury
      * @param _insurance - Address of the insurance
      */
     function initialize(
-        address _nodeOperatorRegistry,
+        address _validatorRegistry,
+        address _stakeManager,
         address _token,
         address _manager,
         address _treasury,
@@ -63,7 +67,8 @@ contract MaticX is
         manager = _manager;
         proposed_manager = address(0);
 
-        nodeOperatorRegistry = INodeOperatorRegistry(_nodeOperatorRegistry);
+        validatorRegistry = IValidatorRegistry(_validatorRegistry);
+        stakeManager = IStakeManager(_stakeManager);
         treasury = _treasury;
         token = _token;
         insurance = _insurance;
@@ -100,15 +105,10 @@ contract MaticX is
 
         emit SubmitEvent(msg.sender, _amount);
 
-        Operator.OperatorInfo[] memory operatorInfos = nodeOperatorRegistry
-            .getOperatorInfos(true, false);
-        uint256 operatorInfosLength = operatorInfos.length;
-
-        require(operatorInfosLength > 0, "No operator shares, cannot delegate");
-
-        uint256 preferredOperatorId = nodeOperatorRegistry.getPreferredOperatorId();
+        uint256 preferredValidatorId = validatorRegistry.getPreferredValidatorId();
+        address validatorShare = stakeManager.getValidatorContract(preferredValidatorId);
         buyVoucher(
-            operatorInfos[preferredOperatorId].validatorShare,
+            validatorShare,
             _amount,
             0
         );
@@ -182,13 +182,11 @@ contract MaticX is
         returns (uint256)
     {
         uint256 totalStake;
-        Operator.OperatorInfo[] memory operatorInfos = nodeOperatorRegistry
-            .getOperatorInfos(false, true);
-
-        uint256 operatorInfosLength = operatorInfos.length;
-        for (uint256 i = 0; i < operatorInfosLength; i++) {
+        uint256[] memory validators = validatorRegistry.getValidators();
+        for (uint256 i = 0; i < validators.length; i++) {
+            address validatorShare = stakeManager.getValidatorContract(validators[i]);
             (uint256 currValidatorShare, ) = getTotalStake(
-                IValidatorShare(operatorInfos[i].validatorShare)
+                IValidatorShare(validatorShare)
             );
 
             totalStake += currValidatorShare;
@@ -259,40 +257,6 @@ contract MaticX is
         return (balanceInMaticX, totalShares, totalPooledMatic);
     }
 
-    /**
-     * @dev Function that calculates minimal allowed validator balance (lower bound)
-     * @return Minimal validator balance in MATIC
-     */
-    function getMinValidatorBalance() external view override returns (uint256) {
-        Operator.OperatorInfo[] memory operatorInfos = nodeOperatorRegistry
-        .getOperatorInfos(false, true);
-
-        return _getMinValidatorBalance(operatorInfos);
-    }
-
-
-    function _getMinValidatorBalance(Operator.OperatorInfo[] memory operatorInfos) private view returns (uint256) {
-        uint256 operatorInfosLength = operatorInfos.length;
-        uint256 minValidatorBalance = type(uint256).max;
-
-        for (uint256 i = 0; i < operatorInfosLength; i++) {
-            (uint256 validatorShare, ) = getTotalStake(
-                IValidatorShare(operatorInfos[i].validatorShare)
-            );
-            // 10% of current validatorShare
-            uint256 minValidatorBalanceCurrent = validatorShare / 10;
-
-            if (
-                minValidatorBalanceCurrent != 0 &&
-                minValidatorBalanceCurrent < minValidatorBalance
-            ) {
-                minValidatorBalance = minValidatorBalanceCurrent;
-            }
-        }
-
-        return minValidatorBalance;
-    }
-
     ////////////////////////////////////////////////////////////
     /////                                                    ///
     /////                 ***Setters***                      ///
@@ -360,15 +324,15 @@ contract MaticX is
 
     /**
      * @dev Function that sets new node operator address
-     * @notice Only callable by dao
+     * @notice Only callable by manager
      * @param _address - New node operator address
      */
-    function setNodeOperatorRegistryAddress(address _address)
+    function setValidatorRegistryAddress(address _address)
         external
         override
         onlyRole(MANAGER)
     {
-        nodeOperatorRegistry = INodeOperatorRegistry(_address);
+        validatorRegistry = IValidatorRegistry(_address);
     }
 
     /**

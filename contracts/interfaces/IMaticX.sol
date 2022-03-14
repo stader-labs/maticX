@@ -4,7 +4,7 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "./IValidatorShare.sol";
-import "./INodeOperatorRegistry.sol";
+import "./IValidatorRegistry.sol";
 
 /// @title MaticX interface.
 interface IMaticX is IERC20Upgradeable {
@@ -13,7 +13,7 @@ interface IMaticX is IERC20Upgradeable {
         uint8 insurance;
     }
 
-    function nodeOperatorRegistry() external returns (INodeOperatorRegistry);
+    function validatorRegistry() external returns (IValidatorRegistry);
 
     function entityFees()
         external
@@ -34,10 +34,9 @@ interface IMaticX is IERC20Upgradeable {
 
     function reservedFunds() external view returns (uint256);
 
-    function getMinValidatorBalance() external view returns (uint256);
-
     function initialize(
-        address _nodeOperatorRegistry,
+        address _validatorRegistry,
+        address _stakeManager,
         address _token,
         address _manager,
         address _treasury,
@@ -82,7 +81,7 @@ interface IMaticX is IERC20Upgradeable {
 
     function setInsuranceAddress(address _address) external;
 
-    function setNodeOperatorRegistryAddress(address _address) external;
+    function setValidatorRegistryAddress(address _address) external;
 
     function setRewardDistributionLowerBound(
         uint256 _rewardDistributionLowerBound
