@@ -36,6 +36,9 @@ contract ValidatorRegistry is
     /// @notice This stores the preferred validator id
     uint256 private preferredValidatorId;
 
+    /// @notice This stores the validator id of the last withdraw request sent to
+    uint256 private lastWithdrawnValidatorId;
+
     /// @notice This stores the validators.
     uint256[] private validators;
 
@@ -123,7 +126,7 @@ contract ValidatorRegistry is
 
     /// @notice Allows to set the preffered validator id
     /// @param _validatorId the validator id.
-    function setPrefferedValidatorId(uint256 _validatorId)
+    function setPreferredValidatorId(uint256 _validatorId)
         external
         override
         whenNotPaused
@@ -132,6 +135,19 @@ contract ValidatorRegistry is
         require(validatorIds[_validatorId] != 0, "Validator doesn't exist in our registry");
 
         preferredValidatorId = _validatorId;
+    }
+
+    /// @notice Allows to set the last withdrawn validator id
+    /// @param _validatorId the validator id.
+    function setLastWithdrawnValidatorId(uint256 _validatorId)
+        external
+        override
+        whenNotPaused
+        onlyRole(MANAGER) 
+    {
+        require(validatorIds[_validatorId] != 0, "Validator doesn't exist in our registry");
+
+        lastWithdrawnValidatorId = _validatorId;
     }
 
     /// ------------------------Stake Manager API-------------------------------
@@ -186,10 +202,27 @@ contract ValidatorRegistry is
         return validators;
     }
 
+    // @notice Get validator id by its index.
+    /// @param _index validator index
+    function getValidatorId(uint256 _index)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return validators[_index];
+    }
+
     /// @notice Retrieve the preferred validator id
-    /// @return prefferedValidatorId
+    /// @return preferredValidatorId
     function getPreferredValidatorId() external view override returns (uint256) {
         return preferredValidatorId;
+    }
+
+    /// @notice Retrieve the last withdrawn validator id
+    /// @return lastWithdrawnValidatorId
+    function getLastWithdrawnValidatorId() external view override returns (uint256) {
+        return lastWithdrawnValidatorId;
     }
 
     /// -------------------------------Events-----------------------------------

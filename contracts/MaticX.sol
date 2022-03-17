@@ -18,9 +18,14 @@ contract MaticX is
     AccessControlUpgradeable,
     PausableUpgradeable
 {
-    event SubmitEvent(address indexed _from, uint256 indexed _amount);
+    event SubmitEvent(address indexed _from, uint256 _amount);
     event DelegateEvent(
-        uint256 indexed _amountDelegated
+        uint256 _amountDelegated
+    );
+    event RequestWithdrawEvent(address indexed _from, uint256 _amount);
+    event ClaimWithdrawalEvent(
+        address indexed _from,
+        uint256 _amountClaimed
     );
 
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -37,9 +42,9 @@ contract MaticX is
     address public override token;
     address public proposed_manager;
     address public manager;
-    uint256 public override totalBuffered;
-    uint256 public override rewardDistributionLowerBound;
-    uint256 public override reservedFunds;
+
+    /// @notice Mapping of all user ids with withdraw requests.
+    mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 
     bytes32 public constant MANAGER = keccak256("MANAGER");
 
@@ -60,7 +65,7 @@ contract MaticX is
     ) external override initializer {
         __AccessControl_init();
         __Pausable_init();
-        __ERC20_init("Liquid Staking Matic", "maticX");
+        __ERC20_init("Liquid Staking Matic Test", "tMaticX");
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(MANAGER, _manager);
@@ -95,11 +100,7 @@ contract MaticX is
             _amount
         );
 
-        (
-            uint256 amountToMint,
-            uint256 totalShares,
-            uint256 totalPooledMatic
-        ) = convertMaticToMaticX(_amount);
+        (uint256 amountToMint,,) = convertMaticToMaticX(_amount);
 
         _mint(msg.sender, amountToMint);
 
@@ -116,6 +117,109 @@ contract MaticX is
         emit DelegateEvent(_amount);
 
         return amountToMint;
+    }
+
+    /**
+     * @dev Stores users request to withdraw into WithdrawalRequest struct
+     * @param _amount - Amount of maticX that is requested to withdraw
+     */
+    function requestWithdraw(uint256 _amount)
+        external
+        override
+        whenNotPaused
+    {
+        require(_amount > 0, "Invalid amount");
+
+        (uint256 totalAmount2WithdrawInMatic,,) = convertMaticXToMatic(_amount);
+
+        uint256 leftAmount2WithdrawInMatic = totalAmount2WithdrawInMatic;
+        uint256 totalDelegated = getTotalStakeAcrossAllValidators();
+
+        require(totalDelegated >= totalAmount2WithdrawInMatic, "Too much to withdraw");
+        
+        uint256[] memory validators = validatorRegistry.getValidators();
+        uint256 lastWithdrawnValidatorId = validatorRegistry.getLastWithdrawnValidatorId();
+        uint256 currentValidatorIdx = validators[lastWithdrawnValidatorId];
+
+        while (leftAmount2WithdrawInMatic > 0) {
+            currentValidatorIdx = currentValidatorIdx + 1 > validators.length ? 0 : currentValidatorIdx + 1;
+
+            address validatorShare = stakeManager.getValidatorContract(currentValidatorIdx);
+            (uint256 validatorBalance, ) = IValidatorShare(validatorShare).getTotalStake(address(this));
+
+            uint256 amount2WithdrawFromValidator = (validatorBalance <=
+                        leftAmount2WithdrawInMatic)
+                        ? validatorBalance
+                        : leftAmount2WithdrawInMatic;
+            
+            sellVoucher_new(
+                validatorShare,
+                amount2WithdrawFromValidator,
+                type(uint256).max
+            );
+
+            userWithdrawalRequests[msg.sender].push(WithdrawalRequest(
+                    IValidatorShare(validatorShare).unbondNonces(address(this)),
+                    stakeManager.epoch() + stakeManager.withdrawalDelay(),
+                    validatorShare
+                )
+            );
+            
+            leftAmount2WithdrawInMatic -= amount2WithdrawFromValidator;
+        }
+
+        lastWithdrawnValidatorId = validatorRegistry.getValidatorId(currentValidatorIdx);
+        validatorRegistry.setLastWithdrawnValidatorId(lastWithdrawnValidatorId);
+
+        _burn(msg.sender, _amount);
+
+        emit RequestWithdrawEvent(msg.sender, _amount);
+    }
+
+    /**
+     * @dev Claims tokens from validator share and sends them to the
+     * user if his request is in the userWithdrawalRequests
+     */
+    function claimWithdrawal() external override whenNotPaused {
+        uint256 amountToClaim = 0;
+        uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(address(this));
+        uint256 lastIdx = 0;
+        WithdrawalRequest[] storage userRequests = userWithdrawalRequests[msg.sender];
+
+        for (; lastIdx < userRequests.length; lastIdx++) {
+            WithdrawalRequest memory currentRequest = userRequests[lastIdx];
+            if (stakeManager.epoch() < currentRequest.requestEpoch) 
+                break;
+            
+            unstakeClaimTokens_new(
+                currentRequest.validatorAddress,
+                currentRequest.validatorNonce
+            );            
+        }
+
+        require(lastIdx > 0, "Not able to claim yet");
+
+        if (lastIdx >= userRequests.length) {
+            delete userWithdrawalRequests[msg.sender];
+        } else {
+            // shift the array to the left and reduce the array length (it will remove them)
+            uint256 idx = 0;
+            while (lastIdx < userRequests.length) {
+                userRequests[idx] = userRequests[lastIdx];
+                
+                lastIdx++;
+                idx++;
+            }
+
+            while (userRequests.length > idx)
+                userRequests.pop();
+        }
+
+        amountToClaim = IERC20Upgradeable(token).balanceOf(address(this)) - balanceBeforeClaim;
+        
+        IERC20Upgradeable(token).safeTransfer(msg.sender, amountToClaim);
+
+        emit ClaimWithdrawalEvent(msg.sender, amountToClaim);
     }
 
     /**
@@ -149,6 +253,35 @@ contract MaticX is
         );
 
         return amountSpent;
+    }
+
+    /**
+     * @dev API for delegated selling vouchers from validatorShare
+     * @param _validatorShare - Address of validatorShare contract
+     * @param _claimAmount - Amount of MATIC to claim
+     * @param _maximumSharesToBurn - Maximum amount of shares to burn
+     */
+    function sellVoucher_new(
+        address _validatorShare,
+        uint256 _claimAmount,
+        uint256 _maximumSharesToBurn
+    ) private {
+        IValidatorShare(_validatorShare).sellVoucher_new(
+            _claimAmount,
+            _maximumSharesToBurn
+        );
+    }
+
+    /**
+     * @dev API for delegated unstaking and claiming tokens from validatorShare
+     * @param _validatorShare - Address of validatorShare contract
+     * @param _unbondNonce - Unbond nonce
+     */
+    function unstakeClaimTokens_new(
+        address _validatorShare,
+        uint256 _unbondNonce
+    ) private {
+        IValidatorShare(_validatorShare).unstakeClaimTokens_new(_unbondNonce);
     }
 
     /**
@@ -201,7 +334,7 @@ contract MaticX is
      */
     function getTotalPooledMatic() public view override returns (uint256) {
         uint256 totalStaked = getTotalStakeAcrossAllValidators();
-        return totalStaked + totalBuffered - reservedFunds;
+        return totalStaked;
     }
 
     /**
@@ -219,7 +352,6 @@ contract MaticX is
             uint256
         )
     {
-        // TODO - GM. Where is this totalSupply function?
         uint256 totalShares = totalSupply();
         totalShares = totalShares == 0 ? 1 : totalShares;
 
@@ -333,17 +465,6 @@ contract MaticX is
         onlyRole(MANAGER)
     {
         validatorRegistry = IValidatorRegistry(_address);
-    }
-
-    /**
-     * @dev Function that sets new lower bound for rewards distribution
-     * @notice Only callable by manager
-     * @param _rewardDistributionLowerBound - New lower bound for rewards distribution
-     */
-    function setRewardDistributionLowerBound(
-        uint256 _rewardDistributionLowerBound
-    ) external override onlyRole(MANAGER) {
-        rewardDistributionLowerBound = _rewardDistributionLowerBound;
     }
 
     /**

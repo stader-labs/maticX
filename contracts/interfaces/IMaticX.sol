@@ -8,6 +8,12 @@ import "./IValidatorRegistry.sol";
 
 /// @title MaticX interface.
 interface IMaticX is IERC20Upgradeable {
+    struct WithdrawalRequest {
+        uint256 validatorNonce;
+        uint256 requestEpoch;
+        address validatorAddress;
+    }
+
     struct FeeDistribution {
         uint8 treasury;
         uint8 insurance;
@@ -28,12 +34,6 @@ interface IMaticX is IERC20Upgradeable {
 
     function token() external view returns (address);
 
-    function totalBuffered() external view returns (uint256);
-
-    function rewardDistributionLowerBound() external view returns (uint256);
-
-    function reservedFunds() external view returns (uint256);
-
     function initialize(
         address _validatorRegistry,
         address _stakeManager,
@@ -44,6 +44,10 @@ interface IMaticX is IERC20Upgradeable {
     ) external;
 
     function submit(uint256 _amount) external returns (uint256);
+
+    function requestWithdraw(uint256 _amount) external;
+
+    function claimWithdrawal() external;
 
     function togglePause() external;
 
@@ -82,10 +86,6 @@ interface IMaticX is IERC20Upgradeable {
     function setInsuranceAddress(address _address) external;
 
     function setValidatorRegistryAddress(address _address) external;
-
-    function setRewardDistributionLowerBound(
-        uint256 _rewardDistributionLowerBound
-    ) external;
 
     function setVersion(string calldata _version) external;
 }

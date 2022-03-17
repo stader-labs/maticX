@@ -13,8 +13,12 @@ interface IValidatorRegistry {
     function addValidator(uint256 _validatorId) external;
 
     /// @notice Allows to set the preferred validator id.
-    /// @param _validatorId validator index.
-    function setPrefferedValidatorId(uint256 _validatorId) external;
+    /// @param _validatorId validator id.
+    function setPreferredValidatorId(uint256 _validatorId) external;
+
+    /// @notice Allows to set the last withdrawn validator id.
+    /// @param _validatorId validator id.
+    function setLastWithdrawnValidatorId(uint256 _validatorId) external;
 
     /// @notice Allows to pause/unpause the validatorRegistry contract.
     function togglePause() external;
@@ -38,6 +42,12 @@ interface IValidatorRegistry {
     /// @notice Allows to get all the validators.
     function getValidators() external view returns (uint256[] memory);
 
-    /// @notice Allows to get preferred validator id.
+    /// @notice Allows to get validator id by its index
+    function getValidatorId(uint256 _index) external view returns (uint256);
+
+    /// @notice Allows to get the preferred validator id.
     function getPreferredValidatorId() external view returns (uint256);
+
+    /// @notice Allows to get the last withdrawn validator id.
+    function getLastWithdrawnValidatorId() external view returns (uint256);
 }

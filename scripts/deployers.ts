@@ -159,8 +159,8 @@ export class MaticXDeployer extends MultichainDeployer
       proxy_admin: this.data.ProxyAdmin,
       maticX_proxy: this.data.MaticX,
       maticX_impl: this.data.MaticXImplementation,
-      node_validator_registry_proxy: this.data.ValidatorRegistry,
-      node_validator_registry_impl: this.data.ValidatorRegistryImplementation,
+      validator_registry_proxy: this.data.ValidatorRegistry,
+      validator_registry_impl: this.data.ValidatorRegistryImplementation,
     }
     fs.writeFileSync(fileName, JSON.stringify(out))
   }
