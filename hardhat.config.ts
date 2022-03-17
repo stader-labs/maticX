@@ -44,8 +44,6 @@ const config: HardhatUserConfig = {
     testnet: {
       url: ROOT_CHAIN_RPC,
       accounts: [DEPLOYER_PRIVATE_KEY],
-      gasPrice: Number(ROOT_GAS_PRICE),
-      gas: Number(ROOT_GAS_LIMIT),
     },
     mainnet: {
       url: ROOT_CHAIN_RPC,

@@ -10,7 +10,6 @@ dotenv.config({ path: path.join(__dirname, '.env' + envSuffix) })
 const DEPLOYER_PRIVATE_KEY =
   process.env.DEPLOYER_PRIVATE_KEY || ethers.Wallet.createRandom().privateKey
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || ''
-const VALIDATOR_PRIVATE_KEY = process.env.VALIDATOR_PRIVATE_KEY || ''
 const ROOT_CHAIN_RPC = process.env.ROOT_CHAIN_RPC || ''
 const STAKE_MANAGER = process.env.STAKE_MANAGER || ''
 const MATIC_TOKEN = process.env.MATIC_TOKEN || ''
@@ -26,7 +25,6 @@ const DEFENDER_TEAM_API_SECRET_KEY =
 export {
   DEPLOYER_PRIVATE_KEY,
   ETHERSCAN_API_KEY,
-  VALIDATOR_PRIVATE_KEY,
   ROOT_CHAIN_RPC,
   STAKE_MANAGER,
   MATIC_TOKEN,

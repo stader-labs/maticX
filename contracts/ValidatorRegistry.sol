@@ -30,9 +30,6 @@ contract ValidatorRegistry is
     /// @notice maticX address.
     address private maticX;
 
-    /// @notice keeps track of total number of validators
-    uint256 validatorCounter;
-
     /// @notice This stores the preferred validator id
     uint256 private preferredValidatorId;
 

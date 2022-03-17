@@ -17,7 +17,6 @@ import path from 'path'
 type DeploymentData = {
   Network: string
   Signer: string
-  Dao: string
   MaticX: string
   ValidatorRegistry: string
 }
@@ -29,10 +28,9 @@ type ContractNames =
   | 'MaticXImplementation'
   | 'MaticX'
 
-type RootContractNames = ContractNames
-type RootDeploymentOrder = Record<RootContractNames, number>
+type DeploymentOrder = Record<ContractNames, number>
 
-const rootDeploymentOrder: RootDeploymentOrder = {
+const deploymentOrder: DeploymentOrder = {
   ProxyAdmin: 0,
   ValidatorRegistryImplementation: 1,
   ValidatorRegistry: 2,
@@ -170,13 +168,11 @@ export class MaticXDeployer extends MultichainDeployer
   }
 
   private calculateRootContractAddresses = () => {
-    ;(Object.keys(rootDeploymentOrder) as Array<RootContractNames>).forEach(
-      (k) => {
-        this.data[k] = predictContractAddress(
-          this.rootDeployer.signer.address,
-          this.rootDeployer.nonce + rootDeploymentOrder[k],
-        )
-      },
-    )
+    ;(Object.keys(deploymentOrder) as Array<ContractNames>).forEach((k) => {
+      this.data[k] = predictContractAddress(
+        this.rootDeployer.signer.address,
+        this.rootDeployer.nonce + deploymentOrder[k],
+      )
+    })
   }
 }

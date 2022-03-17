@@ -48,7 +48,6 @@ const checkDeployIntegrity = async () => {
     'maticX',
     'matic_erc20_address',
   )
-  isValid(await maticX.dao(), deployDetails.dao, 'maticX', 'dao')
   isValid(
     await maticX.insurance(),
     deployDetails.treasury,
