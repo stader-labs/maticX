@@ -18,6 +18,10 @@ export const verify = async (hre: HardhatRuntimeEnvironment) => {
   ]
 
   for (const contract of contracts) {
-    await verifyContract(hre, contract)
+      try {
+        await verifyContract(hre, contract)
+      } catch(error) {
+          console.log(error)
+      }
   }
 }

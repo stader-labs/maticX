@@ -46,8 +46,6 @@ contract MaticX is
     /// @notice Mapping of all user ids with withdraw requests.
     mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 
-    bytes32 public constant MANAGER = keccak256("MANAGER");
-
     /**
      * @param _validatorRegistry - Address of the validator registry
      * @param _stakeManager - Address of the stake manager
@@ -67,8 +65,7 @@ contract MaticX is
         __Pausable_init();
         __ERC20_init("Liquid Staking Matic Test", "tMaticX");
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(MANAGER, _manager);
+        _setupRole(DEFAULT_ADMIN_ROLE, _manager);
         manager = _manager;
         proposed_manager = address(0);
 
@@ -404,7 +401,7 @@ contract MaticX is
     function setFees(
         uint8 _treasuryFee,
         uint8 _insuranceFee
-    ) external override onlyRole(MANAGER) {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         require(
             _treasuryFee + _insuranceFee == 100,
             "sum(fee) is not equal to 100"
@@ -418,7 +415,7 @@ contract MaticX is
      * @notice Callable only by manager
      * @param _address - New manager address
      */
-    function setTreasuryAddress(address _address) external onlyRole(MANAGER) {
+    function setTreasuryAddress(address _address) external onlyRole(DEFAULT_ADMIN_ROLE) {
         treasury = _address;
     }
 
@@ -430,39 +427,38 @@ contract MaticX is
     function setInsuranceAddress(address _address)
         external
         override
-        onlyRole(MANAGER)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         insurance = _address;
     }
 
     /**
-     * @dev Function that sets new insurance address
+     * @dev Function that appoints a new manager address
      * @notice Callable only by manager
      * @param _address - New manager address
      */
-    function proposeManagerAddress(address _address) external onlyRole(MANAGER) {
+    function proposeManagerAddress(address _address) external onlyRole(DEFAULT_ADMIN_ROLE) {
         proposed_manager = _address;
     }
 
     function acceptProposedManagerAddress() external {
-        // TODO - GM. Is this address validation sufficient?
         require(proposed_manager != address(0) && msg.sender == proposed_manager,
             "You are not the proposed manager");
-        _revokeRole(MANAGER, manager);
-        _setupRole(MANAGER, proposed_manager);
+        _revokeRole(DEFAULT_ADMIN_ROLE, manager);
+        _setupRole(DEFAULT_ADMIN_ROLE, proposed_manager);
         manager = proposed_manager;
         proposed_manager = address(0);
     }
 
     /**
-     * @dev Function that sets new node operator address
+     * @dev Function that sets new validator registry address
      * @notice Only callable by manager
-     * @param _address - New node operator address
+     * @param _address - New validator registry address
      */
     function setValidatorRegistryAddress(address _address)
         external
         override
-        onlyRole(MANAGER)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         validatorRegistry = IValidatorRegistry(_address);
     }

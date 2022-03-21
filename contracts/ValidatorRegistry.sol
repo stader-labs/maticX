@@ -18,8 +18,6 @@ contract ValidatorRegistry is
     AccessControlUpgradeable,
     ReentrancyGuardUpgradeable
 {
-    bytes32 public constant MANAGER = keccak256("MANAGER");
-
     /// @notice contract version.
     string public version;
 
@@ -39,8 +37,8 @@ contract ValidatorRegistry is
     /// @notice This stores the validators.
     uint256[] private validators;
 
-    /// @notice Mapping of all validator ids with validator index.
-    mapping(uint256 => uint256) private validatorIds;
+    /// @notice Mapping of registered validator ids
+    mapping(uint256 => bool) private validatorIdExists;
 
     /// -------------------------- initialize ----------------------------------
 
@@ -61,7 +59,7 @@ contract ValidatorRegistry is
 
         preferredValidatorId = 0;
 
-        _setupRole(MANAGER, _manager);
+        _setupRole(DEFAULT_ADMIN_ROLE, _manager);
     }
 
     /// ----------------------------- API --------------------------------------
@@ -75,9 +73,9 @@ contract ValidatorRegistry is
         external
         override
         whenNotPaused
-        onlyRole(MANAGER)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(validatorIds[_validatorId] == 0, "Validator already exists in our registry");
+        require(validatorIdExists[_validatorId] == false, "Validator already exists in our registry");
 
         IStakeManager sm = IStakeManager(stakeManager);
         IStakeManager.Validator memory smValidator = sm.validators(_validatorId);
@@ -94,7 +92,7 @@ contract ValidatorRegistry is
         );
 
         validators.push(_validatorId);
-        validatorIds[_validatorId] = validators.length;
+        validatorIdExists[_validatorId] = true;
 
         emit AddValidator(_validatorId);
     }
@@ -105,18 +103,20 @@ contract ValidatorRegistry is
         external
         override
         whenNotPaused
-        onlyRole(MANAGER)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(preferredValidatorId != _validatorId, "Can't remove a preferred validator");
 
-        uint256 validatorIndex = validatorIds[_validatorId];
-        // update the validators array by removing the validator id.
-        for (uint idx = validatorIndex - 1; idx < validators.length - 1; idx++) {
-            validators[idx] = validators[idx + 1];
+        // swap with the last item and pop it.
+        for (uint256 idx = 0; idx < validators.length - 1; idx++) {
+            if (_validatorId == validators[idx]) {
+                validators[idx] = validators[validators.length - 1];
+                break;
+            }
         }
         validators.pop();
 
-        delete validatorIds[_validatorId];
+        delete validatorIdExists[_validatorId];
 
         emit RemoveValidator(_validatorId);
     }
@@ -127,9 +127,9 @@ contract ValidatorRegistry is
         external
         override
         whenNotPaused
-        onlyRole(MANAGER)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(validatorIds[_validatorId] != 0, "Validator doesn't exist in our registry");
+        require(validatorIdExists[_validatorId] != false, "Validator doesn't exist in our registry");
 
         preferredValidatorId = _validatorId;
     }
@@ -140,9 +140,9 @@ contract ValidatorRegistry is
         external
         override
         whenNotPaused
-        onlyRole(MANAGER) 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
     {
-        require(validatorIds[_validatorId] != 0, "Validator doesn't exist in our registry");
+        require(validatorIdExists[_validatorId] != false, "Validator doesn't exist in our registry");
 
         lastWithdrawnValidatorId = _validatorId;
     }
@@ -150,7 +150,7 @@ contract ValidatorRegistry is
     /// ------------------------Stake Manager API-------------------------------
 
     /// @notice Allows to pause the contract.
-    function togglePause() external override onlyRole(MANAGER) {
+    function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
         paused() ? _unpause() : _pause();
     }
 
@@ -158,7 +158,7 @@ contract ValidatorRegistry is
     function setMaticX(address _maticX)
         external
         override
-        onlyRole(MANAGER)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         maticX = _maticX;
     }
@@ -168,7 +168,7 @@ contract ValidatorRegistry is
     function setVersion(string memory _version)
         external
         override
-        onlyRole(MANAGER)
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         version = _version;
     }

@@ -17,7 +17,6 @@ const MANAGER = process.env.MANAGER || ''
 const INSURANCE = process.env.INSURANCE || ''
 const TREASURY = process.env.TREASURY || ''
 const ROOT_GAS_PRICE = process.env.ROOT_GAS_PRICE || 0
-const ROOT_GAS_LIMIT = process.env.ROOT_GAS_LIMIT || 0
 const DEFENDER_TEAM_API_KEY = process.env.DEFENDER_TEAM_API_KEY || ''
 const DEFENDER_TEAM_API_SECRET_KEY =
   process.env.DEFENDER_TEAM_API_SECRET_KEY || ''
@@ -32,7 +31,6 @@ export {
   INSURANCE,
   TREASURY,
   ROOT_GAS_PRICE,
-  ROOT_GAS_LIMIT,
   DEFENDER_TEAM_API_KEY,
   DEFENDER_TEAM_API_SECRET_KEY,
 }

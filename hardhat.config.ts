@@ -14,7 +14,6 @@ import {
   DEPLOYER_PRIVATE_KEY,
   ETHERSCAN_API_KEY,
   ROOT_CHAIN_RPC,
-  ROOT_GAS_LIMIT,
   ROOT_GAS_PRICE,
   DEFENDER_TEAM_API_KEY,
   DEFENDER_TEAM_API_SECRET_KEY,
@@ -44,12 +43,12 @@ const config: HardhatUserConfig = {
     testnet: {
       url: ROOT_CHAIN_RPC,
       accounts: [DEPLOYER_PRIVATE_KEY],
+      gasPrice: Number(ROOT_GAS_PRICE)
     },
     mainnet: {
       url: ROOT_CHAIN_RPC,
       accounts: [DEPLOYER_PRIVATE_KEY],
       gasPrice: Number(ROOT_GAS_PRICE),
-      gas: Number(ROOT_GAS_LIMIT),
     },
   },
   typechain: {
@@ -57,7 +56,7 @@ const config: HardhatUserConfig = {
     target: 'ethers-v5',
   },
   mocha: {
-    timeout: 100000,
+    timeout: 99999999,
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
