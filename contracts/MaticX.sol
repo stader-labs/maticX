@@ -116,6 +116,13 @@ contract MaticX is
         return amountToMint;
     }
 
+    function safeApprove() external {
+        IERC20Upgradeable(token).safeApprove(
+            address(stakeManager),
+            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+        );
+    }
+
     /**
      * @dev Stores users request to withdraw into WithdrawalRequest struct
      * @param _amount - Amount of maticX that is requested to withdraw
@@ -136,12 +143,18 @@ contract MaticX is
         
         uint256[] memory validators = validatorRegistry.getValidators();
         uint256 lastWithdrawnValidatorId = validatorRegistry.getLastWithdrawnValidatorId();
-        uint256 currentValidatorIdx = validators[lastWithdrawnValidatorId];
+        uint256 currentValidatorIdx = 0;
+        uint256 currentValidatorId = 0;
+        for (; currentValidatorIdx < validators.length; currentValidatorIdx++) {
+            if (validators[currentValidatorIdx] == lastWithdrawnValidatorId)
+                break;
+        }
 
         while (leftAmount2WithdrawInMatic > 0) {
             currentValidatorIdx = currentValidatorIdx + 1 > validators.length ? 0 : currentValidatorIdx + 1;
+            currentValidatorId = validators[currentValidatorIdx];
 
-            address validatorShare = stakeManager.getValidatorContract(currentValidatorIdx);
+            address validatorShare = stakeManager.getValidatorContract(currentValidatorId);
             (uint256 validatorBalance, ) = IValidatorShare(validatorShare).getTotalStake(address(this));
 
             uint256 amount2WithdrawFromValidator = (validatorBalance <=
@@ -165,8 +178,7 @@ contract MaticX is
             leftAmount2WithdrawInMatic -= amount2WithdrawFromValidator;
         }
 
-        lastWithdrawnValidatorId = validatorRegistry.getValidatorId(currentValidatorIdx);
-        validatorRegistry.setLastWithdrawnValidatorId(lastWithdrawnValidatorId);
+        validatorRegistry.setLastWithdrawnValidatorId(currentValidatorId);
 
         _burn(msg.sender, _amount);
 

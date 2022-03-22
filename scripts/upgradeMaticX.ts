@@ -22,7 +22,7 @@ const upgradeMaticX = async () => {
 
   exportAddresses(filePath, {
     maticX_proxy: MaticXAddress,
-    maticX_implementation: MaticXImplAddress,
+    maticX_impl: MaticXImplAddress,
   })
 }
 
