@@ -119,7 +119,7 @@ contract MaticX is
     function safeApprove() external {
         IERC20Upgradeable(token).safeApprove(
             address(stakeManager),
-            0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+            type(uint256).max
         );
     }
 
@@ -142,19 +142,10 @@ contract MaticX is
         require(totalDelegated >= totalAmount2WithdrawInMatic, "Too much to withdraw");
         
         uint256[] memory validators = validatorRegistry.getValidators();
-        uint256 lastWithdrawnValidatorId = validatorRegistry.getLastWithdrawnValidatorId();
-        uint256 currentValidatorIdx = 0;
-        uint256 currentValidatorId = 0;
-        for (; currentValidatorIdx < validators.length; currentValidatorIdx++) {
-            if (validators[currentValidatorIdx] == lastWithdrawnValidatorId)
-                break;
-        }
+        for (uint256 idx = 0; idx < validators.length; idx++) {
+            uint256 validatorId = validators[idx];
 
-        while (leftAmount2WithdrawInMatic > 0) {
-            currentValidatorIdx = currentValidatorIdx + 1 > validators.length ? 0 : currentValidatorIdx + 1;
-            currentValidatorId = validators[currentValidatorIdx];
-
-            address validatorShare = stakeManager.getValidatorContract(currentValidatorId);
+            address validatorShare = stakeManager.getValidatorContract(validatorId);
             (uint256 validatorBalance, ) = IValidatorShare(validatorShare).getTotalStake(address(this));
 
             uint256 amount2WithdrawFromValidator = (validatorBalance <=
@@ -176,9 +167,8 @@ contract MaticX is
             );
             
             leftAmount2WithdrawInMatic -= amount2WithdrawFromValidator;
+            if (leftAmount2WithdrawInMatic == 0) break;
         }
-
-        validatorRegistry.setLastWithdrawnValidatorId(currentValidatorId);
 
         _burn(msg.sender, _amount);
 

@@ -134,19 +134,6 @@ contract ValidatorRegistry is
         preferredValidatorId = _validatorId;
     }
 
-    /// @notice Allows to set the last withdrawn validator id
-    /// @param _validatorId the validator id.
-    function setLastWithdrawnValidatorId(uint256 _validatorId)
-        external
-        override
-        whenNotPaused
-        onlyRole(DEFAULT_ADMIN_ROLE) 
-    {
-        require(validatorIdExists[_validatorId] != false, "Validator doesn't exist in our registry");
-
-        lastWithdrawnValidatorId = _validatorId;
-    }
-
     /// ------------------------Stake Manager API-------------------------------
 
     /// @notice Allows to pause the contract.
@@ -214,12 +201,6 @@ contract ValidatorRegistry is
     /// @return preferredValidatorId
     function getPreferredValidatorId() external view override returns (uint256) {
         return preferredValidatorId;
-    }
-
-    /// @notice Retrieve the last withdrawn validator id
-    /// @return lastWithdrawnValidatorId
-    function getLastWithdrawnValidatorId() external view override returns (uint256) {
-        return lastWithdrawnValidatorId;
     }
 
     /// -------------------------------Events-----------------------------------
