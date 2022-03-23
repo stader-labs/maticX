@@ -4,16 +4,6 @@ pragma solidity 0.8.7;
 /// @title polygon stake manager interface.
 /// @notice User to interact with the polygon stake manager.
 interface IStakeManager {
-    /// @notice Restake Matics for a validator on polygon stake manager.
-    /// @param validatorId validator id.
-    /// @param amount amount to stake.
-    /// @param stakeRewards restake rewards.
-    function restake(
-        uint256 validatorId,
-        uint256 amount,
-        bool stakeRewards
-    ) external;
-
     /// @notice Request unstake a validator.
     /// @param validatorId validator id.
     function unstake(uint256 validatorId) external;
@@ -86,12 +76,6 @@ interface IStakeManager {
         view
         returns (Validator memory);
 
-    /// @notice Returns the address of the nft contract
-    function NFTContract() external view returns (address);
-
-    /// @notice Returns the validator accumulated rewards on stake manager.
-    function validatorReward(uint256 validatorId)
-        external
-        view
-        returns (uint256);
+    // TODO: Remove it and use stakeFor instead
+    function createValidator(uint256 _validatorId) external;
 }
