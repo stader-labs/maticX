@@ -20,9 +20,7 @@ contract ValidatorRegistry is
 {
     /// @notice contract version.
     string public version;
-
-    /// @notice stakeManager address.
-    address private stakeManager;
+    IStakeManager private stakeManager;
     /// @notice polygonERC20 token (Matic) address.
     address private polygonERC20;
     /// @notice maticX address.
@@ -53,7 +51,7 @@ contract ValidatorRegistry is
         __Pausable_init();
         __ReentrancyGuard_init();
 
-        stakeManager = _stakeManager;
+        stakeManager = IStakeManager(_stakeManager);
         polygonERC20 = _polygonERC20;
         maticX = _maticX;
 
@@ -77,8 +75,7 @@ contract ValidatorRegistry is
     {
         require(validatorIdExists[_validatorId] == false, "Validator already exists in our registry");
 
-        IStakeManager sm = IStakeManager(stakeManager);
-        IStakeManager.Validator memory smValidator = sm.validators(_validatorId);
+        IStakeManager.Validator memory smValidator = stakeManager.validators(_validatorId);
 
         require(
             smValidator.contractAddress != address(0),
@@ -105,7 +102,12 @@ contract ValidatorRegistry is
         whenNotPaused
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(validatorIdExists[_validatorId] == true, "Validator doesn't exist in our registry");
         require(preferredValidatorId != _validatorId, "Can't remove a preferred validator");
+
+        address validatorShare = stakeManager.getValidatorContract(_validatorId);
+        (uint256 validatorBalance, ) = IValidatorShare(validatorShare).getTotalStake(address(this));
+        require(validatorBalance == 0, "Validator has some shares left"); 
 
         // swap with the last item and pop it.
         for (uint256 idx = 0; idx < validators.length - 1; idx++) {
@@ -171,7 +173,7 @@ contract ValidatorRegistry is
             address _maticX
         )
     {
-        _stakeManager = stakeManager;
+        _stakeManager = address(stakeManager);
         _polygonERC20 = polygonERC20;
         _maticX = maticX;
     }
