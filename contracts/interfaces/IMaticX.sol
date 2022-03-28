@@ -49,6 +49,8 @@ interface IMaticX is IERC20Upgradeable {
 
     function claimWithdrawal() external;
 
+    function restake() external;
+
     function togglePause() external;
 
     function getTotalStake(IValidatorShare _validatorShare)

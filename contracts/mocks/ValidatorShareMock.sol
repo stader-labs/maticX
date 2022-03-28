@@ -11,6 +11,7 @@ contract ValidatorShareMock is IValidatorShare {
 
     bool public override delegation;
     uint256 mAmount;
+    uint256 public rewardPerShare;
 
     uint256 public totalShares;
     uint256 public withdrawPool;
@@ -21,8 +22,11 @@ contract ValidatorShareMock is IValidatorShare {
     mapping(address => mapping(uint256 => uint256))
         public user2WithdrawPoolShare;
     mapping(address => uint256) public override unbondNonces;
+    mapping(address => uint256) public initalRewardPerShare;
 
     IStakeManager stakeManager;
+
+    uint256 constant REWARD_PRECISION = 10**25;
 
     constructor(
         address _token,
@@ -80,6 +84,23 @@ contract ValidatorShareMock is IValidatorShare {
         IERC20(token).transfer(msg.sender, amount2Transfer);
     }
 
+    function restake() external override returns (uint256, uint256) {
+        uint256 liquidRewards = _withdrawReward(msg.sender);
+        // uint256 amountRestaked = buyVoucher(liquidRewards, 0);
+        uint256 amountRestaked = 0;
+
+        return (amountRestaked, liquidRewards - amountRestaked);
+    }
+
+    function calculateRewards() private view returns (uint256) {
+        uint256 thisBalance = IERC20(token).balanceOf(address(this));
+        return thisBalance - (totalStaked + withdrawPool);
+    }
+
+    function withdrawRewards() external override {
+        _withdrawReward(msg.sender);
+    }
+
     function getTotalStake(address)
         external
         view
@@ -88,5 +109,21 @@ contract ValidatorShareMock is IValidatorShare {
     {
         //getTotalStake returns totalStake of msg.sender but we need withdrawPool
         return (totalStaked, 1);
+    }
+
+    function setMinAmount(uint256 _minAmount) public {
+        mAmount = _minAmount;
+    }
+
+    function minAmount() public view override returns (uint256) {
+        return mAmount;
+    }
+
+    function _withdrawReward(address user) private returns (uint256) {
+        uint256 reward = calculateRewards();
+        require(reward >= minAmount(), "Reward < minAmount");
+        IERC20(token).transfer(user, reward);
+
+        return reward;
     }
 }

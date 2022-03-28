@@ -7,6 +7,8 @@ interface IValidatorShare {
         uint256 withdrawEpoch;
     }
 
+    function minAmount() external view returns (uint256);
+
     function unbondNonces(address _address) external view returns (uint256);
 
     function validatorId() external view returns (uint256);
@@ -21,6 +23,10 @@ interface IValidatorShare {
         external;
 
     function unstakeClaimTokens_new(uint256 unbondNonce) external;
+
+    function restake() external returns (uint256, uint256);
+
+    function withdrawRewards() external;
 
     function getTotalStake(address user)
         external

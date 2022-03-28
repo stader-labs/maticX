@@ -27,6 +27,7 @@ contract MaticX is
         address indexed _from,
         uint256 _amountClaimed
     );
+    event RestakeEvent(address indexed _from, uint256 _validatorId, uint256 amountRestaked, uint256 liquidReward);
 
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -222,6 +223,20 @@ contract MaticX is
     }
 
     /**
+     * @dev Restakes all validator rewards 
+     */
+    function restake() external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256[] memory validators = validatorRegistry.getValidators();
+        for (uint256 idx = 0; idx < validators.length; idx++) {
+            uint256 validatorId = validators[idx];
+
+            address validatorShare = stakeManager.getValidatorContract(validatorId);
+            (uint256 amountRestaked, uint256 liquidReward) = restake(validatorShare);
+            emit RestakeEvent(msg.sender, validatorId, amountRestaked, liquidReward);
+        }
+    }
+
+    /**
      * @dev Flips the pause state
      */
     function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -281,6 +296,14 @@ contract MaticX is
         uint256 _unbondNonce
     ) private {
         IValidatorShare(_validatorShare).unstakeClaimTokens_new(_unbondNonce);
+    }
+
+    /**
+     * @dev API for delegated restaking rewards to validatorShare
+     * @param _validatorShare - Address of validatorShare contract
+     */
+    function restake(address _validatorShare) private returns (uint256, uint256) {
+        return IValidatorShare(_validatorShare).restake();
     }
 
     /**

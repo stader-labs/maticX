@@ -10,7 +10,10 @@ import {
 } from '../typechain'
 
 describe('MaticX contract', function () {
-  let deployer, manager, insurance, treasury: SignerWithAddress
+  let deployer: SignerWithAddress
+  let manager: SignerWithAddress
+  let insurance: SignerWithAddress
+  let treasury: SignerWithAddress
   let users: SignerWithAddress[] = []
   let maticX: MaticX
   let polygonMock: PolygonMock
@@ -24,6 +27,7 @@ describe('MaticX contract', function () {
     amount: BigNumberish,
   ) => Promise<void>
   let claimWithdrawal: (signer: SignerWithAddress) => Promise<void>
+  let restake: (signer: SignerWithAddress) => Promise<void>
 
   before(() => {
     mint = async (signer, amount) => {
@@ -48,6 +52,11 @@ describe('MaticX contract', function () {
     claimWithdrawal = async (signer) => {
       const signerMaticX = maticX.connect(signer)
       await signerMaticX.claimWithdrawal()
+    }
+
+    restake = async (signer) => {
+      const signerMaticX = maticX.connect(signer)
+      await signerMaticX.restake()
     }
   })
 
@@ -118,7 +127,6 @@ describe('MaticX contract', function () {
   })
 
   it('Should claim withdrawals after submitting to contract successfully', async () => {
-    const ownedTokens: BigNumber[][] = []
     const submitAmounts: string[] = []
     const withdrawAmounts: string[] = []
 
@@ -161,5 +169,26 @@ describe('MaticX contract', function () {
       expect(balanceAfter.eq(ethers.utils.parseEther(withdrawAmounts[i]))).to.be
         .true
     }
+  })
+
+  it('Should restake rewards successfully', async () => {
+    const submitAmounts: string[] = []
+
+    const [minAmount, maxAmount] = [0.005, 0.01]
+    const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1
+
+    for (let i = 0; i < delegatorsAmount; i++) {
+      submitAmounts.push(
+        (Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3),
+      )
+      const submitAmountWei = ethers.utils.parseEther(submitAmounts[i])
+
+      await mint(users[i], submitAmountWei)
+      await submit(users[i], submitAmountWei)
+    }
+
+    expect(await restake(manager))
+      .emit(maticX, 'RestakeEvent')
+      .withArgs(manager, 1, 0, 0)
   })
 })

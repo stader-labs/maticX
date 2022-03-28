@@ -209,9 +209,13 @@ contract ValidatorRegistry is
 
     /// @notice A new validator was added.
     /// @param validatorId validator id.
-    event AddValidator(uint256 validatorId);
+    event AddValidator(uint256 indexed validatorId);
 
     /// @notice A validator was removed.
     /// @param validatorId validator id.
-    event RemoveValidator(uint256 validatorId);
+    event RemoveValidator(uint256 indexed validatorId);
+
+    /// @notice Rewards were restaked.
+    /// @param validatorId validator id.
+    event RestakeRewards(uint256 indexed validatorId);
 }
