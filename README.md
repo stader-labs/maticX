@@ -40,8 +40,8 @@ npx hardhat ./scripts/upgradeValidatorRegistry.ts --network testnet
 To upgrade on mainnet run:
 
 ```bash
-npx hardhat ./scripts/upgradeMaticX.ts --network mainnet
-npx hardhat ./scripts/upgradeValidatorRegistry.ts --network mainnet
+npx hardhat run ./scripts/upgradeMaticX.ts --network mainnet
+npx hardhat run ./scripts/upgradeValidatorRegistry.ts --network mainnet
 ```
 
 # Testing

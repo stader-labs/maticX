@@ -20,7 +20,7 @@ contract ValidatorRegistry is
 {
     /// @notice contract version.
     string public version;
-    IStakeManager private stakeManager;
+    address private stakeManager;
     /// @notice polygonERC20 token (Matic) address.
     address private polygonERC20;
     /// @notice maticX address.
@@ -51,7 +51,7 @@ contract ValidatorRegistry is
         __Pausable_init();
         __ReentrancyGuard_init();
 
-        stakeManager = IStakeManager(_stakeManager);
+        stakeManager = _stakeManager;
         polygonERC20 = _polygonERC20;
         maticX = _maticX;
 
@@ -75,7 +75,7 @@ contract ValidatorRegistry is
     {
         require(validatorIdExists[_validatorId] == false, "Validator already exists in our registry");
 
-        IStakeManager.Validator memory smValidator = stakeManager.validators(_validatorId);
+        IStakeManager.Validator memory smValidator = IStakeManager(stakeManager).validators(_validatorId);
 
         require(
             smValidator.contractAddress != address(0),
@@ -105,7 +105,7 @@ contract ValidatorRegistry is
         require(validatorIdExists[_validatorId] == true, "Validator doesn't exist in our registry");
         require(preferredValidatorId != _validatorId, "Can't remove a preferred validator");
 
-        address validatorShare = stakeManager.getValidatorContract(_validatorId);
+        address validatorShare = IStakeManager(stakeManager).getValidatorContract(_validatorId);
         (uint256 validatorBalance, ) = IValidatorShare(validatorShare).getTotalStake(address(this));
         require(validatorBalance == 0, "Validator has some shares left"); 
 
@@ -173,7 +173,7 @@ contract ValidatorRegistry is
             address _maticX
         )
     {
-        _stakeManager = address(stakeManager);
+        _stakeManager = stakeManager;
         _polygonERC20 = polygonERC20;
         _maticX = maticX;
     }
