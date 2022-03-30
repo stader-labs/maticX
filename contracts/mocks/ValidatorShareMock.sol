@@ -126,4 +126,9 @@ contract ValidatorShareMock is IValidatorShare {
 
         return reward;
     }
+
+    function unbonds_new(address _address, uint256 _unbondNonce) external view override returns (DelegatorUnbond memory) {
+        DelegatorUnbond memory unbond = DelegatorUnbond(user2WithdrawPoolShare[_address][_unbondNonce],2);
+        return unbond;
+    }
 }

@@ -47,9 +47,15 @@ interface IMaticX is IERC20Upgradeable {
 
     function requestWithdraw(uint256 _amount) external;
 
-    function claimWithdrawal() external;
+    function claimWithdrawal(uint256 _idx) external;
 
-    function restake() external;
+    function restake(uint256 _validatorId) external;
+
+    function restakeAll() external;
+
+    function getUserWithdrawalRequests(address _address) external view returns (WithdrawalRequest[] memory);
+
+    function getMaticAmountOfUserWithdrawalRequest(address _address, uint256 _idx) external view returns (uint256);
 
     function togglePause() external;
 

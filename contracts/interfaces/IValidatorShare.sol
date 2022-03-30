@@ -32,4 +32,9 @@ interface IValidatorShare {
         external
         view
         returns (uint256, uint256);
+    
+    function unbonds_new(address _address, uint256 _unbondNonce)
+        external
+        view
+        returns (DelegatorUnbond memory);
 }

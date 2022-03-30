@@ -26,8 +26,10 @@ describe('MaticX contract', function () {
     signer: SignerWithAddress,
     amount: BigNumberish,
   ) => Promise<void>
-  let claimWithdrawal: (signer: SignerWithAddress) => Promise<void>
-  let restake: (signer: SignerWithAddress) => Promise<void>
+  let claimWithdrawal: (
+    signer: SignerWithAddress,
+    idx: BigNumberish,
+  ) => Promise<void>
 
   before(() => {
     mint = async (signer, amount) => {
@@ -49,14 +51,9 @@ describe('MaticX contract', function () {
       await signerMaticX.requestWithdraw(amount)
     }
 
-    claimWithdrawal = async (signer) => {
+    claimWithdrawal = async (signer, idx) => {
       const signerMaticX = maticX.connect(signer)
-      await signerMaticX.claimWithdrawal()
-    }
-
-    restake = async (signer) => {
-      const signerMaticX = maticX.connect(signer)
-      await signerMaticX.restake()
+      await signerMaticX.claimWithdrawal(idx)
     }
   })
 
@@ -113,7 +110,7 @@ describe('MaticX contract', function () {
     await submit(users[0], amount)
 
     const userBalance = await maticX.balanceOf(users[0].address)
-    expect(userBalance.eq(amount)).to.be.true
+    expect(userBalance).to.equal(amount)
   })
 
   it('Should request withdraw from the contract successfully', async () => {
@@ -123,7 +120,20 @@ describe('MaticX contract', function () {
     await requestWithdraw(users[0], amount)
 
     const userBalance = await maticX.balanceOf(users[0].address)
-    expect(userBalance.eq(0)).to.be.true
+    expect(userBalance).to.equal(0)
+  })
+
+  it('WithdrawalRequest should have correct MATIC token amount', async () => {
+    const expectedAmount = ethers.utils.parseEther('1')
+    await mint(users[0], expectedAmount)
+    await submit(users[0], expectedAmount)
+    await requestWithdraw(users[0], expectedAmount)
+
+    const amount = await maticX.getMaticAmountOfUserWithdrawalRequest(
+      users[0].address,
+      0,
+    )
+    expect(expectedAmount).to.equal(amount)
   })
 
   it('Should claim withdrawals after submitting to contract successfully', async () => {
@@ -163,15 +173,14 @@ describe('MaticX contract', function () {
     await stakeManagerMock.setEpoch(withdrawalDelay.add(currentEpoch))
 
     for (let i = 0; i < delegatorsAmount; i++) {
-      await claimWithdrawal(users[i])
+      await claimWithdrawal(users[i], 0)
       const balanceAfter = await polygonMock.balanceOf(users[i].address)
 
-      expect(balanceAfter.eq(ethers.utils.parseEther(withdrawAmounts[i]))).to.be
-        .true
+      expect(balanceAfter).to.equal(ethers.utils.parseEther(withdrawAmounts[i]))
     }
   })
 
-  it('Should restake rewards successfully', async () => {
+  it('Should restake all validator rewards successfully', async () => {
     const submitAmounts: string[] = []
 
     const [minAmount, maxAmount] = [0.005, 0.01]
@@ -187,7 +196,28 @@ describe('MaticX contract', function () {
       await submit(users[i], submitAmountWei)
     }
 
-    expect(await restake(manager))
+    expect(await maticX.restakeAll())
+      .emit(maticX, 'RestakeEvent')
+      .withArgs(manager, 1, 0, 0)
+  })
+
+  it('Should restake a validator reward successfully', async () => {
+    const submitAmounts: string[] = []
+
+    const [minAmount, maxAmount] = [0.005, 0.01]
+    const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1
+
+    for (let i = 0; i < delegatorsAmount; i++) {
+      submitAmounts.push(
+        (Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3),
+      )
+      const submitAmountWei = ethers.utils.parseEther(submitAmounts[i])
+
+      await mint(users[i], submitAmountWei)
+      await submit(users[i], submitAmountWei)
+    }
+
+    expect(await maticX.restake(1))
       .emit(maticX, 'RestakeEvent')
       .withArgs(manager, 1, 0, 0)
   })

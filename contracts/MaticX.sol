@@ -180,40 +180,20 @@ contract MaticX is
      * @dev Claims tokens from validator share and sends them to the
      * user if his request is in the userWithdrawalRequests
      */
-    function claimWithdrawal() external override whenNotPaused {
+    function claimWithdrawal(uint256 _idx) external override whenNotPaused {
         uint256 amountToClaim = 0;
         uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(address(this));
-        uint256 lastIdx = 0;
         WithdrawalRequest[] storage userRequests = userWithdrawalRequests[msg.sender];
+        require(stakeManager.epoch() >= userRequests[_idx].requestEpoch, "Not able to claim yet"); 
+        
+        unstakeClaimTokens_new(
+            userRequests[_idx].validatorAddress,
+            userRequests[_idx].validatorNonce
+        );
 
-        for (; lastIdx < userRequests.length; lastIdx++) {
-            WithdrawalRequest memory currentRequest = userRequests[lastIdx];
-            if (stakeManager.epoch() < currentRequest.requestEpoch) 
-                break;
-            
-            unstakeClaimTokens_new(
-                currentRequest.validatorAddress,
-                currentRequest.validatorNonce
-            );            
-        }
-
-        require(lastIdx > 0, "Not able to claim yet");
-
-        if (lastIdx >= userRequests.length) {
-            delete userWithdrawalRequests[msg.sender];
-        } else {
-            // shift the array to the left and reduce the array length (it will remove them)
-            uint256 idx = 0;
-            while (lastIdx < userRequests.length) {
-                userRequests[idx] = userRequests[lastIdx];
-                
-                lastIdx++;
-                idx++;
-            }
-
-            while (userRequests.length > idx)
-                userRequests.pop();
-        }
+        // swap with the last item and pop it.
+        userRequests[_idx] = userRequests[userRequests.length - 1];
+        userRequests.pop();
 
         amountToClaim = IERC20Upgradeable(token).balanceOf(address(this)) - balanceBeforeClaim;
         
@@ -225,15 +205,54 @@ contract MaticX is
     /**
      * @dev Restakes all validator rewards 
      */
-    function restake() external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+    function restakeAll() external override whenNotPaused {
         uint256[] memory validators = validatorRegistry.getValidators();
         for (uint256 idx = 0; idx < validators.length; idx++) {
             uint256 validatorId = validators[idx];
 
-            address validatorShare = stakeManager.getValidatorContract(validatorId);
-            (uint256 amountRestaked, uint256 liquidReward) = restake(validatorShare);
-            emit RestakeEvent(msg.sender, validatorId, amountRestaked, liquidReward);
+            restake(validatorId);
         }
+    }
+
+    /**
+     * @dev Restakes all validator rewards 
+     */
+    function restake(uint256 _validatorId) public override whenNotPaused {
+        address validatorShare = stakeManager.getValidatorContract(_validatorId);
+        (uint256 amountRestaked, uint256 liquidReward) = restake(validatorShare);
+        emit RestakeEvent(msg.sender, _validatorId, amountRestaked, liquidReward);
+    }
+
+    /**
+     * @dev Retrieves all withdrawal requests initiated by the given address
+     * @param _address - Address of an user
+     * @return userWithdrawalRequests array of user withdrawal requests
+     */
+    function getUserWithdrawalRequests(address _address) 
+        external 
+        override 
+        view 
+        returns (WithdrawalRequest[] memory) 
+    {
+        return userWithdrawalRequests[_address];
+    }
+
+    /**
+     * @dev Retrieves MATIC amount of a given withdrawal request
+     * @param _address - Address of an user
+     * @return _idx index of the withdrawal request
+     */
+    function getMaticAmountOfUserWithdrawalRequest(address _address, uint256 _idx) 
+        external 
+        override
+        view 
+        returns (uint256) 
+    {
+        WithdrawalRequest memory userRequest = userWithdrawalRequests[_address][_idx];
+        IValidatorShare validatorShare = IValidatorShare(userRequest.validatorAddress);
+        IValidatorShare.DelegatorUnbond memory unbond = validatorShare.unbonds_new(address(this), userRequest.validatorNonce);
+
+        return unbond.shares;
     }
 
     /**
