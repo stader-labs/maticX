@@ -100,7 +100,8 @@ describe('MaticX contract', function () {
     await validatorRegistry.setMaticX(maticX.address)
     await stakeManagerMock.createValidator(1)
     await validatorRegistry.addValidator(1)
-    await validatorRegistry.setPreferredValidatorId(1)
+    await validatorRegistry.setPreferredDepositValidatorId(1)
+    await validatorRegistry.setPreferredWithdrawalValidatorId(1)
     await maticX.safeApprove()
   })
 
@@ -123,13 +124,13 @@ describe('MaticX contract', function () {
     expect(userBalance).to.equal(0)
   })
 
-  it('WithdrawalRequest should have correct MATIC token amount', async () => {
+  it('WithdrawalRequest should have correct share amount', async () => {
     const expectedAmount = ethers.utils.parseEther('1')
     await mint(users[0], expectedAmount)
     await submit(users[0], expectedAmount)
     await requestWithdraw(users[0], expectedAmount)
 
-    const amount = await maticX.getMaticAmountOfUserWithdrawalRequest(
+    const amount = await maticX.getSharesAmountOfUserWithdrawalRequest(
       users[0].address,
       0,
     )
