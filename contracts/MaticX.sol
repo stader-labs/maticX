@@ -12,6 +12,8 @@ import "./interfaces/IValidatorRegistry.sol";
 import "./interfaces/IStakeManager.sol";
 import "./interfaces/IMaticX.sol";
 
+import "hardhat/console.sol";
+
 contract MaticX is
 	IMaticX,
 	ERC20Upgradeable,
@@ -33,9 +35,14 @@ contract MaticX is
 	address public override token;
 	address public proposedManager;
 	address public manager;
+	address public instant_pool_owner;
+	uint256 public instant_pool_matic;
+	uint256 public instant_pool_maticx;
 
 	/// @notice Mapping of all user ids with withdraw requests.
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
+
+	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
 
 	uint8 public override feePercent;
 	uint256 public override drainedAmount;
@@ -52,6 +59,7 @@ contract MaticX is
 		address _stakeManager,
 		address _token,
 		address _manager,
+		address _instant_pool_owner,
 		address _treasury,
 		address _insurance
 	) external override initializer {
@@ -62,6 +70,8 @@ contract MaticX is
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
 		manager = _manager;
 		proposedManager = address(0);
+		_setupRole(INSTANT_POOL_OWNER, _instant_pool_owner);
+		instant_pool_owner = _instant_pool_owner;
 
 		validatorRegistry = IValidatorRegistry(_validatorRegistry);
 		stakeManager = IStakeManager(_stakeManager);
@@ -72,6 +82,73 @@ contract MaticX is
 		entityFees = FeeDistribution(80, 20);
 		feePercent = 10;
 	}
+
+	////////////////////////////////////////////////////////////
+	/////                                                    ///
+	/////             ***Instant Pool Interactions***        ///
+	/////                                                    ///
+	////////////////////////////////////////////////////////////
+
+	// Uses instant_pool_owner funds.
+	function provideInstantPoolMatic(uint256 _amount)
+		external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
+		require(_amount > 0, "Invalid amount");
+		IERC20Upgradeable(token).safeTransferFrom(msg.sender, address(this), _amount);
+
+		instant_pool_matic = instant_pool_matic + _amount;
+	}
+
+	function provideInstantPoolMaticX(uint256 _amount)
+		external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
+		require(_amount > 0, "Invalid amount");
+		IERC20Upgradeable(address(this)).safeTransferFrom(msg.sender, address(this), _amount);
+
+		instant_pool_maticx = instant_pool_maticx + _amount;
+	}
+
+	// Reentrancy guard.
+	function withdrawInstantPoolMaticX(uint256 _amount)
+		external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
+		require(_amount <= instant_pool_maticx, "Withdraw amount cannot exceed maticX in instant pool");
+
+		instant_pool_maticx = instant_pool_maticx - _amount;
+		IERC20Upgradeable(address(this)).safeTransfer(instant_pool_owner, _amount);
+	}
+
+	function withdrawInstantPoolMatic(uint256 _amount)
+		external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
+		require(_amount <= instant_pool_matic, "Withdraw amount cannot exceed matic in instant pool");
+
+		instant_pool_matic = instant_pool_matic - _amount;
+		IERC20Upgradeable(token).safeTransfer(instant_pool_owner, _amount);
+	}
+
+	// Uses instant_pool matic funds
+	function mintMaticXToInstantPool() external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
+		require(instant_pool_matic > 0, "Matic amount cannot be 0");
+
+		uint256 maticx_minted = helper_delegate_to_mint(address(this), instant_pool_matic);
+		instant_pool_maticx = instant_pool_maticx + maticx_minted;
+		instant_pool_matic = 0;
+	}
+
+	function swapMaticForMaticXViaInstantPool(uint256 _amount) external override whenNotPaused {
+		require(_amount > 0, "Invalid amount");
+		IERC20Upgradeable(token).safeTransferFrom(msg.sender, address(this), _amount);
+
+		(uint256 amountToMint,,) = convertMaticToMaticX(_amount);
+		require(amountToMint <= instant_pool_maticx, "Not enough maticX to instant swap");
+
+		IERC20Upgradeable(address(this)).safeTransfer(msg.sender, amountToMint);
+		instant_pool_matic = instant_pool_matic + _amount;
+		instant_pool_maticx = instant_pool_maticx - amountToMint;
+	}
+
+	////////////////////////////////////////////////////////////
+	/////                                                    ///
+	/////             ***Staking Contract Interactions***    ///
+	/////                                                    ///
+	////////////////////////////////////////////////////////////
 
 	/**
 	 * @dev Send funds to MaticX contract and mints MaticX to msg.sender
@@ -92,21 +169,21 @@ contract MaticX is
 			_amount
 		);
 
-		(uint256 amountToMint, , ) = convertMaticToMaticX(_amount);
+		return helper_delegate_to_mint(msg.sender, _amount);
+	}
 
-		_mint(msg.sender, amountToMint);
+	function helper_delegate_to_mint(address deposit_sender, uint256 _amount)
+		internal whenNotPaused returns (uint256) {
+		(uint256 amountToMint,,) = convertMaticToMaticX(_amount);
 
-		emit Submit(msg.sender, _amount);
+		_mint(deposit_sender, amountToMint);
+		emit Submit(deposit_sender, _amount);
 
-		uint256 preferredValidatorId = validatorRegistry
-			.getPreferredDepositValidatorId();
-		address validatorShare = stakeManager.getValidatorContract(
-			preferredValidatorId
-		);
+		uint256 preferredValidatorId = validatorRegistry.getPreferredDepositValidatorId();
+		address validatorShare = stakeManager.getValidatorContract(preferredValidatorId);
 		buyVoucher(validatorShare, _amount, 0);
 
 		emit Delegate(preferredValidatorId, _amount);
-
 		return amountToMint;
 	}
 
@@ -312,7 +389,8 @@ contract MaticX is
 	 * @param _validatorShare - Address of validatorShare contract
 	 * @param _amount - Amount of MATIC to use for buying vouchers
 	 * @param _minSharesToMint - Minimum of shares that is bought with _amount of MATIC
-	 * @return Actual amount of MATIC used to buy voucher, might differ from _amount because of _minSharesToMint
+	 * @return Actual amount of MATIC used to buy voucher, might differ from _amount
+	 		 because of _minSharesToMint
 	 */
 	function buyVoucher(
 		address _validatorShare,
@@ -406,7 +484,7 @@ contract MaticX is
 		returns (uint256)
 	{
 		uint256 amountToClaim = 0;
-		uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(_to);
+		uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(address(this));
 		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[_to];
 		require(
 			stakeManager.epoch() >= userRequests[_idx].requestEpoch,

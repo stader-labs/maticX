@@ -12,6 +12,7 @@ import {
 describe('MaticX contract', function () {
   let deployer: SignerWithAddress
   let manager: SignerWithAddress
+  let instant_pool_owner: SignerWithAddress
   let insurance: SignerWithAddress
   let treasury: SignerWithAddress
   let users: SignerWithAddress[] = []
@@ -21,6 +22,8 @@ describe('MaticX contract', function () {
   let stakeManagerMock: StakeManagerMock
 
   let mint: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+  let maticApprove: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+  let submitWithoutApprove: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
   let submit: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
   let requestWithdraw: (
     signer: SignerWithAddress,
@@ -37,9 +40,18 @@ describe('MaticX contract', function () {
       await signerERC.mint(amount)
     }
 
-    submit = async (signer, amount) => {
+    maticApprove = async (signer, amount) => {
       const signerERC20 = polygonMock.connect(signer)
       await signerERC20.approve(maticX.address, amount)
+    }
+
+    submitWithoutApprove = async (signer, amount) => {
+      const signerMaticX = maticX.connect(signer)
+      await signerMaticX.submit(amount)
+    }
+
+    submit = async (signer, amount) => {
+      await maticApprove(signer, amount)
 
       const signerMaticX = maticX.connect(signer)
       await signerMaticX.submit(amount)
@@ -62,11 +74,12 @@ describe('MaticX contract', function () {
     manager = deployer
     treasury = deployer
     insurance = deployer
-
+    instant_pool_owner = deployer
     polygonMock = (await (
       await ethers.getContractFactory('PolygonMock')
     ).deploy()) as PolygonMock
-    await polygonMock.deployed()
+
+    await polygonMock.deployed() 
 
     stakeManagerMock = (await (
       await ethers.getContractFactory('StakeManagerMock')
@@ -91,6 +104,7 @@ describe('MaticX contract', function () {
         stakeManagerMock.address,
         polygonMock.address,
         manager.address,
+        instant_pool_owner.address,
         treasury.address,
         insurance.address,
       ],
@@ -102,16 +116,47 @@ describe('MaticX contract', function () {
     await validatorRegistry.addValidator(1)
     await validatorRegistry.setPreferredDepositValidatorId(1)
     await validatorRegistry.setPreferredWithdrawalValidatorId(1)
+    await stakeManagerMock.createValidator(2)
+    await validatorRegistry.addValidator(2)
+
     await maticX.safeApprove()
   })
 
   it('Should submit successfully', async () => {
+    const total_amount = ethers.utils.parseEther('1')
+    await mint(users[0], total_amount)
+
+    const approve_amount1 = ethers.utils.parseEther("0.4");
+    // Approve & Submit individually 0.4
+    await maticApprove(users[0], approve_amount1);
+    await submitWithoutApprove(users[0], approve_amount1)
+
+    var userBalance = await maticX.balanceOf(users[0].address)
+    expect(userBalance.eq(approve_amount1)).to.be.true
+
+    // Approve & Submit individually 0.6
+    const remaining_amount = ethers.utils.parseEther("0.6");
+    await submit(users[0], remaining_amount)
+
+    userBalance = await maticX.balanceOf(users[0].address)
+    expect(userBalance.eq(total_amount)).to.be.true
+  })
+
+  it('fails when submit amount is greater than signer balance', async () => {
+    var userMaticXBalance = await maticX.balanceOf(users[0].address)
+    expect(userMaticXBalance.eq(0)).to.be.true
+
     const amount = ethers.utils.parseEther('1')
     await mint(users[0], amount)
-    await submit(users[0], amount)
 
-    const userBalance = await maticX.balanceOf(users[0].address)
-    expect(userBalance).to.equal(amount)
+    await expect(submitWithoutApprove(users[0], amount))
+        .to.be.revertedWith("ERC20: insufficient allowance");
+
+    await expect(submit(users[0], ethers.utils.parseEther('2')))
+        .to.be.revertedWith("ERC20: transfer amount exceeds balance");
+
+    userMaticXBalance = await maticX.balanceOf(users[0].address)
+    expect(userMaticXBalance.eq(0)).to.be.true
   })
 
   it('Should request withdraw from the contract successfully', async () => {

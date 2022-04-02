@@ -38,9 +38,22 @@ interface IMaticX is IERC20Upgradeable {
 		address _stakeManager,
 		address _token,
 		address _manager,
+		address _instant_pool_manager,
 		address _treasury,
 		address _insurance
 	) external;
+
+	function provideInstantPoolMatic(uint256 _amount) external;
+
+	function provideInstantPoolMaticX(uint256 _amount) external;
+
+	function withdrawInstantPoolMaticX(uint256 _amount) external;
+
+	function withdrawInstantPoolMatic(uint256 _amount) external;
+
+	function mintMaticXToInstantPool() external;
+
+	function swapMaticForMaticXViaInstantPool(uint256 _amount) external;
 
 	function submit(uint256 _amount) external returns (uint256);
 
