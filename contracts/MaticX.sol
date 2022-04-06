@@ -512,14 +512,15 @@ contract MaticX is
 			address(this)
 		);
 		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[_to];
+		WithdrawalRequest memory userRequest = userRequests[_idx];
 		require(
-			stakeManager.epoch() >= userRequests[_idx].requestEpoch,
+			stakeManager.epoch() >= userRequest.requestEpoch,
 			"Not able to claim yet"
 		);
 
 		unstakeClaimTokens_new(
-			userRequests[_idx].validatorAddress,
-			userRequests[_idx].validatorNonce
+			userRequest.validatorAddress,
+			userRequest.validatorNonce
 		);
 
 		// swap with the last item and pop it.
