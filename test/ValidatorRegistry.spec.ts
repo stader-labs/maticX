@@ -33,6 +33,14 @@ describe('ValidatorRegistry contract', function () {
     signer: SignerWithAddress,
     validartorId: BigNumberish,
   ) => Promise<void>
+  let setPreferredDepositValidatorId: (
+    signer: SignerWithAddress,
+    validartorId: BigNumberish,
+  ) => Promise<void>
+  let setPreferredWithdrawalValidatorId: (
+    signer: SignerWithAddress,
+    validartorId: BigNumberish,
+  ) => Promise<void>
   let getValidators: () => Promise<BigNumber[]>
   let getValidatorContract: (validatorId: BigNumberish) => Promise<string>
 
@@ -45,6 +53,18 @@ describe('ValidatorRegistry contract', function () {
     removeValidator = async (signer, validatorId) => {
       const signerValidatorRegistry = validatorRegistry.connect(signer)
       await signerValidatorRegistry.removeValidator(validatorId)
+    }
+
+    setPreferredDepositValidatorId = async (signer, validatorId) => {
+      const signerValidatorRegistry = validatorRegistry.connect(signer)
+      await signerValidatorRegistry.setPreferredDepositValidatorId(validatorId)
+    }
+
+    setPreferredWithdrawalValidatorId = async (signer, validatorId) => {
+      const signerValidatorRegistry = validatorRegistry.connect(signer)
+      await signerValidatorRegistry.setPreferredWithdrawalValidatorId(
+        validatorId,
+      )
     }
 
     createValidator = async (signer, validatorId) => {
@@ -109,7 +129,7 @@ describe('ValidatorRegistry contract', function () {
     await maticX.safeApprove()
   })
 
-  it('It should add new operators', async function () {
+  it('Should add new validators', async function () {
     const validatorIds = [3, 6]
 
     for (const id of validatorIds) {
@@ -129,7 +149,16 @@ describe('ValidatorRegistry contract', function () {
     }
   })
 
-  it('It should remove operators', async function () {
+  it('Should not add existing validator', async function () {
+    await createValidator(manager, 1)
+    await addValidator(manager, 1)
+
+    await expect(addValidator(manager, 1)).to.be.revertedWith(
+      'Validator id already exists in our registry',
+    )
+  })
+
+  it('Should remove validators', async function () {
     const validatorIds = [3, 6]
     const expectedValidators = []
     for (const id of validatorIds) {
@@ -146,5 +175,31 @@ describe('ValidatorRegistry contract', function () {
       const validators = await getValidators()
       expect(validators).to.eql(expectedValidators)
     }
+  })
+
+  it('Should not remove an validator when it is preferred for deposits', async function () {
+    await createValidator(manager, 1)
+    await addValidator(manager, 1)
+    await setPreferredDepositValidatorId(manager, 1)
+
+    await expect(removeValidator(manager, 1)).to.be.revertedWith(
+      "Can't remove a preferred validator for deposits",
+    )
+  })
+
+  it('Should not remove an validator when it is preferred for withdrawals', async function () {
+    await createValidator(manager, 1)
+    await addValidator(manager, 1)
+    await setPreferredWithdrawalValidatorId(manager, 1)
+
+    await expect(removeValidator(manager, 1)).to.be.revertedWith(
+      "Can't remove a preferred validator for withdrawals",
+    )
+  })
+
+  it('Should not remove non existing validator', async function () {
+    await expect(removeValidator(manager, 1)).to.be.revertedWith(
+      "Validator id doesn't exist in our registry",
+    )
   })
 })
