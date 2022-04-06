@@ -31,8 +31,6 @@ interface IMaticX is IERC20Upgradeable {
 
 	function feePercent() external view returns (uint8);
 
-	function drainedAmount() external view returns (uint256);
-
 	function initialize(
 		address _validatorRegistry,
 		address _stakeManager,
@@ -65,30 +63,13 @@ interface IMaticX is IERC20Upgradeable {
 
 	function restakeAll() external;
 
-	function drain(uint256 _validatorId) external;
-
-	function migrateDrainedTokens(uint256 _idx, uint256 _validatorId) external;
+	function migrateDelegation(
+		uint256 _fromValidatorId,
+		uint256 _toValidatorId,
+		uint256 _amount
+	) external;
 
 	function togglePause() external;
-
-	function getUserWithdrawalRequests(address _address)
-		external
-		view
-		returns (WithdrawalRequest[] memory);
-
-	function getSharesAmountOfUserWithdrawalRequest(
-		address _address,
-		uint256 _idx
-	) external view returns (uint256);
-
-	function getTotalStake(IValidatorShare _validatorShare)
-		external
-		view
-		returns (uint256, uint256);
-
-	function getTotalStakeAcrossAllValidators() external view returns (uint256);
-
-	function getTotalPooledMatic() external view returns (uint256);
 
 	function convertMaticXToMatic(uint256 _balance)
 		external
@@ -118,6 +99,29 @@ interface IMaticX is IERC20Upgradeable {
 
 	function setVersion(string calldata _version) external;
 
+	function getUserWithdrawalRequests(address _address)
+		external
+		view
+		returns (WithdrawalRequest[] memory);
+
+	function getSharesAmountOfUserWithdrawalRequest(
+		address _address,
+		uint256 _idx
+	) external view returns (uint256);
+
+	function getTotalStake(IValidatorShare _validatorShare)
+		external
+		view
+		returns (uint256, uint256);
+
+	function getTotalStakeAcrossAllValidators() external view returns (uint256);
+
+	function getTotalPooledMatic() external view returns (uint256);
+
+	function getInstantPoolMatic() external view returns (uint256);
+
+	function getInstantPoolMaticX() external view returns (uint256);
+
 	event Submit(address indexed _from, uint256 _amount);
 	event Delegate(uint256 indexed _validatorId, uint256 _amountDelegated);
 	event RequestWithdraw(
@@ -140,9 +144,9 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 _treasuryRewards,
 		uint256 _insuranceRewards
 	);
-	event Drain(
-		address indexed _from,
-		uint256 indexed _validatorId,
+	event MigrateDelegation(
+		uint256 indexed _fromValidatorId,
+		uint256 indexed _toValidatorId,
 		uint256 _amount
 	);
 }

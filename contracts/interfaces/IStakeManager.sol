@@ -36,6 +36,16 @@ interface IStakeManager {
 	/// @param validatorId validator id.
 	function unstakeClaim(uint256 validatorId) external;
 
+	/// @notice Allows to migrate the staked tokens to another validator.
+	/// @param fromValidatorId From validator id.
+	/// @param toValidatorId To validator id.
+	/// @param amount amount in Matic.
+	function migrateDelegation(
+		uint256 fromValidatorId,
+		uint256 toValidatorId,
+		uint256 amount
+	) external;
+
 	/// @notice Returns a withdrawal delay.
 	function withdrawalDelay() external view returns (uint256);
 

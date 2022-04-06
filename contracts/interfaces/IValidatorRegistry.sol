@@ -38,6 +38,10 @@ interface IValidatorRegistry {
 		view
 		returns (uint256);
 
+	function isRegisteredValidatorId(uint256 _validatorId)
+		external
+		returns (bool);
+
 	event AddValidator(uint256 indexed _validatorId);
 	event RemoveValidator(uint256 indexed _validatorId);
 	event SetPreferredDepositValidatorId(uint256 indexed _validatorId);

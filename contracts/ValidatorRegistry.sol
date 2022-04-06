@@ -233,6 +233,15 @@ contract ValidatorRegistry is
 		return preferredWithdrawalValidatorId;
 	}
 
+	function isRegisteredValidatorId(uint256 _validatorId)
+		external
+		view
+		override
+		returns (bool)
+	{
+		return validatorIdExists[_validatorId];
+	}
+
 	/// -------------------------------Modifiers-----------------------------------
 
 	/**

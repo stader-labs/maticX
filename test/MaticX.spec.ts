@@ -1,6 +1,7 @@
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
+import { Transaction } from 'ethers'
 import { ethers, upgrades } from 'hardhat'
 import {
   MaticX,
@@ -22,8 +23,14 @@ describe('MaticX contract', function () {
   let stakeManagerMock: StakeManagerMock
 
   let mint: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
-  let maticApprove: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
-  let submitWithoutApprove: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+  let maticApprove: (
+    signer: SignerWithAddress,
+    amount: BigNumberish,
+  ) => Promise<void>
+  let submitWithoutApprove: (
+    signer: SignerWithAddress,
+    amount: BigNumberish,
+  ) => Promise<void>
   let submit: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
   let requestWithdraw: (
     signer: SignerWithAddress,
@@ -33,6 +40,12 @@ describe('MaticX contract', function () {
     signer: SignerWithAddress,
     idx: BigNumberish,
   ) => Promise<void>
+  let migrateDelegation: (
+    signer: SignerWithAddress,
+    fromValidatorId: BigNumberish,
+    toValidatorId: BigNumberish,
+    amount: BigNumberish,
+  ) => Promise<Transaction>
 
   before(() => {
     mint = async (signer, amount) => {
@@ -67,6 +80,20 @@ describe('MaticX contract', function () {
       const signerMaticX = maticX.connect(signer)
       await signerMaticX.claimWithdrawal(idx)
     }
+
+    migrateDelegation = async (
+      signer,
+      fromValidatorId,
+      toValidatorId,
+      amount,
+    ) => {
+      const signerMaticX = maticX.connect(signer)
+      return await signerMaticX.migrateDelegation(
+        fromValidatorId,
+        toValidatorId,
+        amount,
+      )
+    }
   })
 
   beforeEach(async () => {
@@ -79,7 +106,7 @@ describe('MaticX contract', function () {
       await ethers.getContractFactory('PolygonMock')
     ).deploy()) as PolygonMock
 
-    await polygonMock.deployed() 
+    await polygonMock.deployed()
 
     stakeManagerMock = (await (
       await ethers.getContractFactory('StakeManagerMock')
@@ -126,16 +153,16 @@ describe('MaticX contract', function () {
     const total_amount = ethers.utils.parseEther('1')
     await mint(users[0], total_amount)
 
-    const approve_amount1 = ethers.utils.parseEther("0.4");
+    const approve_amount1 = ethers.utils.parseEther('0.4')
     // Approve & Submit individually 0.4
-    await maticApprove(users[0], approve_amount1);
+    await maticApprove(users[0], approve_amount1)
     await submitWithoutApprove(users[0], approve_amount1)
 
     var userBalance = await maticX.balanceOf(users[0].address)
     expect(userBalance.eq(approve_amount1)).to.be.true
 
     // Approve & Submit individually 0.6
-    const remaining_amount = ethers.utils.parseEther("0.6");
+    const remaining_amount = ethers.utils.parseEther('0.6')
     await submit(users[0], remaining_amount)
 
     userBalance = await maticX.balanceOf(users[0].address)
@@ -149,11 +176,13 @@ describe('MaticX contract', function () {
     const amount = ethers.utils.parseEther('1')
     await mint(users[0], amount)
 
-    await expect(submitWithoutApprove(users[0], amount))
-        .to.be.revertedWith("ERC20: insufficient allowance");
+    await expect(submitWithoutApprove(users[0], amount)).to.be.revertedWith(
+      'ERC20: insufficient allowance',
+    )
 
-    await expect(submit(users[0], ethers.utils.parseEther('2')))
-        .to.be.revertedWith("ERC20: transfer amount exceeds balance");
+    await expect(
+      submit(users[0], ethers.utils.parseEther('2')),
+    ).to.be.revertedWith('ERC20: transfer amount exceeds balance')
 
     userMaticXBalance = await maticX.balanceOf(users[0].address)
     expect(userMaticXBalance.eq(0)).to.be.true
@@ -266,5 +295,17 @@ describe('MaticX contract', function () {
     expect(await maticX.restake(1))
       .emit(maticX, 'RestakeEvent')
       .withArgs(manager, 1, 0, 0)
+  })
+
+  it('Should migrate validator stake to another validator successfully', async () => {
+    await mint(users[0], 100)
+    await submit(users[0], 100)
+
+    await stakeManagerMock.createValidator(123)
+    await validatorRegistry.addValidator(123)
+
+    await expect(await migrateDelegation(manager, 1, 123, 100))
+      .emit(maticX, 'MigrateDelegation')
+      .withArgs(1, 123, 100)
   })
 })

@@ -12,8 +12,6 @@ import "./interfaces/IValidatorRegistry.sol";
 import "./interfaces/IStakeManager.sol";
 import "./interfaces/IMaticX.sol";
 
-import "hardhat/console.sol";
-
 contract MaticX is
 	IMaticX,
 	ERC20Upgradeable,
@@ -33,11 +31,8 @@ contract MaticX is
 	// address to cover for funds insurance.
 	address public override insurance;
 	address public override token;
-	address public proposedManager;
+	address public instantPoolOwner;
 	address public manager;
-	address public instant_pool_owner;
-	uint256 public instant_pool_matic;
-	uint256 public instant_pool_maticx;
 
 	/// @notice Mapping of all user ids with withdraw requests.
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
@@ -45,7 +40,8 @@ contract MaticX is
 	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
 
 	uint8 public override feePercent;
-	uint256 public override drainedAmount;
+	uint256 public instantPoolMatic;
+	uint256 public instantPoolMaticX;
 
 	/**
 	 * @param _validatorRegistry - Address of the validator registry
@@ -59,7 +55,7 @@ contract MaticX is
 		address _stakeManager,
 		address _token,
 		address _manager,
-		address _instant_pool_owner,
+		address _instantPoolOwner,
 		address _treasury,
 		address _insurance
 	) external override initializer {
@@ -69,9 +65,8 @@ contract MaticX is
 
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
 		manager = _manager;
-		proposedManager = address(0);
-		_setupRole(INSTANT_POOL_OWNER, _instant_pool_owner);
-		instant_pool_owner = _instant_pool_owner;
+		_setupRole(INSTANT_POOL_OWNER, _instantPoolOwner);
+		instantPoolOwner = _instantPoolOwner;
 
 		validatorRegistry = IValidatorRegistry(_validatorRegistry);
 		stakeManager = IStakeManager(_stakeManager);
@@ -80,7 +75,7 @@ contract MaticX is
 		insurance = _insurance;
 
 		entityFees = FeeDistribution(80, 20);
-		feePercent = 10;
+		feePercent = 5;
 	}
 
 	////////////////////////////////////////////////////////////
@@ -89,59 +84,110 @@ contract MaticX is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
-	// Uses instant_pool_owner funds.
+	// Uses instantPoolOwner funds.
 	function provideInstantPoolMatic(uint256 _amount)
-		external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
+		external
+		override
+		whenNotPaused
+		onlyRole(INSTANT_POOL_OWNER)
+	{
 		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(token).safeTransferFrom(msg.sender, address(this), _amount);
+		IERC20Upgradeable(token).safeTransferFrom(
+			msg.sender,
+			address(this),
+			_amount
+		);
 
-		instant_pool_matic = instant_pool_matic + _amount;
+		instantPoolMatic += _amount;
 	}
 
 	function provideInstantPoolMaticX(uint256 _amount)
-		external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
+		external
+		override
+		whenNotPaused
+		onlyRole(INSTANT_POOL_OWNER)
+	{
 		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(address(this)).safeTransferFrom(msg.sender, address(this), _amount);
+		IERC20Upgradeable(address(this)).safeTransferFrom(
+			msg.sender,
+			address(this),
+			_amount
+		);
 
-		instant_pool_maticx = instant_pool_maticx + _amount;
+		instantPoolMaticX += _amount;
 	}
 
-	// Reentrancy guard.
 	function withdrawInstantPoolMaticX(uint256 _amount)
-		external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
-		require(_amount <= instant_pool_maticx, "Withdraw amount cannot exceed maticX in instant pool");
+		external
+		override
+		whenNotPaused
+		onlyRole(INSTANT_POOL_OWNER)
+	{
+		require(
+			instantPoolMaticX >= _amount,
+			"Withdraw amount cannot exceed maticX in instant pool"
+		);
 
-		instant_pool_maticx = instant_pool_maticx - _amount;
-		IERC20Upgradeable(address(this)).safeTransfer(instant_pool_owner, _amount);
+		instantPoolMaticX -= _amount;
+		IERC20Upgradeable(address(this)).safeTransfer(
+			instantPoolOwner,
+			_amount
+		);
 	}
 
 	function withdrawInstantPoolMatic(uint256 _amount)
-		external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
-		require(_amount <= instant_pool_matic, "Withdraw amount cannot exceed matic in instant pool");
+		external
+		override
+		whenNotPaused
+		onlyRole(INSTANT_POOL_OWNER)
+	{
+		require(
+			instantPoolMatic >= _amount,
+			"Withdraw amount cannot exceed matic in instant pool"
+		);
 
-		instant_pool_matic = instant_pool_matic - _amount;
-		IERC20Upgradeable(token).safeTransfer(instant_pool_owner, _amount);
+		instantPoolMatic -= _amount;
+		IERC20Upgradeable(token).safeTransfer(instantPoolOwner, _amount);
 	}
 
-	// Uses instant_pool matic funds
-	function mintMaticXToInstantPool() external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
-		require(instant_pool_matic > 0, "Matic amount cannot be 0");
+	// Uses instantPoolMatic funds
+	function mintMaticXToInstantPool()
+		external
+		override
+		whenNotPaused
+		onlyRole(INSTANT_POOL_OWNER)
+	{
+		require(instantPoolMatic > 0, "Matic amount cannot be 0");
 
-		uint256 maticx_minted = helper_delegate_to_mint(address(this), instant_pool_matic);
-		instant_pool_maticx = instant_pool_maticx + maticx_minted;
-		instant_pool_matic = 0;
+		uint256 maticxMinted = helper_delegate_to_mint(
+			address(this),
+			instantPoolMatic
+		);
+		instantPoolMaticX += maticxMinted;
+		instantPoolMatic = 0;
 	}
 
-	function swapMaticForMaticXViaInstantPool(uint256 _amount) external override whenNotPaused {
+	function swapMaticForMaticXViaInstantPool(uint256 _amount)
+		external
+		override
+		whenNotPaused
+	{
 		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(token).safeTransferFrom(msg.sender, address(this), _amount);
+		IERC20Upgradeable(token).safeTransferFrom(
+			msg.sender,
+			address(this),
+			_amount
+		);
 
-		(uint256 amountToMint,,) = convertMaticToMaticX(_amount);
-		require(amountToMint <= instant_pool_maticx, "Not enough maticX to instant swap");
+		(uint256 amountToMint, , ) = convertMaticToMaticX(_amount);
+		require(
+			instantPoolMaticX >= amountToMint,
+			"Not enough maticX to instant swap"
+		);
 
 		IERC20Upgradeable(address(this)).safeTransfer(msg.sender, amountToMint);
-		instant_pool_matic = instant_pool_matic + _amount;
-		instant_pool_maticx = instant_pool_maticx - amountToMint;
+		instantPoolMatic += _amount;
+		instantPoolMaticX -= amountToMint;
 	}
 
 	////////////////////////////////////////////////////////////
@@ -170,21 +216,6 @@ contract MaticX is
 		);
 
 		return helper_delegate_to_mint(msg.sender, _amount);
-	}
-
-	function helper_delegate_to_mint(address deposit_sender, uint256 _amount)
-		internal whenNotPaused returns (uint256) {
-		(uint256 amountToMint,,) = convertMaticToMaticX(_amount);
-
-		_mint(deposit_sender, amountToMint);
-		emit Submit(deposit_sender, _amount);
-
-		uint256 preferredValidatorId = validatorRegistry.getPreferredDepositValidatorId();
-		address validatorShare = stakeManager.getValidatorContract(preferredValidatorId);
-		buyVoucher(validatorShare, _amount, 0);
-
-		emit Delegate(preferredValidatorId, _amount);
-		return amountToMint;
 	}
 
 	// TODO: Find better way to do it
@@ -319,56 +350,28 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Sells all shares of a validator and stores the request under the contract address.
-	 * @param _validatorId - Validator Id to drain
+	 * @dev Migrate the staked tokens to another validaor
 	 */
-	function drain(uint256 _validatorId)
-		external
-		override
-		whenNotPaused
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
-		address validatorShare = stakeManager.getValidatorContract(
-			_validatorId
+	function migrateDelegation(
+		uint256 _fromValidatorId,
+		uint256 _toValidatorId,
+		uint256 _amount
+	) external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+		require(
+			validatorRegistry.isRegisteredValidatorId(_fromValidatorId),
+			"From validator id does not exist in our registry"
 		);
-		(uint256 validatorBalance, ) = getTotalStake(
-			IValidatorShare(validatorShare)
+		require(
+			validatorRegistry.isRegisteredValidatorId(_toValidatorId),
+			"To validator id does not exist in our registry"
+		);
+		stakeManager.migrateDelegation(
+			_fromValidatorId,
+			_toValidatorId,
+			_amount
 		);
 
-		sellVoucher_new(validatorShare, validatorBalance, type(uint256).max);
-		userWithdrawalRequests[address(this)].push(
-			WithdrawalRequest(
-				IValidatorShare(validatorShare).unbondNonces(address(this)),
-				stakeManager.epoch() + stakeManager.withdrawalDelay(),
-				validatorShare
-			)
-		);
-		drainedAmount += validatorBalance;
-
-		emit Drain(msg.sender, _validatorId, validatorBalance);
-	}
-
-	/**
-	 * @dev Claims and stakes the tokens to a given validator
-	 * @param _idx - User withdrawal request array index
-	 * @param _validatorId - Validator Id to stake
-	 */
-	// TODO: drainedAmount will be out-of-sync in case of slash!
-	function migrateDrainedTokens(uint256 _idx, uint256 _validatorId)
-		external
-		override
-		whenNotPaused
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
-		uint256 claimedAmount = _claimWithdrawal(address(this), _idx);
-
-		address validatorShare = stakeManager.getValidatorContract(
-			_validatorId
-		);
-		buyVoucher(validatorShare, claimedAmount, 0);
-		drainedAmount -= claimedAmount;
-
-		emit Delegate(_validatorId, claimedAmount);
+		emit MigrateDelegation(_fromValidatorId, _toValidatorId, _amount);
 	}
 
 	/**
@@ -473,6 +476,27 @@ contract MaticX is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
+	function helper_delegate_to_mint(address deposit_sender, uint256 _amount)
+		internal
+		whenNotPaused
+		returns (uint256)
+	{
+		(uint256 amountToMint, , ) = convertMaticToMaticX(_amount);
+
+		_mint(deposit_sender, amountToMint);
+		emit Submit(deposit_sender, _amount);
+
+		uint256 preferredValidatorId = validatorRegistry
+			.getPreferredDepositValidatorId();
+		address validatorShare = stakeManager.getValidatorContract(
+			preferredValidatorId
+		);
+		buyVoucher(validatorShare, _amount, 0);
+
+		emit Delegate(preferredValidatorId, _amount);
+		return amountToMint;
+	}
+
 	/**
 	 * @dev Claims tokens from validator share and sends them to the
 	 * address if the request is in the userWithdrawalRequests
@@ -484,7 +508,9 @@ contract MaticX is
 		returns (uint256)
 	{
 		uint256 amountToClaim = 0;
-		uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(address(this));
+		uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(
+			address(this)
+		);
 		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[_to];
 		require(
 			stakeManager.epoch() >= userRequests[_idx].requestEpoch,
@@ -509,77 +535,6 @@ contract MaticX is
 		emit ClaimWithdrawal(_to, _idx, amountToClaim);
 
 		return amountToClaim;
-	}
-
-	/**
-	 * @dev Helper function for that returns total pooled MATIC
-	 * @return Total pooled MATIC
-	 */
-	function getTotalStakeAcrossAllValidators()
-		public
-		view
-		override
-		returns (uint256)
-	{
-		uint256 totalStake;
-		uint256[] memory validators = validatorRegistry.getValidators();
-		for (uint256 i = 0; i < validators.length; i++) {
-			address validatorShare = stakeManager.getValidatorContract(
-				validators[i]
-			);
-			(uint256 currValidatorShare, ) = getTotalStake(
-				IValidatorShare(validatorShare)
-			);
-
-			totalStake += currValidatorShare;
-		}
-
-		return totalStake;
-	}
-
-	/**
-	 * @dev Function that calculates total pooled Matic
-	 * @return Total pooled Matic
-	 */
-	function getTotalPooledMatic() public view override returns (uint256) {
-		uint256 totalStaked = getTotalStakeAcrossAllValidators() +
-			drainedAmount;
-		return totalStaked;
-	}
-
-	/**
-	 * @dev Retrieves all withdrawal requests initiated by the given address
-	 * @param _address - Address of an user
-	 * @return userWithdrawalRequests array of user withdrawal requests
-	 */
-	function getUserWithdrawalRequests(address _address)
-		external
-		view
-		override
-		returns (WithdrawalRequest[] memory)
-	{
-		return userWithdrawalRequests[_address];
-	}
-
-	/**
-	 * @dev Retrieves shares amount of a given withdrawal request
-	 * @param _address - Address of an user
-	 * @return _idx index of the withdrawal request
-	 */
-	function getSharesAmountOfUserWithdrawalRequest(
-		address _address,
-		uint256 _idx
-	) external view override returns (uint256) {
-		WithdrawalRequest memory userRequest = userWithdrawalRequests[_address][
-			_idx
-		];
-		IValidatorShare validatorShare = IValidatorShare(
-			userRequest.validatorAddress
-		);
-		IValidatorShare.DelegatorUnbond memory unbond = validatorShare
-			.unbonds_new(address(this), userRequest.validatorNonce);
-
-		return unbond.shares;
 	}
 
 	/**
@@ -659,6 +614,11 @@ contract MaticX is
 		entityFees.insurance = _insuranceFee;
 	}
 
+	/**
+	 * @dev Function that sets fee percent
+	 * @notice Callable only by manager
+	 * @param _feePercent - Fee percent (10 = 10%)
+	 */
 	function setFeePercent(uint8 _feePercent)
 		external
 		override
@@ -715,5 +675,89 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		version = _version;
+	}
+
+	////////////////////////////////////////////////////////////
+	/////                                                    ///
+	/////                 ***Getters***                      ///
+	/////                                                    ///
+	////////////////////////////////////////////////////////////
+
+	/**
+	 * @dev Helper function for that returns total pooled MATIC
+	 * @return Total pooled MATIC
+	 */
+	function getTotalStakeAcrossAllValidators()
+		public
+		view
+		override
+		returns (uint256)
+	{
+		uint256 totalStake;
+		uint256[] memory validators = validatorRegistry.getValidators();
+		for (uint256 i = 0; i < validators.length; i++) {
+			address validatorShare = stakeManager.getValidatorContract(
+				validators[i]
+			);
+			(uint256 currValidatorShare, ) = getTotalStake(
+				IValidatorShare(validatorShare)
+			);
+
+			totalStake += currValidatorShare;
+		}
+
+		return totalStake;
+	}
+
+	/**
+	 * @dev Function that calculates total pooled Matic
+	 * @return Total pooled Matic
+	 */
+	function getTotalPooledMatic() public view override returns (uint256) {
+		uint256 totalStaked = getTotalStakeAcrossAllValidators();
+		return totalStaked;
+	}
+
+	/**
+	 * @dev Retrieves all withdrawal requests initiated by the given address
+	 * @param _address - Address of an user
+	 * @return userWithdrawalRequests array of user withdrawal requests
+	 */
+	function getUserWithdrawalRequests(address _address)
+		external
+		view
+		override
+		returns (WithdrawalRequest[] memory)
+	{
+		return userWithdrawalRequests[_address];
+	}
+
+	/**
+	 * @dev Retrieves shares amount of a given withdrawal request
+	 * @param _address - Address of an user
+	 * @return _idx index of the withdrawal request
+	 */
+	function getSharesAmountOfUserWithdrawalRequest(
+		address _address,
+		uint256 _idx
+	) external view override returns (uint256) {
+		WithdrawalRequest memory userRequest = userWithdrawalRequests[_address][
+			_idx
+		];
+		IValidatorShare validatorShare = IValidatorShare(
+			userRequest.validatorAddress
+		);
+		IValidatorShare.DelegatorUnbond memory unbond = validatorShare
+			.unbonds_new(address(this), userRequest.validatorNonce);
+
+		return unbond.shares;
+	}
+
+	function getInstantPoolMatic() external view override returns (uint256) {
+		return instantPoolMatic;
+	}
+
+	function getInstantPoolMaticX() external view override returns (uint256) {
+		return instantPoolMaticX;
 	}
 }

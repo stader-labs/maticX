@@ -102,13 +102,14 @@ contract StakeManagerMock is IStakeManager {
 	}
 
 	function delegationDeposit(
-		uint256,
-		uint256 amount,
-		address delegator
+		uint256 _validatorId,
+		uint256 _amount,
+		address _delegator
 	) external override returns (bool) {
-		state.delegator2Amount[msg.sender] += amount;
-		IERC20(state.token).transferFrom(delegator, address(this), amount);
-		return IERC20(state.token).transfer(msg.sender, amount);
+		state.delegator2Amount[msg.sender] += _amount;
+		state.stakedAmount[_validatorId] += _amount;
+		IERC20(state.token).transferFrom(_delegator, address(this), _amount);
+		return IERC20(state.token).transfer(msg.sender, _amount);
 	}
 
 	function epoch() external view override returns (uint256) {
@@ -131,5 +132,14 @@ contract StakeManagerMock is IStakeManager {
 
 	function setEpoch(uint256 _epoch) external {
 		state.epoch = _epoch;
+	}
+
+	function migrateDelegation(
+		uint256 _fromValidatorId,
+		uint256 _toValidatorId,
+		uint256 _amount
+	) public override {
+		state.stakedAmount[_fromValidatorId] -= _amount;
+		state.stakedAmount[_toValidatorId] += _amount;
 	}
 }
