@@ -62,7 +62,7 @@ contract MaticX is
 	) external override initializer {
 		__AccessControl_init();
 		__Pausable_init();
-		__ERC20_init("Liquid Staking Matic Test", "tMaticX");
+		__ERC20_init("Liquid Staking Matic", "MaticX");
 
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
 		manager = _manager;
