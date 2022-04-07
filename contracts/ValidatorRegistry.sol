@@ -3,6 +3,7 @@ pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import "./interfaces/IValidatorRegistry.sol";
 import "./interfaces/IMaticX.sol";
@@ -14,7 +15,8 @@ import "./interfaces/IStakeManager.sol";
 contract ValidatorRegistry is
 	IValidatorRegistry,
 	PausableUpgradeable,
-	AccessControlUpgradeable
+	AccessControlUpgradeable,
+	ReentrancyGuardUpgradeable
 {
 	/// @notice contract version.
 	string public version;
@@ -25,15 +27,19 @@ contract ValidatorRegistry is
 	/// @notice maticX address.
 	address private maticX;
 
+	// TODO: For new deployment change to preferredValidatorId
 	/// @notice This stores the preferred validator id for deposits
-	uint256 private preferredDepositValidatorId;
-	/// @notice This stores the preferred validator id for withdrawals
-	uint256 private preferredWithdrawalValidatorId;
+	uint256 private preferredValidatorId;
+	// TODO: Remove it before new deployment
+	uint256 private lastWithdrawnValidatorId;
 
 	/// @notice This stores the validators.
 	uint256[] private validators;
 	/// @notice Mapping of registered validator ids
 	mapping(uint256 => bool) private validatorIdExists;
+
+	/// @notice This stores the preferred validator id for withdrawals
+	uint256 private preferredWithdrawalValidatorId;
 
 	/// -------------------------- initialize ----------------------------------
 
@@ -95,7 +101,7 @@ contract ValidatorRegistry is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		require(
-			preferredDepositValidatorId != _validatorId,
+			preferredValidatorId != _validatorId,
 			"Can't remove a preferred validator for deposits"
 		);
 		require(
@@ -134,7 +140,7 @@ contract ValidatorRegistry is
 		whenValidatorIdExists(_validatorId)
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
-		preferredDepositValidatorId = _validatorId;
+		preferredValidatorId = _validatorId;
 
 		emit SetPreferredDepositValidatorId(_validatorId);
 	}
@@ -212,14 +218,14 @@ contract ValidatorRegistry is
 	}
 
 	/// @notice Retrieve the preferred validator id for deposits
-	/// @return preferredDepositValidatorId
+	/// @return preferredValidatorId
 	function getPreferredDepositValidatorId()
 		external
 		view
 		override
 		returns (uint256)
 	{
-		return preferredDepositValidatorId;
+		return preferredValidatorId;
 	}
 
 	/// @notice Retrieve the preferred validator id for withdrawals

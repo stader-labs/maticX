@@ -93,6 +93,8 @@ interface IMaticX is IERC20Upgradeable {
 
 	function setFeePercent(uint8 _feePercent) external;
 
+	function setInstantPoolOwner(address _address) external;
+
 	function setInsuranceAddress(address _address) external;
 
 	function setValidatorRegistryAddress(address _address) external;

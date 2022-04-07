@@ -30,18 +30,15 @@ npm run deploy:main
 
 # Upgrading
 
-To upgrade on testnet run:
-
 ```bash
-npx hardhat ./scripts/upgradeMaticX.ts --network testnet
-npx hardhat ./scripts/upgradeValidatorRegistry.ts --network testnet
+npx hardhat run ./scripts/upgradeMaticX.ts --network <network>
+npx hardhat run ./scripts/upgradeValidatorRegistry.ts --network <network>
 ```
 
-To upgrade on mainnet run:
+# Verifying on etherscan
 
 ```bash
-npx hardhat run ./scripts/upgradeMaticX.ts --network mainnet
-npx hardhat run ./scripts/upgradeValidatorRegistry.ts --network mainnet
+npx hardhat verifyMaticX --network <network>
 ```
 
 # Testing

@@ -9,7 +9,7 @@
   "matic_stake_manager_proxy": "0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908",
   "proxy_admin": "0x2B6fD0F5DC5846Bda4e5e8Ec3Ca62ea6593c95C5",
   "maticX_proxy": "0x2103F7FD6b8b5637D3e9F1303C8399ccE2612827",
-  "maticX_impl": "0x8665067e7e1697c99fde5f3ad3111fa97947f334",
+  "maticX_impl": "0x017e8B0C1E3d3365184B36AC3dDF3Cf9107B8E2C",
   "validator_registry_proxy": "0x1F19fed33a761A3EE1F1d37CD10010B5143F340a",
-  "validator_registry_impl": "0x19436FCd9BCD71630Fd6c4a7ca7D7C5e9798aFEc"
+  "validator_registry_impl": "0x534d36bd2bd63c013dcc8428bc399c2e28a452d2"
 }

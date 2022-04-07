@@ -31,7 +31,7 @@ contract MaticX is
 	// address to cover for funds insurance.
 	address public override insurance;
 	address public override token;
-	address public instantPoolOwner;
+	address public proposed_manager;
 	address public manager;
 
 	/// @notice Mapping of all user ids with withdraw requests.
@@ -40,6 +40,7 @@ contract MaticX is
 	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
 
 	uint8 public override feePercent;
+	address public instantPoolOwner;
 	uint256 public instantPoolMatic;
 	uint256 public instantPoolMaticX;
 
@@ -626,6 +627,15 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		feePercent = _feePercent;
+	}
+
+	function setInstantPoolOwner(address _address)
+		external
+		override
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		instantPoolOwner = _address;
+		_setupRole(INSTANT_POOL_OWNER, _address);
 	}
 
 	/**
