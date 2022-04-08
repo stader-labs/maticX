@@ -31,6 +31,8 @@ interface IMaticX is IERC20Upgradeable {
 
 	function feePercent() external view returns (uint8);
 
+	function capAmount() external view returns (uint256);
+
 	function initialize(
 		address _validatorRegistry,
 		address _stakeManager,
@@ -38,7 +40,8 @@ interface IMaticX is IERC20Upgradeable {
 		address _manager,
 		address _instant_pool_manager,
 		address _treasury,
-		address _insurance
+		address _insurance,
+		uint256 _capAmount
 	) external;
 
 	function provideInstantPoolMatic(uint256 _amount) external;
@@ -92,6 +95,8 @@ interface IMaticX is IERC20Upgradeable {
 	function setFees(uint8 _treasuryFee, uint8 _insuranceFee) external;
 
 	function setFeePercent(uint8 _feePercent) external;
+
+	function setCapAmount(uint256 _amount) external;
 
 	function setInstantPoolOwner(address _address) external;
 

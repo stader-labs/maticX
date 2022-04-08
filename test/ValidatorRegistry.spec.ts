@@ -84,6 +84,8 @@ describe('ValidatorRegistry contract', function () {
   })
 
   beforeEach(async () => {
+    const capAmount = ethers.utils.parseEther('1000')
+
     ;[deployer, ...users] = await ethers.getSigners()
     manager = deployer
     treasury = deployer
@@ -121,6 +123,7 @@ describe('ValidatorRegistry contract', function () {
         manager.address,
         treasury.address,
         insurance.address,
+        capAmount,
       ],
     )) as MaticX
     await maticX.deployed()
