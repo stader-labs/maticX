@@ -253,7 +253,7 @@ contract MaticX is
 		uint256 preferredValidatorId = validatorRegistry
 			.getPreferredWithdrawalValidatorId();
 		uint256 currentIdx = 0;
-		for (; currentIdx < validators.length; currentIdx++) {
+		for (; currentIdx < validators.length; ++currentIdx) {
 			if (preferredValidatorId == validators[currentIdx]) break;
 		}
 
@@ -308,7 +308,7 @@ contract MaticX is
 	 */
 	function restakeAll() external override whenNotPaused {
 		uint256[] memory validators = validatorRegistry.getValidators();
-		for (uint256 idx = 0; idx < validators.length; idx++) {
+		for (uint256 idx = 0; idx < validators.length; ++idx) {
 			uint256 validatorId = validators[idx];
 
 			restake(validatorId);
@@ -677,7 +677,7 @@ contract MaticX is
 	{
 		uint256 totalStake;
 		uint256[] memory validators = validatorRegistry.getValidators();
-		for (uint256 i = 0; i < validators.length; i++) {
+		for (uint256 i = 0; i < validators.length; ++i) {
 			address validatorShare = stakeManager.getValidatorContract(
 				validators[i]
 			);
