@@ -239,6 +239,8 @@ contract MaticX is
 			_amount
 		);
 
+		_burn(msg.sender, _amount);
+
 		uint256 leftAmount2WithdrawInMatic = totalAmount2WithdrawInMatic;
 		uint256 totalDelegated = getTotalStakeAcrossAllValidators();
 
@@ -288,8 +290,6 @@ contract MaticX is
 				? currentIdx + 1
 				: 0;
 		}
-
-		_burn(msg.sender, _amount);
 
 		emit RequestWithdraw(msg.sender, _amount, totalAmount2WithdrawInMatic);
 	}
