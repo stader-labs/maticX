@@ -46,4 +46,6 @@ interface IValidatorRegistry {
 	event RemoveValidator(uint256 indexed _validatorId);
 	event SetPreferredDepositValidatorId(uint256 indexed _validatorId);
 	event SetPreferredWithdrawalValidatorId(uint256 indexed _validatorId);
+	event SetMaticX(address _address);
+	event SetVersion(string _version);
 }

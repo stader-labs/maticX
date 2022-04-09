@@ -569,6 +569,8 @@ contract MaticX is
 		);
 		entityFees.treasury = _treasuryFee;
 		entityFees.insurance = _insuranceFee;
+
+		emit SetFees(_treasuryFee, _insuranceFee);
 	}
 
 	/**
@@ -584,6 +586,8 @@ contract MaticX is
 		require(_feePercent <= 100, "_feePercent must not exceed 100");
 
 		feePercent = _feePercent;
+
+		emit SetFeePercent(_feePercent);
 	}
 
 	function setInstantPoolOwner(address _address)
@@ -593,6 +597,8 @@ contract MaticX is
 	{
 		instantPoolOwner = _address;
 		_setupRole(INSTANT_POOL_OWNER, _address);
+
+		emit SetInstantPoolOwner(_address);
 	}
 
 	/**
@@ -605,6 +611,8 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		treasury = _address;
+
+		emit SetTreasuryAddress(_address);
 	}
 
 	/**
@@ -618,6 +626,8 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		insurance = _address;
+
+		emit SetInsuranceAddress(_address);
 	}
 
 	/**
@@ -631,6 +641,8 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		validatorRegistry = IValidatorRegistry(_address);
+
+		emit SetValidatorRegistryAddress(_address);
 	}
 
 	/**
@@ -643,6 +655,8 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		version = _version;
+
+		emit SetVersion(_version);
 	}
 
 	////////////////////////////////////////////////////////////

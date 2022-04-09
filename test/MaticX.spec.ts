@@ -31,15 +31,18 @@ describe('MaticX contract', function () {
     signer: SignerWithAddress,
     amount: BigNumberish,
   ) => Promise<void>
-  let submit: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+  let submit: (
+    signer: SignerWithAddress,
+    amount: BigNumberish,
+  ) => Promise<Transaction>
   let requestWithdraw: (
     signer: SignerWithAddress,
     amount: BigNumberish,
-  ) => Promise<void>
+  ) => Promise<Transaction>
   let claimWithdrawal: (
     signer: SignerWithAddress,
     idx: BigNumberish,
-  ) => Promise<void>
+  ) => Promise<Transaction>
   let migrateDelegation: (
     signer: SignerWithAddress,
     fromValidatorId: BigNumberish,
@@ -67,18 +70,18 @@ describe('MaticX contract', function () {
       await maticApprove(signer, amount)
 
       const signerMaticX = maticX.connect(signer)
-      await signerMaticX.submit(amount)
+      return signerMaticX.submit(amount)
     }
 
     requestWithdraw = async (signer, amount) => {
       const signerMaticX = maticX.connect(signer)
       await signerMaticX.approve(maticX.address, amount)
-      await signerMaticX.requestWithdraw(amount)
+      return signerMaticX.requestWithdraw(amount)
     }
 
     claimWithdrawal = async (signer, idx) => {
       const signerMaticX = maticX.connect(signer)
-      await signerMaticX.claimWithdrawal(idx)
+      return signerMaticX.claimWithdrawal(idx)
     }
 
     migrateDelegation = async (
@@ -151,61 +154,88 @@ describe('MaticX contract', function () {
 
   it('Should submit successfully', async () => {
     const total_amount = ethers.utils.parseEther('1')
-    await mint(users[0], total_amount)
+    const user = users[0]
+
+    await mint(user, total_amount)
 
     const approve_amount1 = ethers.utils.parseEther('0.4')
     // Approve & Submit individually 0.4
-    await maticApprove(users[0], approve_amount1)
-    await submitWithoutApprove(users[0], approve_amount1)
+    await maticApprove(user, approve_amount1)
+    await submitWithoutApprove(user, approve_amount1)
 
-    var userBalance = await maticX.balanceOf(users[0].address)
-    expect(userBalance.eq(approve_amount1)).to.be.true
+    var userBalance = await maticX.balanceOf(user.address)
+    expect(userBalance).to.equal(approve_amount1)
 
     // Approve & Submit individually 0.6
     const remaining_amount = ethers.utils.parseEther('0.6')
-    await submit(users[0], remaining_amount)
+    const submitTx = await submit(user, remaining_amount)
+    await expect(submitTx)
+      .emit(maticX, 'Submit')
+      .withArgs(user.address, remaining_amount)
+    await expect(submitTx)
+      .emit(maticX, 'Delegate')
+      .withArgs(1, remaining_amount)
 
-    userBalance = await maticX.balanceOf(users[0].address)
-    expect(userBalance.eq(total_amount)).to.be.true
+    userBalance = await maticX.balanceOf(user.address)
+    expect(userBalance).to.equal(total_amount)
   })
 
   it('fails when submit amount is greater than signer balance', async () => {
-    var userMaticXBalance = await maticX.balanceOf(users[0].address)
-    expect(userMaticXBalance.eq(0)).to.be.true
+    const user = users[0]
+    var userMaticXBalance = await maticX.balanceOf(user.address)
+    expect(userMaticXBalance).to.equal(0)
 
     const amount = ethers.utils.parseEther('1')
-    await mint(users[0], amount)
+    await mint(user, amount)
 
-    await expect(submitWithoutApprove(users[0], amount)).to.be.revertedWith(
+    await expect(submitWithoutApprove(user, amount)).to.be.revertedWith(
       'ERC20: insufficient allowance',
     )
 
-    await expect(
-      submit(users[0], ethers.utils.parseEther('2')),
-    ).to.be.revertedWith('ERC20: transfer amount exceeds balance')
+    await expect(submit(user, ethers.utils.parseEther('2'))).to.be.revertedWith(
+      'ERC20: transfer amount exceeds balance',
+    )
 
-    userMaticXBalance = await maticX.balanceOf(users[0].address)
-    expect(userMaticXBalance.eq(0)).to.be.true
+    userMaticXBalance = await maticX.balanceOf(user.address)
+    expect(userMaticXBalance).to.equal(0)
   })
 
   it('Should request withdraw from the contract successfully', async () => {
     const amount = ethers.utils.parseEther('1')
-    await mint(users[0], amount)
-    await submit(users[0], amount)
-    await requestWithdraw(users[0], amount)
+    const user = users[0]
 
-    const userBalance = await maticX.balanceOf(users[0].address)
+    await mint(user, amount)
+
+    const submitTx = await submit(user, amount)
+    await expect(submitTx).emit(maticX, 'Submit').withArgs(user.address, amount)
+    await expect(submitTx).emit(maticX, 'Delegate').withArgs(1, amount)
+
+    await expect(await requestWithdraw(user, amount))
+      .emit(maticX, 'RequestWithdraw')
+      .withArgs(user.address, amount, amount)
+
+    const userBalance = await maticX.balanceOf(user.address)
     expect(userBalance).to.equal(0)
   })
 
   it('WithdrawalRequest should have correct share amount', async () => {
     const expectedAmount = ethers.utils.parseEther('1')
-    await mint(users[0], expectedAmount)
-    await submit(users[0], expectedAmount)
-    await requestWithdraw(users[0], expectedAmount)
+    const user = users[0]
+
+    await mint(user, expectedAmount)
+
+    const submitTx = await submit(user, expectedAmount)
+    await expect(submitTx)
+      .emit(maticX, 'Submit')
+      .withArgs(user.address, expectedAmount)
+    await expect(submitTx).emit(maticX, 'Delegate').withArgs(1, expectedAmount)
+
+    await expect(await requestWithdraw(user, expectedAmount))
+      .emit(maticX, 'RequestWithdraw')
+      .withArgs(user.address, expectedAmount, expectedAmount)
 
     const amount = await maticX.getSharesAmountOfUserWithdrawalRequest(
-      users[0].address,
+      user.address,
       0,
     )
     expect(expectedAmount).to.equal(amount)
@@ -225,7 +255,14 @@ describe('MaticX contract', function () {
       const submitAmountWei = ethers.utils.parseEther(submitAmounts[i])
 
       await mint(users[i], submitAmountWei)
-      await submit(users[i], submitAmountWei)
+
+      const submitTx = await submit(users[i], submitAmountWei)
+      await expect(submitTx)
+        .emit(maticX, 'Submit')
+        .withArgs(users[i].address, submitAmountWei)
+      await expect(submitTx)
+        .emit(maticX, 'Delegate')
+        .withArgs(1, submitAmountWei)
     }
 
     await stakeManagerMock.setEpoch(1)
@@ -239,7 +276,9 @@ describe('MaticX contract', function () {
       )
       const withdrawAmountWei = ethers.utils.parseEther(withdrawAmounts[i])
 
-      await requestWithdraw(users[i], withdrawAmountWei)
+      await expect(await requestWithdraw(users[i], withdrawAmountWei))
+        .emit(maticX, 'RequestWithdraw')
+        .withArgs(users[i].address, withdrawAmountWei, withdrawAmountWei)
     }
 
     const withdrawalDelay = await stakeManagerMock.withdrawalDelay()
@@ -248,7 +287,13 @@ describe('MaticX contract', function () {
     await stakeManagerMock.setEpoch(withdrawalDelay.add(currentEpoch))
 
     for (let i = 0; i < delegatorsAmount; i++) {
-      await claimWithdrawal(users[i], 0)
+      await expect(await claimWithdrawal(users[i], 0))
+        .emit(maticX, 'ClaimWithdrawal')
+        .withArgs(
+          users[i].address,
+          0,
+          ethers.utils.parseEther(withdrawAmounts[i]),
+        )
       const balanceAfter = await polygonMock.balanceOf(users[i].address)
 
       expect(balanceAfter).to.equal(ethers.utils.parseEther(withdrawAmounts[i]))
@@ -298,8 +343,10 @@ describe('MaticX contract', function () {
   })
 
   it('Should migrate validator stake to another validator successfully', async () => {
-    await mint(users[0], 100)
-    await submit(users[0], 100)
+    const user = users[0]
+
+    await mint(user, 100)
+    await submit(user, 100)
 
     await stakeManagerMock.createValidator(123)
     await validatorRegistry.addValidator(123)

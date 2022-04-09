@@ -151,4 +151,11 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 indexed _toValidatorId,
 		uint256 _amount
 	);
+	event SetFees(uint8 _treasuryFee, uint8 _insuranceFee);
+	event SetFeePercent(uint8 _feePercent);
+	event SetInstantPoolOwner(address _address);
+	event SetTreasuryAddress(address _address);
+	event SetInsuranceAddress(address _address);
+	event SetValidatorRegistryAddress(address _address);
+	event SetVersion(string _version);
 }

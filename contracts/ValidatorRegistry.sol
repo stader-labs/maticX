@@ -166,6 +166,8 @@ contract ValidatorRegistry is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		maticX = _maticX;
+
+		emit SetMaticX(_maticX);
 	}
 
 	/// @notice Allows to set the contract version.
@@ -176,6 +178,8 @@ contract ValidatorRegistry is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		version = _version;
+
+		emit SetVersion(_version);
 	}
 
 	/// @notice Allows to pause the contract.

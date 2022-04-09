@@ -1,6 +1,7 @@
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
+import { Transaction } from 'ethers'
 import { ethers, upgrades } from 'hardhat'
 import {
   MaticX,
@@ -24,11 +25,11 @@ describe('ValidatorRegistry contract', function () {
   let addValidator: (
     signer: SignerWithAddress,
     validartorId: BigNumberish,
-  ) => Promise<void>
+  ) => Promise<Transaction>
   let removeValidator: (
     signer: SignerWithAddress,
     validartorId: BigNumberish,
-  ) => Promise<void>
+  ) => Promise<Transaction>
   let createValidator: (
     signer: SignerWithAddress,
     validartorId: BigNumberish,
@@ -36,33 +37,33 @@ describe('ValidatorRegistry contract', function () {
   let setPreferredDepositValidatorId: (
     signer: SignerWithAddress,
     validartorId: BigNumberish,
-  ) => Promise<void>
+  ) => Promise<Transaction>
   let setPreferredWithdrawalValidatorId: (
     signer: SignerWithAddress,
     validartorId: BigNumberish,
-  ) => Promise<void>
+  ) => Promise<Transaction>
   let getValidators: () => Promise<BigNumber[]>
   let getValidatorContract: (validatorId: BigNumberish) => Promise<string>
 
   before(() => {
     addValidator = async (signer, validatorId) => {
       const signerValidatorRegistry = validatorRegistry.connect(signer)
-      await signerValidatorRegistry.addValidator(validatorId)
+      return signerValidatorRegistry.addValidator(validatorId)
     }
 
     removeValidator = async (signer, validatorId) => {
       const signerValidatorRegistry = validatorRegistry.connect(signer)
-      await signerValidatorRegistry.removeValidator(validatorId)
+      return signerValidatorRegistry.removeValidator(validatorId)
     }
 
     setPreferredDepositValidatorId = async (signer, validatorId) => {
       const signerValidatorRegistry = validatorRegistry.connect(signer)
-      await signerValidatorRegistry.setPreferredDepositValidatorId(validatorId)
+      return signerValidatorRegistry.setPreferredDepositValidatorId(validatorId)
     }
 
     setPreferredWithdrawalValidatorId = async (signer, validatorId) => {
       const signerValidatorRegistry = validatorRegistry.connect(signer)
-      await signerValidatorRegistry.setPreferredWithdrawalValidatorId(
+      return signerValidatorRegistry.setPreferredWithdrawalValidatorId(
         validatorId,
       )
     }
@@ -142,7 +143,9 @@ describe('ValidatorRegistry contract', function () {
     const validators = await getValidators()
     expect(validators).to.be.empty
     for (const id of validatorIds) {
-      await addValidator(manager, id)
+      await expect(await addValidator(manager, id))
+        .emit(validatorRegistry, 'AddValidator')
+        .withArgs(id)
       expectedValidators.push(BigNumber.from(id))
       const validators = await getValidators()
       expect(validators).to.eql(expectedValidators)
@@ -151,7 +154,9 @@ describe('ValidatorRegistry contract', function () {
 
   it('Should not add existing validator', async function () {
     await createValidator(manager, 1)
-    await addValidator(manager, 1)
+    await expect(await addValidator(manager, 1))
+      .emit(validatorRegistry, 'AddValidator')
+      .withArgs(1)
 
     await expect(addValidator(manager, 1)).to.be.revertedWith(
       'Validator id already exists in our registry',
@@ -163,14 +168,18 @@ describe('ValidatorRegistry contract', function () {
     const expectedValidators = []
     for (const id of validatorIds) {
       await createValidator(manager, id)
-      await addValidator(manager, id)
+      await expect(await addValidator(manager, id))
+        .emit(validatorRegistry, 'AddValidator')
+        .withArgs(id)
       expectedValidators.push(BigNumber.from(id))
     }
 
     const validators = await getValidators()
     expect(validators).to.eql(expectedValidators)
     for (const id of validatorIds) {
-      await removeValidator(manager, id)
+      await expect(await removeValidator(manager, id))
+        .emit(validatorRegistry, 'RemoveValidator')
+        .withArgs(id)
       expectedValidators.splice(0, 1)
       const validators = await getValidators()
       expect(validators).to.eql(expectedValidators)
@@ -180,7 +189,9 @@ describe('ValidatorRegistry contract', function () {
   it('Should not remove an validator when it is preferred for deposits', async function () {
     await createValidator(manager, 1)
     await addValidator(manager, 1)
-    await setPreferredDepositValidatorId(manager, 1)
+    await expect(await setPreferredDepositValidatorId(manager, 1))
+      .emit(validatorRegistry, 'SetPreferredDepositValidatorId')
+      .withArgs(1)
 
     await expect(removeValidator(manager, 1)).to.be.revertedWith(
       "Can't remove a preferred validator for deposits",
@@ -190,7 +201,9 @@ describe('ValidatorRegistry contract', function () {
   it('Should not remove an validator when it is preferred for withdrawals', async function () {
     await createValidator(manager, 1)
     await addValidator(manager, 1)
-    await setPreferredWithdrawalValidatorId(manager, 1)
+    await expect(await setPreferredWithdrawalValidatorId(manager, 1))
+      .emit(validatorRegistry, 'SetPreferredWithdrawalValidatorId')
+      .withArgs(1)
 
     await expect(removeValidator(manager, 1)).to.be.revertedWith(
       "Can't remove a preferred validator for withdrawals",
