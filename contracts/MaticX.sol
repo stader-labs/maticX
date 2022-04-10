@@ -43,7 +43,6 @@ contract MaticX is
 	address public instantPoolOwner;
 	uint256 public instantPoolMatic;
 	uint256 public instantPoolMaticX;
-	uint256 public override capAmount;
 
 	/**
 	 * @param _validatorRegistry - Address of the validator registry
@@ -59,8 +58,7 @@ contract MaticX is
 		address _manager,
 		address _instantPoolOwner,
 		address _treasury,
-		address _insurance,
-		uint256 _capAmount
+		address _insurance
 	) external override initializer {
 		__AccessControl_init();
 		__Pausable_init();
@@ -79,7 +77,6 @@ contract MaticX is
 
 		entityFees = FeeDistribution(80, 20);
 		feePercent = 5;
-		capAmount = _capAmount;
 	}
 
 	////////////////////////////////////////////////////////////
@@ -213,10 +210,7 @@ contract MaticX is
 		returns (uint256)
 	{
 		require(_amount > 0, "Invalid amount");
-		require(
-			_amount + getTotalPooledMatic() <= capAmount,
-			"Exceeds cap limit"
-		);
+
 		IERC20Upgradeable(token).safeTransferFrom(
 			msg.sender,
 			address(this),
@@ -590,14 +584,6 @@ contract MaticX is
 		require(_feePercent <= 100, "_feePercent must not exceed 100");
 
 		feePercent = _feePercent;
-	}
-
-	function setCapAmount(uint256 _amount)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
-		capAmount = _amount;
 	}
 
 	function setInstantPoolOwner(address _address)

@@ -46,10 +46,6 @@ describe('MaticX contract', function () {
     toValidatorId: BigNumberish,
     amount: BigNumberish,
   ) => Promise<Transaction>
-  let setCapAmount: (
-    signer: SignerWithAddress,
-    amount: BigNumberish,
-  ) => Promise<void>
 
   before(() => {
     mint = async (signer, amount) => {
@@ -98,16 +94,9 @@ describe('MaticX contract', function () {
         amount,
       )
     }
-
-    setCapAmount = async (signer, amount) => {
-      const signerMaticX = maticX.connect(signer)
-      await signerMaticX.setCapAmount(amount)
-    }
   })
 
   beforeEach(async () => {
-    const capAmount = ethers.utils.parseEther('1000')
-
     ;[deployer, ...users] = await ethers.getSigners()
     manager = deployer
     treasury = deployer
@@ -145,7 +134,6 @@ describe('MaticX contract', function () {
         instant_pool_owner.address,
         treasury.address,
         insurance.address,
-        capAmount,
       ],
     )) as MaticX
     await maticX.deployed()
@@ -319,18 +307,5 @@ describe('MaticX contract', function () {
     await expect(await migrateDelegation(manager, 1, 123, 100))
       .emit(maticX, 'MigrateDelegation')
       .withArgs(1, 123, 100)
-  })
-
-  it('Should fail when amount exceeds cap limit', async () => {
-    await mint(users[0], ethers.utils.parseEther('1001'))
-    await expect(
-      submit(users[0], ethers.utils.parseEther('1001')),
-    ).to.be.revertedWith('Exceeds cap limit')
-
-    await setCapAmount(manager, ethers.utils.parseEther('1001'))
-    await submit(users[0], ethers.utils.parseEther('1001'))
-
-    var userBalance = await maticX.balanceOf(users[0].address)
-    expect(userBalance).to.equal(ethers.utils.parseEther('1001'))
   })
 })
