@@ -303,55 +303,67 @@ contract MaticX is
 		_claimWithdrawal(msg.sender, _idx);
 	}
 
-	/**
-	 * @dev Restakes all validator rewards
-	 */
-	function restakeAll() external override whenNotPaused {
-		uint256[] memory validators = validatorRegistry.getValidators();
-		for (uint256 idx = 0; idx < validators.length; ++idx) {
-			uint256 validatorId = validators[idx];
-
-			restake(validatorId);
-		}
-	}
-
-	/**
-	 * @dev Restakes a validator rewards and distributes portion of it to fee collectors
-	 * @param _validatorId - Validator Id
-	 */
-	function restake(uint256 _validatorId) public override whenNotPaused {
+	function withdrawRewards(uint256 _validatorId)
+		public
+		override
+		whenNotPaused
+		returns (uint256)
+	{
 		address validatorShare = stakeManager.getValidatorContract(
 			_validatorId
 		);
 
 		uint256 balanceBeforeRewards = IERC20Upgradeable(token).balanceOf(
 			address(this)
-		) - instantPoolMatic;
-
-		withdrawRewards(validatorShare);
+		);
+		IValidatorShare(validatorShare).withdrawRewards();
 		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this)) -
-			balanceBeforeRewards -
+			balanceBeforeRewards;
+
+		emit WithdrawRewards(_validatorId, rewards);
+
+		return rewards;
+	}
+
+	function stakeRewardsAndDistributeFees(uint256 _validatorId)
+		external
+		override
+		whenNotPaused
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		require(
+			validatorRegistry.isRegisteredValidatorId(_validatorId),
+			"Doesn't exist in validator registry"
+		);
+
+		address validatorShare = stakeManager.getValidatorContract(
+			_validatorId
+		);
+
+		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this)) -
 			instantPoolMatic;
 
-		uint256 rewardsToDistribute = (rewards * feePercent) / 100;
-		uint256 treasuryRewards = (rewardsToDistribute * entityFees.treasury) /
-			100;
-		uint256 insuranceRewards = (rewardsToDistribute *
-			entityFees.insurance) / 100;
+		require(rewards > 0, "Reward is zero");
 
-		IERC20Upgradeable(token).safeTransfer(treasury, treasuryRewards);
-		IERC20Upgradeable(token).safeTransfer(insurance, insuranceRewards);
+		uint256 treasuryFees = (rewards * feePercent * entityFees.treasury) /
+			10000;
+		uint256 insuranceFees = (rewards * feePercent * entityFees.insurance) /
+			10000;
 
-		// TODO - Wouldn't it be easier to do amountRestaked = rewards - rewardsToDistribute ?
-		uint256 amountRestaked = IERC20Upgradeable(token).balanceOf(
-			address(this)
-		) -
-			balanceBeforeRewards -
-			instantPoolMatic;
-		IValidatorShare(validatorShare).buyVoucher(amountRestaked, 0);
+		if (treasuryFees > 0) {
+			IERC20Upgradeable(token).safeTransfer(treasury, treasuryFees);
+			emit DistributeFees(treasury, treasuryFees);
+		}
 
-		emit Restake(msg.sender, _validatorId, amountRestaked);
-		emit DistributeRewards(msg.sender, treasuryRewards, insuranceRewards);
+		if (insuranceFees > 0) {
+			IERC20Upgradeable(token).safeTransfer(insurance, insuranceFees);
+			emit DistributeFees(insurance, insuranceFees);
+		}
+
+		uint256 amountStaked = rewards - treasuryFees - insuranceFees;
+		IValidatorShare(validatorShare).buyVoucher(amountStaked, 0);
+
+		emit StakeRewards(_validatorId, amountStaked);
 	}
 
 	/**
@@ -397,25 +409,6 @@ contract MaticX is
 		uint256 _unbondNonce
 	) private {
 		IValidatorShare(_validatorShare).unstakeClaimTokens_new(_unbondNonce);
-	}
-
-	/**
-	 * @dev API for delegated restaking rewards to validatorShare
-	 * @param _validatorShare - Address of validatorShare contract
-	 */
-	function restake(address _validatorShare)
-		private
-		returns (uint256, uint256)
-	{
-		return IValidatorShare(_validatorShare).restake();
-	}
-
-	/**
-	 * @dev API for withdrawing liquid rewards
-	 * @param _validatorShare - Address of validatorShare contract
-	 */
-	function withdrawRewards(address _validatorShare) private {
-		IValidatorShare(_validatorShare).withdrawRewards();
 	}
 
 	/**
