@@ -18,6 +18,17 @@ interface IValidatorRegistry {
 
 	function togglePause() external;
 
+	function version() external view returns (string memory);
+
+	function preferredDepositValidatorId() external view returns (uint256);
+
+	function preferredWithdrawalValidatorId() external view returns (uint256);
+
+	function validatorIdExists(uint256 _validatorId)
+		external
+		view
+		returns (bool);
+
 	function getContracts()
 		external
 		view
@@ -27,20 +38,9 @@ interface IValidatorRegistry {
 			address _maticX
 		);
 
-	function getValidators() external view returns (uint256[] memory);
-
 	function getValidatorId(uint256 _index) external view returns (uint256);
 
-	function getPreferredDepositValidatorId() external view returns (uint256);
-
-	function getPreferredWithdrawalValidatorId()
-		external
-		view
-		returns (uint256);
-
-	function isRegisteredValidatorId(uint256 _validatorId)
-		external
-		returns (bool);
+	function getValidators() external view returns (uint256[] memory);
 
 	event AddValidator(uint256 indexed _validatorId);
 	event RemoveValidator(uint256 indexed _validatorId);
