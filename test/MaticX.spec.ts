@@ -27,6 +27,10 @@ describe('MaticX contract', function () {
     signer: SignerWithAddress,
     amount: BigNumberish,
   ) => Promise<void>
+  let maticXApprove: (
+      signer: SignerWithAddress,
+      amount: BigNumberish,
+  ) => Promise<void>
   let submitWithoutApprove: (
     signer: SignerWithAddress,
     amount: BigNumberish,
@@ -49,6 +53,34 @@ describe('MaticX contract', function () {
     toValidatorId: BigNumberish,
     amount: BigNumberish,
   ) => Promise<Transaction>
+  let provideInstantPoolMatic: (
+      signer: SignerWithAddress,
+      amount: BigNumberish
+  ) => Promise<void>
+  let provideInstantPoolMaticX: (
+      signer: SignerWithAddress,
+      amount: BigNumberish
+  ) => Promise<void>
+  let withdrawInstantPoolMatic: (
+      signer: SignerWithAddress,
+      amount: BigNumberish
+  ) => Promise<void>
+  let withdrawInstantPoolMaticX: (
+      signer: SignerWithAddress,
+      amount: BigNumberish
+  ) => Promise<void>
+  let helperAddMaticBalance: (
+      signer: SignerWithAddress,
+      amount: BigNumberish
+  ) => Promise<void>
+  let swapMaticToMaticXViaInstantPool: (
+      signer: SignerWithAddress,
+      amount: BigNumberish
+  ) => Promise<void>
+  let helperAddMaticXBalance: (
+      signer: SignerWithAddress,
+      amount: BigNumberish
+  ) => Promise<void>
 
   before(() => {
     mint = async (signer, amount) => {
@@ -59,6 +91,11 @@ describe('MaticX contract', function () {
     maticApprove = async (signer, amount) => {
       const signerERC20 = polygonMock.connect(signer)
       await signerERC20.approve(maticX.address, amount)
+    }
+
+    maticXApprove = async (signer, amount) => {
+      const signerMaticX = maticX.connect(signer)
+      await signerMaticX.approve(maticX.address, amount)
     }
 
     submitWithoutApprove = async (signer, amount) => {
@@ -96,6 +133,38 @@ describe('MaticX contract', function () {
         toValidatorId,
         amount,
       )
+    }
+
+    provideInstantPoolMatic = async (signer, amount) => {
+      const signerMaticX = maticX.connect(signer)
+      await signerMaticX.provideInstantPoolMatic(amount)
+    }
+    provideInstantPoolMaticX = async (signer, amount) => {
+      const signerMaticX = maticX.connect(signer)
+      await signerMaticX.provideInstantPoolMaticX(amount)
+    }
+    withdrawInstantPoolMatic = async (signer, amount) => {
+      const signerMaticX = maticX.connect(signer)
+      await signerMaticX.withdrawInstantPoolMatic(amount)
+    }
+    withdrawInstantPoolMaticX = async (signer, amount) => {
+      const signerMaticX = maticX.connect(signer)
+      await signerMaticX.withdrawInstantPoolMaticX(amount)
+    }
+
+    swapMaticToMaticXViaInstantPool = async (signer, amount) => {
+      const signerMaticX = maticX.connect(signer)
+      await signerMaticX.swapMaticForMaticXViaInstantPool(amount)
+    }
+
+    helperAddMaticBalance = async (signer, amount) => {
+      const signerERC20 = polygonMock.connect(signer)
+      await signerERC20.mint(amount)
+    }
+
+    helperAddMaticXBalance = async (signer, amount) => {
+      const signerMaticX = maticX.connect(signer)
+      await submit(signer, amount)
     }
   })
 
@@ -178,6 +247,118 @@ describe('MaticX contract', function () {
 
     userBalance = await maticX.balanceOf(user.address)
     expect(userBalance).to.equal(total_amount)
+  })
+
+  it('fails when non instant pool owner interacts with instant pool provision & withdrawal', async () => {
+    const amount = ethers.utils.parseEther('1')
+    // Run with a regular signer who should not be able to interact with instant pool
+    const user = users[0]
+
+    await helperAddMaticBalance(user, amount);
+    await helperAddMaticXBalance(user, amount);
+    await maticApprove(user, amount);
+    await expect(provideInstantPoolMatic(user, amount)).to.be.revertedWith(
+        'is missing role',
+    )
+    await expect(provideInstantPoolMaticX(user, amount)).to.be.revertedWith(
+        'is missing role',
+    )
+    await expect(withdrawInstantPoolMatic(user, amount)).to.be.revertedWith(
+        'is missing role',
+    )
+    await expect(withdrawInstantPoolMaticX(user, amount)).to.be.revertedWith(
+        'is missing role',
+    )
+  })
+
+  it('Should provide and withdraw matic to instant pool successfully', async() => {
+    const amount = ethers.utils.parseEther('1')
+    const random_deposit_amount = ethers.utils.parseEther('0.4')
+    const user = users[0]
+
+    const user_sign = polygonMock.connect(user)
+    await user_sign.mint(amount)
+    await user_sign.transfer(maticX.address, random_deposit_amount)
+    expect(await polygonMock.balanceOf(user.address)).to.equal(ethers.utils.parseEther('0.6'))
+    expect(await polygonMock.balanceOf(maticX.address)).to.equal(random_deposit_amount)
+
+    // Run with deployer - the owner of instant pool
+    await helperAddMaticBalance(deployer, amount)
+    await maticApprove(deployer, amount)
+    expect(await polygonMock.balanceOf(deployer.address)).to.equal(amount)
+    expect(await polygonMock.balanceOf(maticX.address)).to.equal(random_deposit_amount)
+
+    await provideInstantPoolMatic(deployer, amount)
+
+    var deployerMaticXBalance = await maticX.balanceOf(maticX.address)
+    expect(deployerMaticXBalance).to.equal(0)
+    expect(await polygonMock.balanceOf(deployer.address)).to.equal(0)
+    expect(await polygonMock.balanceOf(maticX.address)).to.equal(ethers.utils.parseEther('1.4'))
+
+    await withdrawInstantPoolMatic(deployer, amount)
+    var deployerMaticXBalance = await maticX.balanceOf(maticX.address)
+    expect(deployerMaticXBalance).to.equal(0)
+    expect(await polygonMock.balanceOf(deployer.address)).to.equal(amount)
+    expect(await polygonMock.balanceOf(maticX.address)).to.equal(random_deposit_amount)
+  })
+
+  it('Should provide and withdraw MaticX to instant pool successfully', async() => {
+    const amount = ethers.utils.parseEther('1')
+    const user = users[0]
+    const random_deposit_amount = ethers.utils.parseEther('0.4')
+
+    // Get 1 Matic and convert some to 0.4 MaticX
+    await helperAddMaticBalance(user, amount)
+    await helperAddMaticXBalance(user, random_deposit_amount)
+
+    // Raw transfer to the contract
+    const user_sign = maticX.connect(user)
+    await user_sign.transfer(maticX.address, random_deposit_amount)
+    expect(await maticX.balanceOf(user.address)).to.equal(0)
+    expect(await maticX.balanceOf(maticX.address)).to.equal(random_deposit_amount)
+
+    // Run with deployer - the owner of instant pool
+    await helperAddMaticBalance(deployer, amount)
+    await helperAddMaticXBalance(deployer, amount)
+    await maticXApprove(deployer, amount)
+    expect(await maticX.balanceOf(deployer.address)).to.equal(amount)
+    expect(await maticX.balanceOf(maticX.address)).to.equal(random_deposit_amount)
+
+    await provideInstantPoolMaticX(deployer, amount)
+    expect(await maticX.balanceOf(deployer.address)).to.equal(0)
+    expect(await maticX.balanceOf(maticX.address)).to.equal(ethers.utils.parseEther('1.4'))
+
+    await withdrawInstantPoolMaticX(deployer, amount)
+    expect(await maticX.balanceOf(deployer.address)).to.equal(amount)
+    expect(await maticX.balanceOf(maticX.address)).to.equal(random_deposit_amount)
+  })
+
+  it('allows users to interact with instant pool swap', async() => {
+    const amount = ethers.utils.parseEther('1')
+    const total_amount = ethers.utils.parseEther('2')
+
+    // Run with deployer - the owner of instant pool
+    await helperAddMaticBalance(deployer, total_amount)
+    await maticApprove(deployer, total_amount)
+    await provideInstantPoolMatic(deployer, amount)
+
+    await helperAddMaticXBalance(deployer, amount)
+    await maticXApprove(deployer, amount)
+    await provideInstantPoolMaticX(deployer, amount)
+
+    expect(await polygonMock.balanceOf(maticX.address)).to.equal(amount)
+    expect(await maticX.balanceOf(maticX.address)).to.equal(amount)
+
+    const user = users[0]
+    const swap_amount = ethers.utils.parseEther('0.4')
+    await helperAddMaticBalance(user, swap_amount)
+    await maticApprove(user, swap_amount)
+    await swapMaticToMaticXViaInstantPool(user, swap_amount)
+
+    expect(await polygonMock.balanceOf(user.address)).to.equal(0)
+    expect(await polygonMock.balanceOf(maticX.address)).to.equal((ethers.utils.parseEther('1.4')))
+    expect(await maticX.balanceOf(user.address)).to.equal(ethers.utils.parseEther('0.4'))
+    expect(await maticX.balanceOf(maticX.address)).to.equal((ethers.utils.parseEther('0.6')))
   })
 
   it('fails when submit amount is greater than signer balance', async () => {
@@ -321,25 +502,37 @@ describe('MaticX contract', function () {
       .withArgs(manager, 1, 0, 0)
   })
 
-  it('Should restake a validator reward successfully', async () => {
+  it('Should restake a validator reward successfully without using instant pool matic', async () => {
     const submitAmounts: string[] = []
 
     const [minAmount, maxAmount] = [0.005, 0.01]
     const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1
 
+    let total_submitted = 0
     for (let i = 0; i < delegatorsAmount; i++) {
       submitAmounts.push(
         (Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3),
       )
       const submitAmountWei = ethers.utils.parseEther(submitAmounts[i])
-
+      total_submitted += parseFloat(submitAmounts[i])
       await mint(users[i], submitAmountWei)
       await submit(users[i], submitAmountWei)
     }
 
+    const validator_contract = await stakeManagerMock.getValidatorContract(1)
+    const total_staked = await maticX.getTotalPooledMatic()
+
+    const instant_pool_matic = ethers.utils.parseEther('10')
+    await helperAddMaticBalance(deployer, instant_pool_matic)
+    await maticApprove(deployer, instant_pool_matic)
+    await provideInstantPoolMatic(deployer, instant_pool_matic)
+    expect(await polygonMock.balanceOf(maticX.address)).to.equal(instant_pool_matic)
+
     expect(await maticX.restake(1))
       .emit(maticX, 'RestakeEvent')
       .withArgs(manager, 1, 0, 0)
+
+    expect(await polygonMock.balanceOf(maticX.address)).to.equal(instant_pool_matic)
   })
 
   it('Should migrate validator stake to another validator successfully', async () => {

@@ -75,7 +75,7 @@ contract MaticX is
 		token = _token;
 		insurance = _insurance;
 
-		entityFees = FeeDistribution(80, 20);
+		entityFees = FeeDistribution(100, 0);
 		feePercent = 5;
 	}
 
@@ -326,11 +326,12 @@ contract MaticX is
 
 		uint256 balanceBeforeRewards = IERC20Upgradeable(token).balanceOf(
 			address(this)
-		);
+		) - instantPoolMatic;
 
 		withdrawRewards(validatorShare);
 		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this)) -
-			balanceBeforeRewards;
+			balanceBeforeRewards -
+			instantPoolMatic;
 
 		uint256 rewardsToDistribute = (rewards * feePercent) / 100;
 		uint256 treasuryRewards = (rewardsToDistribute * entityFees.treasury) /
@@ -341,9 +342,12 @@ contract MaticX is
 		IERC20Upgradeable(token).safeTransfer(treasury, treasuryRewards);
 		IERC20Upgradeable(token).safeTransfer(insurance, insuranceRewards);
 
+		// TODO - Wouldn't it be easier to do amountRestaked = rewards - rewardsToDistribute ?
 		uint256 amountRestaked = IERC20Upgradeable(token).balanceOf(
 			address(this)
-		) - balanceBeforeRewards;
+		) -
+			balanceBeforeRewards -
+			instantPoolMatic;
 		IValidatorShare(validatorShare).buyVoucher(amountRestaked, 0);
 
 		emit Restake(msg.sender, _validatorId, amountRestaked);
@@ -366,6 +370,7 @@ contract MaticX is
 			validatorRegistry.isRegisteredValidatorId(_toValidatorId),
 			"To validator id does not exist in our registry"
 		);
+		// TODO - Does it automatically fail when amount is greater than staked delegation?
 		stakeManager.migrateDelegation(
 			_fromValidatorId,
 			_toValidatorId,
