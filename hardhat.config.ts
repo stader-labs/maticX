@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { HardhatUserConfig, task } from 'hardhat/config'
 
+import 'hardhat-contract-sizer'
 import '@typechain/hardhat'
 import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-ethers'
@@ -32,7 +33,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 999999,
+        runs: 200,
       },
     },
   },
@@ -43,7 +44,7 @@ const config: HardhatUserConfig = {
     testnet: {
       url: ROOT_CHAIN_RPC,
       accounts: [DEPLOYER_PRIVATE_KEY],
-      gasPrice: Number(ROOT_GAS_PRICE)
+      gasPrice: Number(ROOT_GAS_PRICE),
     },
     mainnet: {
       url: ROOT_CHAIN_RPC,
@@ -64,6 +65,12 @@ const config: HardhatUserConfig = {
   defender: {
     apiKey: DEFENDER_TEAM_API_KEY,
     apiSecret: DEFENDER_TEAM_API_SECRET_KEY,
+  },
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: true,
   },
 }
 

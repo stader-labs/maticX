@@ -210,6 +210,7 @@ contract MaticX is
 		returns (uint256)
 	{
 		require(_amount > 0, "Invalid amount");
+
 		IERC20Upgradeable(token).safeTransferFrom(
 			msg.sender,
 			address(this),
@@ -269,8 +270,7 @@ contract MaticX is
 				? validatorBalance
 				: leftAmount2WithdrawInMatic;
 
-			sellVoucher_new(
-				validatorShare,
+			IValidatorShare(validatorShare).sellVoucher_new(
 				amount2WithdrawFromValidator,
 				type(uint256).max
 			);
@@ -344,7 +344,7 @@ contract MaticX is
 		uint256 amountRestaked = IERC20Upgradeable(token).balanceOf(
 			address(this)
 		) - balanceBeforeRewards;
-		buyVoucher(validatorShare, amountRestaked, 0);
+		IValidatorShare(validatorShare).buyVoucher(amountRestaked, 0);
 
 		emit Restake(msg.sender, _validatorId, amountRestaked);
 		emit DistributeRewards(msg.sender, treasuryRewards, insuranceRewards);
@@ -380,50 +380,6 @@ contract MaticX is
 	 */
 	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		paused() ? _unpause() : _pause();
-	}
-
-	////////////////////////////////////////////////////////////
-	/////                                                    ///
-	/////             ***ValidatorShare API***               ///
-	/////                                                    ///
-	////////////////////////////////////////////////////////////
-
-	/**
-	 * @dev API for delegated buying vouchers from validatorShare
-	 * @param _validatorShare - Address of validatorShare contract
-	 * @param _amount - Amount of MATIC to use for buying vouchers
-	 * @param _minSharesToMint - Minimum of shares that is bought with _amount of MATIC
-	 * @return Actual amount of MATIC used to buy voucher, might differ from _amount
-	 		 because of _minSharesToMint
-	 */
-	function buyVoucher(
-		address _validatorShare,
-		uint256 _amount,
-		uint256 _minSharesToMint
-	) private returns (uint256) {
-		uint256 amountSpent = IValidatorShare(_validatorShare).buyVoucher(
-			_amount,
-			_minSharesToMint
-		);
-
-		return amountSpent;
-	}
-
-	/**
-	 * @dev API for delegated selling vouchers from validatorShare
-	 * @param _validatorShare - Address of validatorShare contract
-	 * @param _claimAmount - Amount of MATIC to claim
-	 * @param _maximumSharesToBurn - Maximum amount of shares to burn
-	 */
-	function sellVoucher_new(
-		address _validatorShare,
-		uint256 _claimAmount,
-		uint256 _maximumSharesToBurn
-	) private {
-		IValidatorShare(_validatorShare).sellVoucher_new(
-			_claimAmount,
-			_maximumSharesToBurn
-		);
 	}
 
 	/**
@@ -492,7 +448,7 @@ contract MaticX is
 		address validatorShare = stakeManager.getValidatorContract(
 			preferredValidatorId
 		);
-		buyVoucher(validatorShare, _amount, 0);
+		IValidatorShare(validatorShare).buyVoucher(_amount, 0);
 
 		emit Delegate(preferredValidatorId, _amount);
 		return amountToMint;
@@ -519,8 +475,7 @@ contract MaticX is
 			"Not able to claim yet"
 		);
 
-		unstakeClaimTokens_new(
-			userRequest.validatorAddress,
+		IValidatorShare(userRequest.validatorAddress).unstakeClaimTokens_new(
 			userRequest.validatorNonce
 		);
 
@@ -626,6 +581,8 @@ contract MaticX is
 		override
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
+		require(_feePercent <= 100, "_feePercent must not exceed 100");
+
 		feePercent = _feePercent;
 	}
 
