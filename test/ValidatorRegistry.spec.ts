@@ -14,7 +14,6 @@ describe('ValidatorRegistry contract', function () {
   let deployer: SignerWithAddress
   let manager: SignerWithAddress
   let instant_pool_owner: SignerWithAddress
-  let insurance: SignerWithAddress
   let treasury: SignerWithAddress
   let users: SignerWithAddress[] = []
   let maticX: MaticX
@@ -88,7 +87,6 @@ describe('ValidatorRegistry contract', function () {
     ;[deployer, ...users] = await ethers.getSigners()
     manager = deployer
     treasury = deployer
-    insurance = deployer
     instant_pool_owner = deployer
 
     polygonMock = (await (
@@ -121,7 +119,6 @@ describe('ValidatorRegistry contract', function () {
         instant_pool_owner.address,
         manager.address,
         treasury.address,
-        insurance.address,
       ],
     )) as MaticX
     await maticX.deployed()

@@ -23,15 +23,11 @@ contract MaticX is
 
 	IValidatorRegistry public override validatorRegistry;
 	IStakeManager public stakeManager;
-	FeeDistribution public override entityFees;
 
 	string public override version;
 	// address to accrue revenue
 	address public treasury;
-	// address to cover for funds insurance.
-	address public override insurance;
 	address public override token;
-	address public proposed_manager;
 	address public manager;
 
 	/// @notice Mapping of all user ids with withdraw requests.
@@ -49,7 +45,6 @@ contract MaticX is
 	 * @param _stakeManager - Address of the stake manager
 	 * @param _token - Address of matic token on Ethereum Mainnet
 	 * @param _treasury - Address of the treasury
-	 * @param _insurance - Address of the insurance
 	 */
 	function initialize(
 		address _validatorRegistry,
@@ -57,8 +52,7 @@ contract MaticX is
 		address _token,
 		address _manager,
 		address _instantPoolOwner,
-		address _treasury,
-		address _insurance
+		address _treasury
 	) external override initializer {
 		__AccessControl_init();
 		__Pausable_init();
@@ -73,9 +67,7 @@ contract MaticX is
 		stakeManager = IStakeManager(_stakeManager);
 		treasury = _treasury;
 		token = _token;
-		insurance = _insurance;
 
-		entityFees = FeeDistribution(100, 0);
 		feePercent = 5;
 	}
 
@@ -345,22 +337,14 @@ contract MaticX is
 
 		require(rewards > 0, "Reward is zero");
 
-		uint256 treasuryFees = (rewards * feePercent * entityFees.treasury) /
-			10000;
-		uint256 insuranceFees = (rewards * feePercent * entityFees.insurance) /
-			10000;
+		uint256 treasuryFees = (rewards * feePercent) / 100;
 
 		if (treasuryFees > 0) {
 			IERC20Upgradeable(token).safeTransfer(treasury, treasuryFees);
 			emit DistributeFees(treasury, treasuryFees);
 		}
 
-		if (insuranceFees > 0) {
-			IERC20Upgradeable(token).safeTransfer(insurance, insuranceFees);
-			emit DistributeFees(insurance, insuranceFees);
-		}
-
-		uint256 amountStaked = rewards - treasuryFees - insuranceFees;
+		uint256 amountStaked = rewards - treasuryFees;
 		IValidatorShare(validatorShare).buyVoucher(amountStaked, 0);
 
 		emit StakeRewards(_validatorId, amountStaked);
@@ -539,27 +523,6 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Function that sets entity fees
-	 * @notice Callable only by manager
-	 * @param _treasuryFee - Treasury fee in %
-	 * @param _insuranceFee - Insurance fee in %
-	 */
-	function setFees(uint8 _treasuryFee, uint8 _insuranceFee)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
-		require(
-			_treasuryFee + _insuranceFee == 100,
-			"sum(fee) is not equal to 100"
-		);
-		entityFees.treasury = _treasuryFee;
-		entityFees.insurance = _insuranceFee;
-
-		emit SetFees(_treasuryFee, _insuranceFee);
-	}
-
-	/**
 	 * @dev Function that sets fee percent
 	 * @notice Callable only by manager
 	 * @param _feePercent - Fee percent (10 = 10%)
@@ -599,21 +562,6 @@ contract MaticX is
 		treasury = _address;
 
 		emit SetTreasuryAddress(_address);
-	}
-
-	/**
-	 * @dev Function that sets new insurance address
-	 * @notice Callable only by manager
-	 * @param _address - New insurance address
-	 */
-	function setInsuranceAddress(address _address)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
-		insurance = _address;
-
-		emit SetInsuranceAddress(_address);
 	}
 
 	/**

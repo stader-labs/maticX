@@ -14,7 +14,6 @@ describe('MaticX contract', function () {
   let deployer: SignerWithAddress
   let manager: SignerWithAddress
   let instant_pool_owner: SignerWithAddress
-  let insurance: SignerWithAddress
   let treasury: SignerWithAddress
   let users: SignerWithAddress[] = []
   let maticX: MaticX
@@ -77,10 +76,9 @@ describe('MaticX contract', function () {
     signer: SignerWithAddress,
     validatorId: BigNumberish,
   ) => Promise<Transaction>
-  let setFees: (
+  let setFeePercent: (
     signer: SignerWithAddress,
-    treasuryFee: BigNumberish,
-    insuranceFee: BigNumberish,
+    feePercent: BigNumberish,
   ) => Promise<Transaction>
 
   before(() => {
@@ -166,9 +164,9 @@ describe('MaticX contract', function () {
       return signerMaticX.stakeRewardsAndDistributeFees(validatorId)
     }
 
-    setFees = async (signer, treasuryFee, insuranceFee) => {
+    setFeePercent = async (signer, feePercent) => {
       const signerMaticX = maticX.connect(signer)
-      return signerMaticX.setFees(treasuryFee, insuranceFee)
+      return signerMaticX.setFeePercent(feePercent)
     }
   })
 
@@ -176,7 +174,6 @@ describe('MaticX contract', function () {
     ;[deployer, ...users] = await ethers.getSigners()
     manager = deployer
     treasury = users[1]
-    insurance = users[2]
     instant_pool_owner = deployer
     polygonMock = (await (
       await ethers.getContractFactory('PolygonMock')
@@ -209,7 +206,6 @@ describe('MaticX contract', function () {
         manager.address,
         instant_pool_owner.address,
         treasury.address,
-        insurance.address,
       ],
     )) as MaticX
     await maticX.deployed()
@@ -534,13 +530,11 @@ describe('MaticX contract', function () {
       instant_pool_matic,
     )
 
-    await setFees(manager, 50, 50)
+    await setFeePercent(manager, 10)
     const rewards = 1000000
-    const [treasuryFeePercent, insuranceFeePercent] = await maticX.entityFees()
     const feePercent = await maticX.feePercent()
-    const treasuryFee = (rewards * treasuryFeePercent * feePercent) / 10000
-    const insuranceFee = (rewards * insuranceFeePercent * feePercent) / 10000
-    const stakedAmount = rewards - treasuryFee - insuranceFee
+    const treasuryFee = (rewards * feePercent) / 100
+    const stakedAmount = rewards - treasuryFee
     await polygonMock.mintTo(maticX.address, rewards)
 
     const stakeRewardsAndDistributeFeesTx = await stakeRewardsAndDistributeFees(
@@ -553,9 +547,6 @@ describe('MaticX contract', function () {
     await expect(stakeRewardsAndDistributeFeesTx)
       .emit(maticX, 'DistributeFees')
       .withArgs(treasury.address, treasuryFee)
-    await expect(stakeRewardsAndDistributeFeesTx)
-      .emit(maticX, 'DistributeFees')
-      .withArgs(insurance.address, insuranceFee)
 
     expect(await polygonMock.balanceOf(maticX.address)).to.equal(
       instant_pool_matic,

@@ -14,18 +14,9 @@ interface IMaticX is IERC20Upgradeable {
 		address validatorAddress;
 	}
 
-	struct FeeDistribution {
-		uint8 treasury;
-		uint8 insurance;
-	}
-
 	function validatorRegistry() external returns (IValidatorRegistry);
 
-	function entityFees() external returns (uint8, uint8);
-
 	function version() external view returns (string memory);
-
-	function insurance() external view returns (address);
 
 	function token() external view returns (address);
 
@@ -37,8 +28,7 @@ interface IMaticX is IERC20Upgradeable {
 		address _token,
 		address _manager,
 		address _instant_pool_manager,
-		address _treasury,
-		address _insurance
+		address _treasury
 	) external;
 
 	function provideInstantPoolMatic(uint256 _amount) external;
@@ -89,13 +79,9 @@ interface IMaticX is IERC20Upgradeable {
 			uint256
 		);
 
-	function setFees(uint8 _treasuryFee, uint8 _insuranceFee) external;
-
 	function setFeePercent(uint8 _feePercent) external;
 
 	function setInstantPoolOwner(address _address) external;
-
-	function setInsuranceAddress(address _address) external;
 
 	function setValidatorRegistryAddress(address _address) external;
 
@@ -144,11 +130,9 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 indexed _toValidatorId,
 		uint256 _amount
 	);
-	event SetFees(uint8 _treasuryFee, uint8 _insuranceFee);
 	event SetFeePercent(uint8 _feePercent);
 	event SetInstantPoolOwner(address _address);
 	event SetTreasuryAddress(address _address);
-	event SetInsuranceAddress(address _address);
 	event SetValidatorRegistryAddress(address _address);
 	event SetVersion(string _version);
 }
