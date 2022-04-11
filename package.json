@@ -6,6 +6,8 @@
   "scripts": {
     "deploy:main": "cross-env NODE_ENV=main npx hardhat run ./scripts/deploy.ts --network mainnet",
     "deploy:test": "cross-env NODE_ENV=test npx hardhat run ./scripts/deploy.ts --network testnet",
+    "upgrade:main": "cross-env NODE_ENV=main npx hardhat run ./scripts/upgradeMaticX.ts --network mainnet",
+    "verify:main": "cross-env NODE_ENV=main npx hardhat verifyMaticX --network mainnet",
     "test": "npx hardhat test",
     "prettier": "prettier --write 'contracts/**/*.sol'"
   },
