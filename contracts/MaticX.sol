@@ -382,7 +382,7 @@ contract MaticX is
 			validatorRegistry.isRegisteredValidatorId(_toValidatorId),
 			"To validator id does not exist in our registry"
 		);
-		// TODO - Does it automatically fail when amount is greater than staked delegation?
+
 		stakeManager.migrateDelegation(
 			_fromValidatorId,
 			_toValidatorId,
@@ -397,18 +397,6 @@ contract MaticX is
 	 */
 	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		paused() ? _unpause() : _pause();
-	}
-
-	/**
-	 * @dev API for delegated unstaking and claiming tokens from validatorShare
-	 * @param _validatorShare - Address of validatorShare contract
-	 * @param _unbondNonce - Unbond nonce
-	 */
-	function unstakeClaimTokens_new(
-		address _validatorShare,
-		uint256 _unbondNonce
-	) private {
-		IValidatorShare(_validatorShare).unstakeClaimTokens_new(_unbondNonce);
 	}
 
 	/**
