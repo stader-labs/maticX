@@ -59,9 +59,9 @@ interface IMaticX is IERC20Upgradeable {
 
 	function claimWithdrawal(uint256 _idx) external;
 
-	function restake(uint256 _validatorId) external;
+	function withdrawRewards(uint256 _validatorId) external returns (uint256);
 
-	function restakeAll() external;
+	function stakeRewardsAndDistributeFees(uint256 _validatorId) external;
 
 	function migrateDelegation(
 		uint256 _fromValidatorId,
@@ -136,19 +136,19 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 indexed _idx,
 		uint256 _amountClaimed
 	);
-	event Restake(
-		address indexed _from,
-		uint256 indexed _validatorId,
-		uint256 _amountRestaked
-	);
-	event DistributeRewards(
-		address indexed _from,
-		uint256 _treasuryRewards,
-		uint256 _insuranceRewards
-	);
+	event WithdrawRewards(uint256 indexed _validatorId, uint256 _rewards);
+	event StakeRewards(uint256 indexed _validatorId, uint256 _amountStaked);
+	event DistributeFees(address indexed _address, uint256 _amount);
 	event MigrateDelegation(
 		uint256 indexed _fromValidatorId,
 		uint256 indexed _toValidatorId,
 		uint256 _amount
 	);
+	event SetFees(uint8 _treasuryFee, uint8 _insuranceFee);
+	event SetFeePercent(uint8 _feePercent);
+	event SetInstantPoolOwner(address _address);
+	event SetTreasuryAddress(address _address);
+	event SetInsuranceAddress(address _address);
+	event SetValidatorRegistryAddress(address _address);
+	event SetVersion(string _version);
 }

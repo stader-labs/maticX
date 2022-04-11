@@ -2,6 +2,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { HardhatUserConfig, task } from 'hardhat/config'
 
 import 'hardhat-contract-sizer'
+import 'hardhat-gas-reporter'
 import '@typechain/hardhat'
 import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-ethers'
@@ -71,6 +72,10 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+  },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 50,
   },
 }
 

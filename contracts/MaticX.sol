@@ -75,7 +75,7 @@ contract MaticX is
 		token = _token;
 		insurance = _insurance;
 
-		entityFees = FeeDistribution(80, 20);
+		entityFees = FeeDistribution(100, 0);
 		feePercent = 5;
 	}
 
@@ -239,6 +239,8 @@ contract MaticX is
 			_amount
 		);
 
+		_burn(msg.sender, _amount);
+
 		uint256 leftAmount2WithdrawInMatic = totalAmount2WithdrawInMatic;
 		uint256 totalDelegated = getTotalStakeAcrossAllValidators();
 
@@ -251,7 +253,7 @@ contract MaticX is
 		uint256 preferredValidatorId = validatorRegistry
 			.getPreferredWithdrawalValidatorId();
 		uint256 currentIdx = 0;
-		for (; currentIdx < validators.length; currentIdx++) {
+		for (; currentIdx < validators.length; ++currentIdx) {
 			if (preferredValidatorId == validators[currentIdx]) break;
 		}
 
@@ -289,8 +291,6 @@ contract MaticX is
 				: 0;
 		}
 
-		_burn(msg.sender, _amount);
-
 		emit RequestWithdraw(msg.sender, _amount, totalAmount2WithdrawInMatic);
 	}
 
@@ -303,23 +303,12 @@ contract MaticX is
 		_claimWithdrawal(msg.sender, _idx);
 	}
 
-	/**
-	 * @dev Restakes all validator rewards
-	 */
-	function restakeAll() external override whenNotPaused {
-		uint256[] memory validators = validatorRegistry.getValidators();
-		for (uint256 idx = 0; idx < validators.length; idx++) {
-			uint256 validatorId = validators[idx];
-
-			restake(validatorId);
-		}
-	}
-
-	/**
-	 * @dev Restakes a validator rewards and distributes portion of it to fee collectors
-	 * @param _validatorId - Validator Id
-	 */
-	function restake(uint256 _validatorId) public override whenNotPaused {
+	function withdrawRewards(uint256 _validatorId)
+		public
+		override
+		whenNotPaused
+		returns (uint256)
+	{
 		address validatorShare = stakeManager.getValidatorContract(
 			_validatorId
 		);
@@ -327,27 +316,54 @@ contract MaticX is
 		uint256 balanceBeforeRewards = IERC20Upgradeable(token).balanceOf(
 			address(this)
 		);
-
-		withdrawRewards(validatorShare);
+		IValidatorShare(validatorShare).withdrawRewards();
 		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this)) -
 			balanceBeforeRewards;
 
-		uint256 rewardsToDistribute = (rewards * feePercent) / 100;
-		uint256 treasuryRewards = (rewardsToDistribute * entityFees.treasury) /
-			100;
-		uint256 insuranceRewards = (rewardsToDistribute *
-			entityFees.insurance) / 100;
+		emit WithdrawRewards(_validatorId, rewards);
 
-		IERC20Upgradeable(token).safeTransfer(treasury, treasuryRewards);
-		IERC20Upgradeable(token).safeTransfer(insurance, insuranceRewards);
+		return rewards;
+	}
 
-		uint256 amountRestaked = IERC20Upgradeable(token).balanceOf(
-			address(this)
-		) - balanceBeforeRewards;
-		IValidatorShare(validatorShare).buyVoucher(amountRestaked, 0);
+	function stakeRewardsAndDistributeFees(uint256 _validatorId)
+		external
+		override
+		whenNotPaused
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		require(
+			validatorRegistry.isRegisteredValidatorId(_validatorId),
+			"Doesn't exist in validator registry"
+		);
 
-		emit Restake(msg.sender, _validatorId, amountRestaked);
-		emit DistributeRewards(msg.sender, treasuryRewards, insuranceRewards);
+		address validatorShare = stakeManager.getValidatorContract(
+			_validatorId
+		);
+
+		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this)) -
+			instantPoolMatic;
+
+		require(rewards > 0, "Reward is zero");
+
+		uint256 treasuryFees = (rewards * feePercent * entityFees.treasury) /
+			10000;
+		uint256 insuranceFees = (rewards * feePercent * entityFees.insurance) /
+			10000;
+
+		if (treasuryFees > 0) {
+			IERC20Upgradeable(token).safeTransfer(treasury, treasuryFees);
+			emit DistributeFees(treasury, treasuryFees);
+		}
+
+		if (insuranceFees > 0) {
+			IERC20Upgradeable(token).safeTransfer(insurance, insuranceFees);
+			emit DistributeFees(insurance, insuranceFees);
+		}
+
+		uint256 amountStaked = rewards - treasuryFees - insuranceFees;
+		IValidatorShare(validatorShare).buyVoucher(amountStaked, 0);
+
+		emit StakeRewards(_validatorId, amountStaked);
 	}
 
 	/**
@@ -366,6 +382,7 @@ contract MaticX is
 			validatorRegistry.isRegisteredValidatorId(_toValidatorId),
 			"To validator id does not exist in our registry"
 		);
+
 		stakeManager.migrateDelegation(
 			_fromValidatorId,
 			_toValidatorId,
@@ -380,37 +397,6 @@ contract MaticX is
 	 */
 	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		paused() ? _unpause() : _pause();
-	}
-
-	/**
-	 * @dev API for delegated unstaking and claiming tokens from validatorShare
-	 * @param _validatorShare - Address of validatorShare contract
-	 * @param _unbondNonce - Unbond nonce
-	 */
-	function unstakeClaimTokens_new(
-		address _validatorShare,
-		uint256 _unbondNonce
-	) private {
-		IValidatorShare(_validatorShare).unstakeClaimTokens_new(_unbondNonce);
-	}
-
-	/**
-	 * @dev API for delegated restaking rewards to validatorShare
-	 * @param _validatorShare - Address of validatorShare contract
-	 */
-	function restake(address _validatorShare)
-		private
-		returns (uint256, uint256)
-	{
-		return IValidatorShare(_validatorShare).restake();
-	}
-
-	/**
-	 * @dev API for withdrawing liquid rewards
-	 * @param _validatorShare - Address of validatorShare contract
-	 */
-	function withdrawRewards(address _validatorShare) private {
-		IValidatorShare(_validatorShare).withdrawRewards();
 	}
 
 	/**
@@ -569,6 +555,8 @@ contract MaticX is
 		);
 		entityFees.treasury = _treasuryFee;
 		entityFees.insurance = _insuranceFee;
+
+		emit SetFees(_treasuryFee, _insuranceFee);
 	}
 
 	/**
@@ -584,6 +572,8 @@ contract MaticX is
 		require(_feePercent <= 100, "_feePercent must not exceed 100");
 
 		feePercent = _feePercent;
+
+		emit SetFeePercent(_feePercent);
 	}
 
 	function setInstantPoolOwner(address _address)
@@ -593,6 +583,8 @@ contract MaticX is
 	{
 		instantPoolOwner = _address;
 		_setupRole(INSTANT_POOL_OWNER, _address);
+
+		emit SetInstantPoolOwner(_address);
 	}
 
 	/**
@@ -605,6 +597,8 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		treasury = _address;
+
+		emit SetTreasuryAddress(_address);
 	}
 
 	/**
@@ -618,6 +612,8 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		insurance = _address;
+
+		emit SetInsuranceAddress(_address);
 	}
 
 	/**
@@ -631,6 +627,8 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		validatorRegistry = IValidatorRegistry(_address);
+
+		emit SetValidatorRegistryAddress(_address);
 	}
 
 	/**
@@ -643,6 +641,8 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		version = _version;
+
+		emit SetVersion(_version);
 	}
 
 	////////////////////////////////////////////////////////////
@@ -663,7 +663,7 @@ contract MaticX is
 	{
 		uint256 totalStake;
 		uint256[] memory validators = validatorRegistry.getValidators();
-		for (uint256 i = 0; i < validators.length; i++) {
+		for (uint256 i = 0; i < validators.length; ++i) {
 			address validatorShare = stakeManager.getValidatorContract(
 				validators[i]
 			);

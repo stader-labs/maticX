@@ -116,9 +116,10 @@ contract ValidatorRegistry is
 		require(validatorBalance == 0, "Validator has some shares left");
 
 		// swap with the last item and pop it.
-		for (uint256 idx = 0; idx < validators.length - 1; idx++) {
+		uint256 validatorsLength = validators.length;
+		for (uint256 idx = 0; idx < validatorsLength - 1; ++idx) {
 			if (_validatorId == validators[idx]) {
-				validators[idx] = validators[validators.length - 1];
+				validators[idx] = validators[validatorsLength - 1];
 				break;
 			}
 		}
@@ -166,6 +167,8 @@ contract ValidatorRegistry is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		maticX = _maticX;
+
+		emit SetMaticX(_maticX);
 	}
 
 	/// @notice Allows to set the contract version.
@@ -176,6 +179,8 @@ contract ValidatorRegistry is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		version = _version;
+
+		emit SetVersion(_version);
 	}
 
 	/// @notice Allows to pause the contract.
