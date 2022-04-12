@@ -3,7 +3,6 @@
   "multisig_upgrader": { "address": "0x", "owners": [] },
   "root_deployer": "0xe5f0452A677e05F648642B83f1C2D7bC959C6f7c",
   "manager": "0xe5f0452A677e05F648642B83f1C2D7bC959C6f7c",
-  "insurace": "0xe5f0452A677e05F648642B83f1C2D7bC959C6f7c",
   "treasury": "0xe5f0452A677e05F648642B83f1C2D7bC959C6f7c",
   "matic_erc20_address": "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0",
   "matic_stake_manager_proxy": "0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908",

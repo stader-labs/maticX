@@ -76,6 +76,10 @@ describe('MaticX contract', function () {
     signer: SignerWithAddress,
     validatorId: BigNumberish,
   ) => Promise<Transaction>
+  let setFeePercent: (
+    signer: SignerWithAddress,
+    feePercent: BigNumberish,
+  ) => Promise<Transaction>
 
   before(() => {
     mint = async (signer, amount) => {
@@ -158,6 +162,11 @@ describe('MaticX contract', function () {
     stakeRewardsAndDistributeFees = async (signer, validatorId) => {
       const signerMaticX = maticX.connect(signer)
       return signerMaticX.stakeRewardsAndDistributeFees(validatorId)
+    }
+
+    setFeePercent = async (signer, feePercent) => {
+      const signerMaticX = maticX.connect(signer)
+      return signerMaticX.setFeePercent(feePercent)
     }
   })
 
@@ -519,6 +528,7 @@ describe('MaticX contract', function () {
       instant_pool_matic,
     )
 
+    await setFeePercent(manager, 10)
     const rewards = 1000000
     const feePercent = await maticX.feePercent()
     const treasuryFee = (rewards * feePercent) / 100

@@ -36,23 +36,24 @@ const checkDeployIntegrity = async () => {
     'StakeManager',
   )
 
+  const contracts = await maticX.getContracts()
   isValid(
-    await maticX.validatorRegistry(),
+    contracts._validatorRegistry,
     deployDetails.validator_registry_proxy,
     'maticX',
     'validatorRegistry',
   )
   isValid(
-    await maticX.token(),
+    contracts._polygonERC20,
     deployDetails.matic_erc20_address,
     'maticX',
     'matic_erc20_address',
   )
   isValid(
-    await maticX.insurance(),
-    deployDetails.treasury,
+    contracts._stakeManager,
+    deployDetails.matic_stake_manager_proxy,
     'maticX',
-    'treasury',
+    'StakeManager',
   )
 
   console.log('All is Good :)')
