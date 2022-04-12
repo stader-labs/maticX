@@ -528,7 +528,9 @@ describe('MaticX contract', function () {
       instant_pool_matic,
     )
 
-    await setFeePercent(manager, 10)
+    await expect(await setFeePercent(manager, 10))
+      .emit(maticX, 'SetFeePercent')
+      .withArgs(10)
     const rewards = 1000000
     const feePercent = await maticX.feePercent()
     const treasuryFee = (rewards * feePercent) / 100
