@@ -14,7 +14,6 @@ const ROOT_CHAIN_RPC = process.env.ROOT_CHAIN_RPC || ''
 const STAKE_MANAGER = process.env.STAKE_MANAGER || ''
 const MATIC_TOKEN = process.env.MATIC_TOKEN || ''
 const MANAGER = process.env.MANAGER || ''
-const INSURANCE = process.env.INSURANCE || ''
 const TREASURY = process.env.TREASURY || ''
 const ROOT_GAS_PRICE = process.env.ROOT_GAS_PRICE || 0
 const DEFENDER_TEAM_API_KEY = process.env.DEFENDER_TEAM_API_KEY || ''
@@ -28,7 +27,6 @@ export {
   STAKE_MANAGER,
   MATIC_TOKEN,
   MANAGER,
-  INSURANCE,
   TREASURY,
   ROOT_GAS_PRICE,
   DEFENDER_TEAM_API_KEY,

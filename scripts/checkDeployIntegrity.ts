@@ -48,12 +48,6 @@ const checkDeployIntegrity = async () => {
     'maticX',
     'matic_erc20_address',
   )
-  isValid(
-    await maticX.insurance(),
-    deployDetails.treasury,
-    'maticX',
-    'treasury',
-  )
 
   console.log('All is Good :)')
 }
