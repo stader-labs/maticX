@@ -9,6 +9,7 @@ import {
   STAKE_MANAGER,
   MATIC_TOKEN,
   MANAGER,
+  INSTANT_POOL_OWNER,
   TREASURY,
 } from '../environment'
 import path from 'path'
@@ -132,6 +133,7 @@ export class MaticXDeployer extends MultichainDeployer
       STAKE_MANAGER,
       MATIC_TOKEN,
       MANAGER,
+      INSTANT_POOL_OWNER,
       TREASURY,
     )
   }
