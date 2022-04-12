@@ -100,7 +100,7 @@ contract ValidatorRegistry is
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 		(uint256 validatorBalance, ) = IValidatorShare(validatorShare)
-			.getTotalStake(address(this));
+			.getTotalStake(maticX);
 		require(validatorBalance == 0, "Validator has some shares left");
 
 		// swap with the last item and pop it.
