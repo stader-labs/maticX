@@ -9,7 +9,6 @@ import {
   STAKE_MANAGER,
   MATIC_TOKEN,
   MANAGER,
-  INSURANCE,
   TREASURY,
 } from '../environment'
 import path from 'path'
@@ -133,7 +132,6 @@ export class MaticXDeployer extends MultichainDeployer
       STAKE_MANAGER,
       MATIC_TOKEN,
       MANAGER,
-      INSURANCE,
       TREASURY,
     )
   }
@@ -150,7 +148,6 @@ export class MaticXDeployer extends MultichainDeployer
       multisig_upgrader: { address: '0x', owners: [] },
       root_deployer: this.rootDeployer.signer.address,
       manager: MANAGER,
-      insurace: INSURANCE,
       treasury: TREASURY,
       matic_erc20_address: MATIC_TOKEN,
       matic_stake_manager_proxy: STAKE_MANAGER,

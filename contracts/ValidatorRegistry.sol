@@ -18,28 +18,16 @@ contract ValidatorRegistry is
 	AccessControlUpgradeable,
 	ReentrancyGuardUpgradeable
 {
-	/// @notice contract version.
-	string public version;
-	/// @notice Polygon stake manager address.
 	address private stakeManager;
-	/// @notice polygonERC20 token (Matic) address.
 	address private polygonERC20;
-	/// @notice maticX address.
 	address private maticX;
 
-	// TODO: For new deployment change to preferredValidatorId
-	/// @notice This stores the preferred validator id for deposits
-	uint256 private preferredValidatorId;
-	// TODO: Remove it before new deployment
-	uint256 private lastWithdrawnValidatorId;
+	string public override version;
+	uint256 public override preferredDepositValidatorId;
+	uint256 public override preferredWithdrawalValidatorId;
+	mapping(uint256 => bool) public override validatorIdExists;
 
-	/// @notice This stores the validators.
 	uint256[] private validators;
-	/// @notice Mapping of registered validator ids
-	mapping(uint256 => bool) private validatorIdExists;
-
-	/// @notice This stores the preferred validator id for withdrawals
-	uint256 private preferredWithdrawalValidatorId;
 
 	/// -------------------------- initialize ----------------------------------
 
@@ -101,7 +89,7 @@ contract ValidatorRegistry is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		require(
-			preferredValidatorId != _validatorId,
+			preferredDepositValidatorId != _validatorId,
 			"Can't remove a preferred validator for deposits"
 		);
 		require(
@@ -141,7 +129,7 @@ contract ValidatorRegistry is
 		whenValidatorIdExists(_validatorId)
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
-		preferredValidatorId = _validatorId;
+		preferredDepositValidatorId = _validatorId;
 
 		emit SetPreferredDepositValidatorId(_validatorId);
 	}
@@ -188,7 +176,7 @@ contract ValidatorRegistry is
 		paused() ? _unpause() : _pause();
 	}
 
-	/// -------------------------------Setters-----------------------------------
+	/// -------------------------------Getters-----------------------------------
 
 	/// @notice Get the maticX contract addresses
 	function getContracts()
@@ -206,11 +194,6 @@ contract ValidatorRegistry is
 		_maticX = maticX;
 	}
 
-	/// @notice Get validators.
-	function getValidators() external view override returns (uint256[] memory) {
-		return validators;
-	}
-
 	/// @notice Get validator id by its index.
 	/// @param _index validator index
 	function getValidatorId(uint256 _index)
@@ -222,35 +205,9 @@ contract ValidatorRegistry is
 		return validators[_index];
 	}
 
-	/// @notice Retrieve the preferred validator id for deposits
-	/// @return preferredValidatorId
-	function getPreferredDepositValidatorId()
-		external
-		view
-		override
-		returns (uint256)
-	{
-		return preferredValidatorId;
-	}
-
-	/// @notice Retrieve the preferred validator id for withdrawals
-	/// @return preferredWithdrawalValidatorId
-	function getPreferredWithdrawalValidatorId()
-		external
-		view
-		override
-		returns (uint256)
-	{
-		return preferredWithdrawalValidatorId;
-	}
-
-	function isRegisteredValidatorId(uint256 _validatorId)
-		external
-		view
-		override
-		returns (bool)
-	{
-		return validatorIdExists[_validatorId];
+	/// @notice Get validators.
+	function getValidators() external view override returns (uint256[] memory) {
+		return validators;
 	}
 
 	/// -------------------------------Modifiers-----------------------------------

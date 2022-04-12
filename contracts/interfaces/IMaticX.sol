@@ -14,22 +14,17 @@ interface IMaticX is IERC20Upgradeable {
 		address validatorAddress;
 	}
 
-	struct FeeDistribution {
-		uint8 treasury;
-		uint8 insurance;
-	}
-
-	function validatorRegistry() external returns (IValidatorRegistry);
-
-	function entityFees() external returns (uint8, uint8);
-
 	function version() external view returns (string memory);
 
-	function insurance() external view returns (address);
-
-	function token() external view returns (address);
+	function treasury() external view returns (address);
 
 	function feePercent() external view returns (uint8);
+
+	function instantPoolOwner() external view returns (address);
+
+	function instantPoolMatic() external view returns (uint256);
+
+	function instantPoolMaticX() external view returns (uint256);
 
 	function initialize(
 		address _validatorRegistry,
@@ -37,8 +32,7 @@ interface IMaticX is IERC20Upgradeable {
 		address _token,
 		address _manager,
 		address _instant_pool_manager,
-		address _treasury,
-		address _insurance
+		address _treasury
 	) external;
 
 	function provideInstantPoolMatic(uint256 _amount) external;
@@ -89,15 +83,13 @@ interface IMaticX is IERC20Upgradeable {
 			uint256
 		);
 
-	function setFees(uint8 _treasuryFee, uint8 _insuranceFee) external;
-
 	function setFeePercent(uint8 _feePercent) external;
 
 	function setInstantPoolOwner(address _address) external;
 
-	function setInsuranceAddress(address _address) external;
+	function setValidatorRegistry(address _address) external;
 
-	function setValidatorRegistryAddress(address _address) external;
+	function setTreasury(address _address) external;
 
 	function setVersion(string calldata _version) external;
 
@@ -120,9 +112,14 @@ interface IMaticX is IERC20Upgradeable {
 
 	function getTotalPooledMatic() external view returns (uint256);
 
-	function getInstantPoolMatic() external view returns (uint256);
-
-	function getInstantPoolMaticX() external view returns (uint256);
+	function getContracts()
+		external
+		view
+		returns (
+			address _stakeManager,
+			address _polygonERC20,
+			address _validatorRegistry
+		);
 
 	event Submit(address indexed _from, uint256 _amount);
 	event Delegate(uint256 indexed _validatorId, uint256 _amountDelegated);
@@ -144,11 +141,9 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 indexed _toValidatorId,
 		uint256 _amount
 	);
-	event SetFees(uint8 _treasuryFee, uint8 _insuranceFee);
 	event SetFeePercent(uint8 _feePercent);
 	event SetInstantPoolOwner(address _address);
-	event SetTreasuryAddress(address _address);
-	event SetInsuranceAddress(address _address);
-	event SetValidatorRegistryAddress(address _address);
+	event SetTreasury(address _address);
+	event SetValidatorRegistry(address _address);
 	event SetVersion(string _version);
 }
