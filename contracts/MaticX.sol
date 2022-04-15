@@ -33,10 +33,10 @@ contract MaticX is
 	uint256 public override instantPoolMatic;
 	uint256 public override instantPoolMaticX;
 
-	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
-
 	/// @notice Mapping of all user ids with withdraw requests.
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
+
+	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
 
 	/**
 	 * @param _validatorRegistry - Address of the validator registry
