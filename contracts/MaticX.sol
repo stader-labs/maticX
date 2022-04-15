@@ -33,6 +33,8 @@ contract MaticX is
 	uint256 public override instantPoolMatic;
 	uint256 public override instantPoolMaticX;
 
+	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
+
 	/// @notice Mapping of all user ids with withdraw requests.
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 
@@ -513,6 +515,16 @@ contract MaticX is
 		uint256 balanceInMaticX = (_balance * totalShares) / totalPooledMatic;
 
 		return (balanceInMaticX, totalShares, totalPooledMatic);
+	}
+
+	// TODO: Add logic and enable it in V2
+	function mint(address _user, uint256 _amount)
+		external
+		override
+		whenNotPaused
+		onlyRole(PREDICATE_ROLE)
+	{
+		emit MintFromPolygon(_user, _amount);
 	}
 
 	////////////////////////////////////////////////////////////
