@@ -11,6 +11,7 @@ import "./interfaces/IValidatorShare.sol";
 import "./interfaces/IValidatorRegistry.sol";
 import "./interfaces/IStakeManager.sol";
 import "./interfaces/IMaticX.sol";
+import "./interfaces/IFxStateRootTunnel.sol";
 
 contract MaticX is
 	IMaticX,
@@ -37,6 +38,8 @@ contract MaticX is
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 
 	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
+
+	address public override fxStateRootTunnel;
 
 	/**
 	 * @param _validatorRegistry - Address of the validator registry
@@ -222,9 +225,11 @@ contract MaticX is
 	function requestWithdraw(uint256 _amount) external override whenNotPaused {
 		require(_amount > 0, "Invalid amount");
 
-		(uint256 totalAmount2WithdrawInMatic, , ) = convertMaticXToMatic(
-			_amount
-		);
+		(
+			uint256 totalAmount2WithdrawInMatic,
+			uint256 totalShares,
+			uint256 totalPooledMatic
+		) = convertMaticXToMatic(_amount);
 
 		_burn(msg.sender, _amount);
 
@@ -278,6 +283,13 @@ contract MaticX is
 				? currentIdx + 1
 				: 0;
 		}
+
+		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
+			abi.encode(
+				totalShares - _amount,
+				totalPooledMatic - totalAmount2WithdrawInMatic
+			)
+		);
 
 		emit RequestWithdraw(msg.sender, _amount, totalAmount2WithdrawInMatic);
 	}
@@ -346,6 +358,13 @@ contract MaticX is
 		uint256 amountStaked = rewards - treasuryFees;
 		IValidatorShare(validatorShare).buyVoucher(amountStaked, 0);
 
+		uint256 totalShares = totalSupply();
+		uint256 totalPooledMatic = getTotalPooledMatic();
+
+		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
+			abi.encode(totalShares, totalPooledMatic)
+		);
+
 		emit StakeRewards(_validatorId, amountStaked);
 	}
 
@@ -411,7 +430,11 @@ contract MaticX is
 		whenNotPaused
 		returns (uint256)
 	{
-		(uint256 amountToMint, , ) = convertMaticToMaticX(_amount);
+		(
+			uint256 amountToMint,
+			uint256 totalShares,
+			uint256 totalPooledMatic
+		) = convertMaticToMaticX(_amount);
 
 		_mint(deposit_sender, amountToMint);
 		emit Submit(deposit_sender, _amount);
@@ -421,6 +444,10 @@ contract MaticX is
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(preferredValidatorId);
 		IValidatorShare(validatorShare).buyVoucher(_amount, 0);
+
+		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
+			abi.encode(totalShares + amountToMint, totalPooledMatic + _amount)
+		);
 
 		emit Delegate(preferredValidatorId, _amount);
 		return amountToMint;
@@ -582,6 +609,16 @@ contract MaticX is
 		validatorRegistry = _address;
 
 		emit SetValidatorRegistry(_address);
+	}
+
+	function setFxStateRootTunnel(address _address)
+		external
+		override
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		fxStateRootTunnel = _address;
+
+		emit SetFxStateRootTunnel(_address);
 	}
 
 	/**

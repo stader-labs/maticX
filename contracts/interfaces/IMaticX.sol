@@ -26,6 +26,8 @@ interface IMaticX is IERC20Upgradeable {
 
 	function instantPoolMaticX() external view returns (uint256);
 
+	function fxStateRootTunnel() external view returns (address);
+
 	function initialize(
 		address _validatorRegistry,
 		address _stakeManager,
@@ -93,6 +95,8 @@ interface IMaticX is IERC20Upgradeable {
 
 	function setTreasury(address _address) external;
 
+	function setFxStateRootTunnel(address _address) external;
+
 	function setVersion(string calldata _version) external;
 
 	function getUserWithdrawalRequests(address _address)
@@ -148,5 +152,6 @@ interface IMaticX is IERC20Upgradeable {
 	event SetInstantPoolOwner(address _address);
 	event SetTreasury(address _address);
 	event SetValidatorRegistry(address _address);
+	event SetFxStateRootTunnel(address _address);
 	event SetVersion(string _version);
 }
