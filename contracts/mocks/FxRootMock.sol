@@ -11,7 +11,7 @@ contract FxRootMock {
 	{
 		FxBaseChildTunnel(fxChildTunnel).processMessageFromRoot(
 			stateId,
-			address(this),
+			msg.sender,
 			_message
 		);
 		stateId++;

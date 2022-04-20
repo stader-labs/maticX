@@ -10,7 +10,7 @@ import '@openzeppelin/hardhat-upgrades'
 import '@nomiclabs/hardhat-etherscan'
 import '@openzeppelin/hardhat-defender'
 
-import { verify } from './scripts/tasks'
+import { deployDirect, verify } from './scripts/tasks'
 
 import {
   DEPLOYER_PRIVATE_KEY,
@@ -19,6 +19,8 @@ import {
   ROOT_GAS_PRICE,
   DEFENDER_TEAM_API_KEY,
   DEFENDER_TEAM_API_SECRET_KEY,
+  CHILD_CHAIN_RPC,
+  CHILD_GAS_PRICE,
 } from './environment'
 
 task('verifyMaticX', 'MaticX contracts verification').setAction(
@@ -26,6 +28,29 @@ task('verifyMaticX', 'MaticX contracts verification').setAction(
     await verify(hre)
   },
 )
+
+task("deployFxStateChildTunnel", "Deploy FxStateChildTunnel")
+  .addPositionalParam("fxChild")
+  .setAction(async ({fxChild}, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "FxStateChildTunnel", fxChild)
+  }
+);
+
+task("deployFxStateRootTunnel", "Deploy FxStateRootTunnel")
+  .addPositionalParam("checkpointManager")
+  .addPositionalParam("fxRoot")
+  .addPositionalParam("maticX")
+  .setAction(async ({checkpointManager, fxRoot, maticX}, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "FxStateRootTunnel", checkpointManager, fxRoot, maticX)
+  }
+);
+
+task("deployRateProvider", "Deploy RateProvider")
+  .addPositionalParam("fxChild")
+  .setAction(async ({fxChild}, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "RateProvider", fxChild)
+  }
+);
 
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
@@ -51,6 +76,11 @@ const config: HardhatUserConfig = {
       url: ROOT_CHAIN_RPC,
       accounts: [DEPLOYER_PRIVATE_KEY],
       gasPrice: Number(ROOT_GAS_PRICE),
+    },
+    matic: {
+      url: CHILD_CHAIN_RPC,
+      accounts: [DEPLOYER_PRIVATE_KEY],
+      gasPrice: Number(CHILD_GAS_PRICE),
     },
   },
   typechain: {

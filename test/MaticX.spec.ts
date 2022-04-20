@@ -195,12 +195,12 @@ describe('MaticX contract', function () {
 
     fxStateChildTunnel = (await (
       await ethers.getContractFactory('FxStateChildTunnel')
-    ).deploy(fxRootMock.address, fxRootMock.address)) as FxStateChildTunnel
+    ).deploy(fxRootMock.address)) as FxStateChildTunnel
     await fxStateChildTunnel.deployed()
 
     fxStateRootTunnel = (await (
       await ethers.getContractFactory('FxStateRootTunnel')
-    ).deploy(manager.address, fxRootMock.address, fxStateChildTunnel.address, manager.address)) as FxStateRootTunnel
+    ).deploy(manager.address, fxRootMock.address, manager.address)) as FxStateRootTunnel
     await fxStateRootTunnel.deployed()
 
     rateProvider = (await (
@@ -246,6 +246,8 @@ describe('MaticX contract', function () {
     await validatorRegistry.addValidator(2)
     await maticX.setFxStateRootTunnel(fxStateRootTunnel.address);
     await fxStateRootTunnel.setMaticX(maticX.address);
+    await fxStateRootTunnel.setFxChildTunnel(fxStateChildTunnel.address);
+    await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
   })
 
   it('Should submit successfully', async () => {

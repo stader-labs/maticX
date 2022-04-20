@@ -25,3 +25,16 @@ export const verify = async (hre: HardhatRuntimeEnvironment) => {
       }
   }
 }
+
+export async function deployDirect(hre: HardhatRuntimeEnvironment, contractName: string, ...args: any) {
+  const Contract = await hre.ethers.getContractFactory(contractName);
+
+  console.log(`Deploying ${contractName}: ${args}, ${args.length}`)
+  const contract = args.length
+            ? ((await Contract.deploy(...args)))
+            : ((await Contract.deploy()));
+
+  await contract.deployed();
+
+  console.log(`${contractName} deployed to:`, contract.address);
+}
