@@ -52,6 +52,18 @@ task("deployRateProvider", "Deploy RateProvider")
   }
 );
 
+task("deployMaticXImpl", "Deploy MaticX Implementation only")
+  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "MaticX")
+  }
+);
+
+task("deployValidatorRegistryImpl", "Deploy ValidatorRegistry Implementation only")
+  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "ValidatorRegistry")
+  }
+);
+
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   solidity: {

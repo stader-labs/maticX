@@ -34,8 +34,10 @@ To deploy contract directly, run:
 
 ```bash
 npx hardhat deployFxStateChildTunnel <fxChildAddress> --network matic
-npx hardhat deployRateProvider <fxStateChildTunnelAddress> --network matic 
-npx hardhat deployFxStateRootTunnel <checkpointManagerAddress> <fxRootAddress> <maticXAddress> --network mainnet 
+npx hardhat deployRateProvider <fxStateChildTunnelAddress> --network matic
+npx hardhat deployFxStateRootTunnel <checkpointManagerAddress> <fxRootAddress> <maticXAddress> --network mainnet
+npx hardhat deployMaticXImpl --network mainnet
+npx hardhat deployValidatorRegistryImpl --network mainnet
 ```
 
 # Upgrading
