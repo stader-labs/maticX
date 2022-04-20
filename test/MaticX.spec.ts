@@ -8,6 +8,10 @@ import {
   PolygonMock,
   ValidatorRegistry,
   StakeManagerMock,
+  FxRootMock,
+  FxStateRootTunnel,
+  FxStateChildTunnel,
+  RateProvider
 } from '../typechain'
 
 describe('MaticX contract', function () {
@@ -20,6 +24,10 @@ describe('MaticX contract', function () {
   let polygonMock: PolygonMock
   let validatorRegistry: ValidatorRegistry
   let stakeManagerMock: StakeManagerMock
+  let fxRootMock: FxRootMock
+  let fxStateRootTunnel: FxStateRootTunnel
+  let fxStateChildTunnel: FxStateChildTunnel
+  let rateProvider: RateProvider
 
   let mint: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
   let maticApprove: (
@@ -178,8 +186,27 @@ describe('MaticX contract', function () {
     polygonMock = (await (
       await ethers.getContractFactory('PolygonMock')
     ).deploy()) as PolygonMock
-
     await polygonMock.deployed()
+
+    fxRootMock = (await (
+      await ethers.getContractFactory('FxRootMock')
+    ).deploy()) as FxRootMock
+    await fxRootMock.deployed()
+
+    fxStateChildTunnel = (await (
+      await ethers.getContractFactory('FxStateChildTunnel')
+    ).deploy(fxRootMock.address, fxRootMock.address)) as FxStateChildTunnel
+    await fxStateChildTunnel.deployed()
+
+    fxStateRootTunnel = (await (
+      await ethers.getContractFactory('FxStateRootTunnel')
+    ).deploy(manager.address, fxRootMock.address, fxStateChildTunnel.address, manager.address)) as FxStateRootTunnel
+    await fxStateRootTunnel.deployed()
+
+    rateProvider = (await (
+      await ethers.getContractFactory('RateProvider')
+    ).deploy(fxStateChildTunnel.address)) as RateProvider
+    await rateProvider.deployed()
 
     stakeManagerMock = (await (
       await ethers.getContractFactory('StakeManagerMock')
@@ -217,6 +244,8 @@ describe('MaticX contract', function () {
     await validatorRegistry.setPreferredWithdrawalValidatorId(1)
     await stakeManagerMock.createValidator(2)
     await validatorRegistry.addValidator(2)
+    await maticX.setFxStateRootTunnel(fxStateRootTunnel.address);
+    await fxStateRootTunnel.setMaticX(maticX.address);
   })
 
   it('Should submit successfully', async () => {
@@ -509,13 +538,11 @@ describe('MaticX contract', function () {
     const [minAmount, maxAmount] = [0.005, 0.01]
     const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1
 
-    let total_submitted = 0
     for (let i = 0; i < delegatorsAmount; i++) {
       submitAmounts.push(
         (Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3),
       )
       const submitAmountWei = ethers.utils.parseEther(submitAmounts[i])
-      total_submitted += parseFloat(submitAmounts[i])
       await mint(users[i], submitAmountWei)
       await submit(users[i], submitAmountWei)
     }
@@ -565,5 +592,47 @@ describe('MaticX contract', function () {
     await expect(await migrateDelegation(manager, 1, 123, 100))
       .emit(maticX, 'MigrateDelegation')
       .withArgs(1, 123, 100)
+  })
+
+  it('Should send correct message from L1 to L2', async () => {
+    const user = users[0]
+    const mintAmount = 1000000
+    const withdrawAmount = 400000
+    const rewardsAmount = 300000
+
+    await mint(user, mintAmount)
+    // Submitting twice to skip the edge case that occurs when there is only 0 deposit at the beginning
+    await submit(user, 1000000 - 200000)
+    await submit(user, 1000000 - 800000)
+
+    const [totalSharesAfterDeposit, totalPooledMaticAfterDeposit] = await fxStateChildTunnel.getReserves()
+    const rateAfterDeposit = await rateProvider.getRate()
+    expect(totalSharesAfterDeposit).to.equal(mintAmount)
+    expect(totalPooledMaticAfterDeposit).to.equal(mintAmount)
+    const expectedRateAfterDeposit: BigNumberish = BigNumber.from('1000000000000000000').mul(totalPooledMaticAfterDeposit).div(totalSharesAfterDeposit)
+    expect(rateAfterDeposit).to.equal(expectedRateAfterDeposit)
+
+    await requestWithdraw(user, withdrawAmount)
+
+    const [totalSharesAfterWithdraw, totalPooledMaticAfterWithdraw] = await fxStateChildTunnel.getReserves()
+    const rateAfterWithdraw = await rateProvider.getRate()
+    expect(totalSharesAfterWithdraw).to.equal(mintAmount - withdrawAmount)
+    expect(totalPooledMaticAfterWithdraw).to.equal(mintAmount - withdrawAmount)
+    const expectedRateAfterWithdraw: BigNumberish = BigNumber.from('1000000000000000000').mul(totalPooledMaticAfterWithdraw).div(totalSharesAfterWithdraw)
+    expect(rateAfterWithdraw).to.equal(expectedRateAfterWithdraw)
+  
+    await polygonMock.mintTo(maticX.address, rewardsAmount)
+    await stakeRewardsAndDistributeFees(
+      manager,
+      1,
+    )
+
+    const rewardsAfterFee = rewardsAmount * (100 - (await maticX.feePercent())) / 100
+    const [totalSharesAfterRewards, totalPooledMaticAfterRewards] = await fxStateChildTunnel.getReserves()
+    const rateAfterRewards = await rateProvider.getRate()
+    expect(totalSharesAfterRewards).to.equal(mintAmount - withdrawAmount)
+    expect(totalPooledMaticAfterRewards).to.equal(mintAmount - withdrawAmount + rewardsAfterFee)
+    const expectedRateAfterRewards: BigNumberish = BigNumber.from('1000000000000000000').mul(totalPooledMaticAfterRewards).div(totalSharesAfterRewards)
+    expect(rateAfterRewards).to.equal(expectedRateAfterRewards)
   })
 })
