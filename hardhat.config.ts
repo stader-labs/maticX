@@ -10,7 +10,7 @@ import '@openzeppelin/hardhat-upgrades'
 import '@nomiclabs/hardhat-etherscan'
 import '@openzeppelin/hardhat-defender'
 
-import { verify } from './scripts/tasks'
+import { deployDirect, verify } from './scripts/tasks'
 
 import {
   DEPLOYER_PRIVATE_KEY,
@@ -19,6 +19,11 @@ import {
   ROOT_GAS_PRICE,
   DEFENDER_TEAM_API_KEY,
   DEFENDER_TEAM_API_SECRET_KEY,
+  CHILD_CHAIN_RPC,
+  CHILD_GAS_PRICE,
+  FX_ROOT,
+  FX_CHILD,
+  CHECKPOINT_MANAGER,
 } from './environment'
 
 task('verifyMaticX', 'MaticX contracts verification').setAction(
@@ -26,6 +31,38 @@ task('verifyMaticX', 'MaticX contracts verification').setAction(
     await verify(hre)
   },
 )
+
+task("deployFxStateChildTunnel", "Deploy FxStateChildTunnel")
+  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "FxStateChildTunnel", FX_CHILD)
+  }
+);
+
+task("deployFxStateRootTunnel", "Deploy FxStateRootTunnel")
+  .addPositionalParam("maticX")
+  .setAction(async ({maticX}, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "FxStateRootTunnel", CHECKPOINT_MANAGER, FX_ROOT, maticX)
+  }
+);
+
+task("deployRateProvider", "Deploy RateProvider")
+  .addPositionalParam("fxStateChildTunnel")
+  .setAction(async ({fxStateChildTunnel}, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "RateProvider", fxStateChildTunnel)
+  }
+);
+
+task("deployMaticXImpl", "Deploy MaticX Implementation only")
+  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "MaticX")
+  }
+);
+
+task("deployValidatorRegistryImpl", "Deploy ValidatorRegistry Implementation only")
+  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "ValidatorRegistry")
+  }
+);
 
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
@@ -51,6 +88,11 @@ const config: HardhatUserConfig = {
       url: ROOT_CHAIN_RPC,
       accounts: [DEPLOYER_PRIVATE_KEY],
       gasPrice: Number(ROOT_GAS_PRICE),
+    },
+    matic: {
+      url: CHILD_CHAIN_RPC,
+      accounts: [DEPLOYER_PRIVATE_KEY],
+      gasPrice: Number(CHILD_GAS_PRICE),
     },
   },
   typechain: {

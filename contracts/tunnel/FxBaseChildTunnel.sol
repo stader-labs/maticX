@@ -36,14 +36,7 @@ abstract contract FxBaseChildTunnel is IFxMessageProcessor {
 		_;
 	}
 
-	// set fxRootTunnel if not set already
-	function setFxRootTunnel(address _fxRootTunnel) public {
-		require(
-			fxRootTunnel == address(0x0),
-			"FxBaseChildTunnel: ROOT_TUNNEL_ALREADY_SET"
-		);
-		fxRootTunnel = _fxRootTunnel;
-	}
+	function setFxRootTunnel(address _fxRootTunnel) external virtual;
 
 	function processMessageFromRoot(
 		uint256 stateId,

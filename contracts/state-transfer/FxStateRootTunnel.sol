@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import { FxBaseRootTunnel } from "../tunnel/FxBaseRootTunnel.sol";
 
 /**
  * @title FxStateRootTunnel
  */
-contract FxStateRootTunnel is FxBaseRootTunnel, Ownable {
+contract FxStateRootTunnel is FxBaseRootTunnel, AccessControl {
 	bytes public latestData;
 	address public maticX;
 
 	constructor(
 		address _checkpointManager,
 		address _fxRoot,
-		address _fxChildTunnel,
 		address _maticX
 	) FxBaseRootTunnel(_checkpointManager, _fxRoot) {
-		setFxChildTunnel(_fxChildTunnel);
+		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
 		maticX = _maticX;
 	}
 
@@ -31,7 +31,15 @@ contract FxStateRootTunnel is FxBaseRootTunnel, Ownable {
 		_sendMessageToChild(message);
 	}
 
-	function setMaticX(address _maticX) external onlyOwner {
+	function setMaticX(address _maticX) external onlyRole(DEFAULT_ADMIN_ROLE) {
 		maticX = _maticX;
+	}
+
+	function setFxChildTunnel(address _fxChildTunnel)
+		external
+		override
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		fxChildTunnel = _fxChildTunnel;
 	}
 }
