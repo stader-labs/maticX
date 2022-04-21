@@ -54,6 +54,7 @@ npx hardhat run ./scripts/upgradeValidatorRegistry.ts --network <network>
 
 ```bash
 npx hardhat verifyMaticX --network <network>
+npx hardhat verify <address> <...args> --network <network>
 ```
 
 # Testing
