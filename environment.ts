@@ -22,6 +22,9 @@ const CHILD_GAS_PRICE = process.env.CHILD_GAS_PRICE || 0
 const DEFENDER_TEAM_API_KEY = process.env.DEFENDER_TEAM_API_KEY || ''
 const DEFENDER_TEAM_API_SECRET_KEY =
   process.env.DEFENDER_TEAM_API_SECRET_KEY || ''
+const FX_ROOT = process.env.FX_ROOT || ''
+const FX_CHILD = process.env.FX_CHILD || ''
+const CHECKPOINT_MANAGER = process.env.CHECKPOINT_MANAGER || ''
 
 export {
   DEPLOYER_PRIVATE_KEY,
@@ -37,4 +40,7 @@ export {
   CHILD_GAS_PRICE,
   DEFENDER_TEAM_API_KEY,
   DEFENDER_TEAM_API_SECRET_KEY,
+  FX_ROOT,
+  FX_CHILD,
+  CHECKPOINT_MANAGER,
 }

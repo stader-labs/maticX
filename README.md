@@ -9,11 +9,14 @@ ROOT_CHAIN_RPC=<RPC OF THE ROOT CHAIN>
 ROOT_GAS_PRICE=<GAS PRICE IN WEI>
 CHILD_CHAIN_RPC=<RPC OF THE CHILD CHAIN>
 CHILD_GAS_PRICE=<GAS PRICE IN WEI>
-STAKE_MANAGER=<STAKE MANAGER ADDRESS>
+STAKE_MANAGER=<STAKE MANAGER ADDRESS (POLYGON FOUNDATION)>
 MATIC_TOKEN=<ADDRESS OF THE MATIC ERC20 TOKEN>
 MANAGER=<ADDRESS THAT WILL BE USED AS A MANAGER>
 INSTANT_POOL_OWNER=<ADDRESS THAT WILL BE USED AS AN OWNER FOR INSTANT POOL>
 TREASURY=<ADDRESS THAT WILL BE USED AS A TREASURY FOR REVENUE COLLECTION>
+FX_ROOT=<FX ROOT ADDRESS ON ETHEREUM (POLYGON FOUNDATION)>
+FX_CHILD=<FX CHILD ADDRESS ON POLYGON (POLYGON FOUNDATION)>
+CHECKPOINT_MANAGER=<CHECKPOINT MANAGER ADDRESS ON ETHEREUM (POLYGON FOUNDATION)>
 ```
 
 # Deploying
@@ -33,9 +36,9 @@ npm run deploy:main
 To deploy contract directly, run:
 
 ```bash
-npx hardhat deployFxStateChildTunnel <fxChildAddress> --network matic
+npx hardhat deployFxStateChildTunnel --network matic
 npx hardhat deployRateProvider <fxStateChildTunnelAddress> --network matic
-npx hardhat deployFxStateRootTunnel <checkpointManagerAddress> <fxRootAddress> <maticXAddress> --network mainnet
+npx hardhat deployFxStateRootTunnel <maticXAddress> --network mainnet
 npx hardhat deployMaticXImpl --network mainnet
 npx hardhat deployValidatorRegistryImpl --network mainnet
 ```

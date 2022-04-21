@@ -21,6 +21,9 @@ import {
   DEFENDER_TEAM_API_SECRET_KEY,
   CHILD_CHAIN_RPC,
   CHILD_GAS_PRICE,
+  FX_ROOT,
+  FX_CHILD,
+  CHECKPOINT_MANAGER,
 } from './environment'
 
 task('verifyMaticX', 'MaticX contracts verification').setAction(
@@ -30,25 +33,22 @@ task('verifyMaticX', 'MaticX contracts verification').setAction(
 )
 
 task("deployFxStateChildTunnel", "Deploy FxStateChildTunnel")
-  .addPositionalParam("fxChild")
-  .setAction(async ({fxChild}, hre: HardhatRuntimeEnvironment) => {
-    await deployDirect(hre, "FxStateChildTunnel", fxChild)
+  .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "FxStateChildTunnel", FX_CHILD)
   }
 );
 
 task("deployFxStateRootTunnel", "Deploy FxStateRootTunnel")
-  .addPositionalParam("checkpointManager")
-  .addPositionalParam("fxRoot")
   .addPositionalParam("maticX")
-  .setAction(async ({checkpointManager, fxRoot, maticX}, hre: HardhatRuntimeEnvironment) => {
-    await deployDirect(hre, "FxStateRootTunnel", checkpointManager, fxRoot, maticX)
+  .setAction(async ({maticX}, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "FxStateRootTunnel", CHECKPOINT_MANAGER, FX_ROOT, maticX)
   }
 );
 
 task("deployRateProvider", "Deploy RateProvider")
-  .addPositionalParam("fxChild")
-  .setAction(async ({fxChild}, hre: HardhatRuntimeEnvironment) => {
-    await deployDirect(hre, "RateProvider", fxChild)
+  .addPositionalParam("fxStateChildTunnel")
+  .setAction(async ({fxStateChildTunnel}, hre: HardhatRuntimeEnvironment) => {
+    await deployDirect(hre, "RateProvider", fxStateChildTunnel)
   }
 );
 
