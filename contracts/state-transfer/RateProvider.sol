@@ -19,9 +19,7 @@ contract RateProvider is IRateProvider, AccessControl {
 	}
 
 	function getRate() external view override returns (uint256) {
-		(uint256 maticX, uint256 matic) = IFxStateChildTunnel(fxChild)
-			.getReserves();
-		return (matic * 1 ether) / maticX;
+		return IFxStateChildTunnel(fxChild).getRate();
 	}
 
 	function setFxChild(address _fxChild)

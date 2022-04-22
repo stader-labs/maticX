@@ -13,4 +13,6 @@ interface IFxStateChildTunnel {
 	function setFxRootTunnel(address _fxRootTunnel) external;
 
 	function getReserves() external view returns (uint256, uint256);
+
+	function getRate() external view returns (uint256);
 }
