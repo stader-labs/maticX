@@ -9,7 +9,7 @@
   "maticX_impl": "0xBAd336e9C31ca59C14E55Fa20De19Eb1A836EdfF",
   "validator_registry_proxy": "0xf556442D5B77A4B0252630E15d8BbE2160870d77",
   "validator_registry_impl": "0x1c81679f49C7f2894f56d57D1355b7AF04690580",
-  "rate_provider": "0x8677404DD8B975c4EfeCfc4d0E831d3621594Cb6",
-  "fx_state_child_tunnel": "0xa1895BeAa119E18e1311d0b06627f106E9974096",
+  "rate_provider": "0xeE652bbF72689AA59F0B8F981c9c90e2A8Af8d8f",
+  "fx_state_child_tunnel": "0xC65e29DF11F289842bf1B070fFd67CF588b93B32",
   "fx_state_root_tunnel": "0x40FB804Cc07302b89EC16a9f8d040506f64dFe29"
 }
