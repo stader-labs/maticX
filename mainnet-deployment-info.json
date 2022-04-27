@@ -11,5 +11,6 @@
   "validator_registry_impl": "0x1c81679f49C7f2894f56d57D1355b7AF04690580",
   "rate_provider": "0xeE652bbF72689AA59F0B8F981c9c90e2A8Af8d8f",
   "fx_state_child_tunnel": "0xC65e29DF11F289842bf1B070fFd67CF588b93B32",
-  "fx_state_root_tunnel": "0x40FB804Cc07302b89EC16a9f8d040506f64dFe29"
+  "fx_state_root_tunnel": "0x40FB804Cc07302b89EC16a9f8d040506f64dFe29",
+  "child_pool": ""
 }

@@ -12,7 +12,7 @@ interface IChildPool {
 
 	function instantWithdrawalFees() external view returns (uint256);
 
-	function instantWithdrawalFeePercent() external view returns (uint8);
+	function instantWithdrawalFeeBps() external view returns (uint256);
 
 	function provideInstantPoolMatic(uint256 _amount) external;
 
@@ -32,7 +32,7 @@ interface IChildPool {
 
 	function setFxStateChildTunnel(address _address) external;
 
-	function setInstantWithdrawalFeePercent(uint8 _feePercent) external;
+	function setInstantWithdrawalFeeBps(uint256 _feeBps) external;
 
 	function setTrustedForwarder(address _address) external;
 
@@ -60,5 +60,5 @@ interface IChildPool {
 	event SetTrustedForwarder(address _address);
 	event SetVersion(string _version);
 	event CollectedInstantWithdrawalFees(uint256 _fees);
-	event SetInstantWithdrawalFeePercent(uint8 _feePercent);
+	event SetInstantWithdrawalFeeBps(uint256 _feeBps);
 }

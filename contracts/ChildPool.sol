@@ -28,7 +28,7 @@ contract ChildPool is
 	uint256 public override instantPoolMaticX;
 
 	string public override version;
-	uint8 public override instantWithdrawalFeePercent;
+	uint256 public override instantWithdrawalFeeBps;
 	uint256 public override instantWithdrawalFees;
 
 	/**
@@ -37,7 +37,7 @@ contract ChildPool is
 	 * @param _polygonERC20 - Address of matic token on Polygon
 	 * @param _manager - Address of the manager
 	 * @param _instantPoolOwner - Address of the instant pool owner
-	 * @param _instantWithdrawalFeePercent - Fee percent for using instant withdrawal feature
+	 * @param _instantWithdrawalFeeBps - Fee basis points for using instant withdrawal feature
 	 */
 	function initialize(
 		address _fxStateChildTunnel,
@@ -45,7 +45,7 @@ contract ChildPool is
 		address _polygonERC20,
 		address _manager,
 		address _instantPoolOwner,
-		uint8 _instantWithdrawalFeePercent
+		uint256 _instantWithdrawalFeeBps
 	) external initializer {
 		__AccessControl_init();
 		__Pausable_init();
@@ -57,7 +57,7 @@ contract ChildPool is
 		fxStateChildTunnel = _fxStateChildTunnel;
 		polygonERC20 = _polygonERC20;
 		maticX = _maticX;
-		instantWithdrawalFeePercent = _instantWithdrawalFeePercent;
+		instantWithdrawalFeeBps = _instantWithdrawalFeeBps;
 	}
 
 	////////////////////////////////////////////////////////////
@@ -240,16 +240,21 @@ contract ChildPool is
 		emit SetFxStateChildTunnel(_address);
 	}
 
-	function setInstantWithdrawalFeePercent(uint8 _feePercent)
+	/**
+	 * @dev Function that sets instant withdrawal fee basis points
+	 * @notice Callable only by manager
+	 * @param _feeBps - Fee basis points (100 = 0.1%)
+	 */
+	function setInstantWithdrawalFeeBps(uint256 _feeBps)
 		external
 		override
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
-		require(_feePercent <= 100, "_feePercent must not exceed 100");
+		require(_feeBps <= 10000, "_feeBps must not exceed 10000 (100%)");
 
-		instantWithdrawalFeePercent = _feePercent;
+		instantWithdrawalFeeBps = _feeBps;
 
-		emit SetInstantWithdrawalFeePercent(_feePercent);
+		emit SetInstantWithdrawalFeeBps(_feeBps);
 	}
 
 	/**
@@ -278,7 +283,7 @@ contract ChildPool is
 		override
 		returns (uint256, uint256)
 	{
-		uint256 fees = (_amount * instantWithdrawalFeePercent) / 100;
+		uint256 fees = (_amount * instantWithdrawalFeeBps) / 10000;
 
 		return (_amount - fees, fees);
 	}
