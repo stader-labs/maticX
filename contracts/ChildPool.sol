@@ -21,6 +21,7 @@ contract ChildPool is
 	address private fxStateChildTunnel;
 	address private polygonERC20;
 	address private maticX;
+	address private trustedForwarder;
 
 	address public override instantPoolOwner;
 	uint256 public override instantPoolMatic;
@@ -74,7 +75,7 @@ contract ChildPool is
 	{
 		require(_amount > 0, "Invalid amount");
 		IERC20Upgradeable(polygonERC20).safeTransferFrom(
-			msg.sender,
+			_msgSender(),
 			address(this),
 			_amount
 		);
@@ -90,7 +91,7 @@ contract ChildPool is
 	{
 		require(_amount > 0, "Invalid amount");
 		IERC20Upgradeable(maticX).safeTransferFrom(
-			msg.sender,
+			_msgSender(),
 			address(this),
 			_amount
 		);
@@ -139,7 +140,7 @@ contract ChildPool is
 			"Withdraw amount cannot exceed collected matic in instantWithdrawalFees"
 		);
 
-		IERC20Upgradeable(polygonERC20).safeTransfer(msg.sender, _amount);
+		IERC20Upgradeable(polygonERC20).safeTransfer(_msgSender(), _amount);
 
 		instantWithdrawalFees -= _amount;
 	}
@@ -151,7 +152,7 @@ contract ChildPool is
 	{
 		require(_amount > 0, "Invalid amount");
 		IERC20Upgradeable(polygonERC20).safeTransferFrom(
-			msg.sender,
+			_msgSender(),
 			address(this),
 			_amount
 		);
@@ -163,7 +164,7 @@ contract ChildPool is
 			"Not enough maticX to instant swap"
 		);
 
-		IERC20Upgradeable(maticX).safeTransfer(msg.sender, amountInMaticX);
+		IERC20Upgradeable(maticX).safeTransfer(_msgSender(), amountInMaticX);
 		instantPoolMatic += _amount;
 		instantPoolMaticX -= amountInMaticX;
 	}
@@ -175,7 +176,7 @@ contract ChildPool is
 	{
 		require(_amount > 0, "Invalid amount");
 		IERC20Upgradeable(maticX).safeTransferFrom(
-			msg.sender,
+			_msgSender(),
 			address(this),
 			_amount
 		);
@@ -192,7 +193,7 @@ contract ChildPool is
 		);
 
 		IERC20Upgradeable(polygonERC20).safeTransfer(
-			msg.sender,
+			_msgSender(),
 			amountInMaticAfterFees
 		);
 		instantPoolMatic -= amountInMaticAfterFees;
@@ -289,11 +290,69 @@ contract ChildPool is
 		returns (
 			address _fxStateChildTunnel,
 			address _polygonERC20,
-			address _maticX
+			address _maticX,
+			address _trustedForwarder
 		)
 	{
 		_fxStateChildTunnel = fxStateChildTunnel;
 		_polygonERC20 = polygonERC20;
 		_maticX = maticX;
+		_trustedForwarder = trustedForwarder;
+	}
+
+	////////////////////////////////////////////////////////////
+	/////                                                    ///
+	/////                 ***MetaTx***                       ///
+	/////                                                    ///
+	////////////////////////////////////////////////////////////
+
+	function setTrustedForwarder(address _address)
+		external
+		override
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		trustedForwarder = _address;
+
+		emit SetTrustedForwarder(_address);
+	}
+
+	function isTrustedForwarder(address _address)
+		public
+		view
+		virtual
+		returns (bool)
+	{
+		return _address == trustedForwarder;
+	}
+
+	function _msgSender()
+		internal
+		view
+		virtual
+		override
+		returns (address sender)
+	{
+		if (isTrustedForwarder(msg.sender)) {
+			// The assembly code is more direct than the Solidity version using `abi.decode`.
+			assembly {
+				sender := shr(96, calldataload(sub(calldatasize(), 20)))
+			}
+		} else {
+			return super._msgSender();
+		}
+	}
+
+	function _msgData()
+		internal
+		view
+		virtual
+		override
+		returns (bytes calldata)
+	{
+		if (isTrustedForwarder(msg.sender)) {
+			return msg.data[:msg.data.length - 20];
+		} else {
+			return super._msgData();
+		}
 	}
 }

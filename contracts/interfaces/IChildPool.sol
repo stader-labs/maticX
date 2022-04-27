@@ -34,6 +34,8 @@ interface IChildPool {
 
 	function setInstantWithdrawalFeePercent(uint8 _feePercent) external;
 
+	function setTrustedForwarder(address _address) external;
+
 	function setVersion(string calldata _version) external;
 
 	function togglePause() external;
@@ -49,11 +51,13 @@ interface IChildPool {
 		returns (
 			address _fxStateChildTunnel,
 			address _polygonERC20,
-			address _maticX
+			address _maticX,
+			address _trustedForwarder
 		);
 
 	event SetInstantPoolOwner(address _address);
 	event SetFxStateChildTunnel(address _address);
+	event SetTrustedForwarder(address _address);
 	event SetVersion(string _version);
 	event CollectedInstantWithdrawalFees(uint256 _fees);
 	event SetInstantWithdrawalFeePercent(uint8 _feePercent);
