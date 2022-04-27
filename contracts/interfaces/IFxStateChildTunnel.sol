@@ -15,4 +15,22 @@ interface IFxStateChildTunnel {
 	function getReserves() external view returns (uint256, uint256);
 
 	function getRate() external view returns (uint256);
+
+	function convertMaticXToMatic(uint256 _balance)
+		external
+		view
+		returns (
+			uint256,
+			uint256,
+			uint256
+		);
+
+	function convertMaticToMaticX(uint256 _balance)
+		external
+		view
+		returns (
+			uint256,
+			uint256,
+			uint256
+		);
 }
