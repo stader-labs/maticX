@@ -50,6 +50,9 @@ contract FxStateChildTunnel is FxBaseChildTunnel, AccessControl {
 
 	function getRate() external view returns (uint256) {
 		(uint256 maticX, uint256 matic) = getReserves();
+		maticX = maticX == 0 ? 1 : maticX;
+		matic = matic == 0 ? 1 : matic;
+
 		return (matic * 1 ether) / maticX;
 	}
 }

@@ -636,5 +636,13 @@ describe('MaticX contract', function () {
     expect(totalPooledMaticAfterRewards).to.equal(mintAmount - withdrawAmount + rewardsAfterFee)
     const expectedRateAfterRewards: BigNumberish = BigNumber.from('1000000000000000000').mul(totalPooledMaticAfterRewards).div(totalSharesAfterRewards)
     expect(rateAfterRewards).to.equal(expectedRateAfterRewards)
+
+    await requestWithdraw(user, totalSharesAfterRewards)
+
+    const [totalSharesAfterWithdrawAll, totalPooledMaticAfterWithdrawAll] = await fxStateChildTunnel.getReserves()
+    const rateAfterWithdrawAll = await rateProvider.getRate()
+    expect(totalSharesAfterWithdrawAll).to.equal(0)
+    expect(totalPooledMaticAfterWithdrawAll).to.equal(0)
+    expect(rateAfterWithdrawAll).to.equal(ethers.utils.parseEther('1'))
   })
 })
