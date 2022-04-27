@@ -66,7 +66,6 @@ contract ChildPool is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
-	// Uses instantPoolOwner funds.
 	function provideInstantPoolMatic(uint256 _amount)
 		external
 		override
@@ -140,7 +139,7 @@ contract ChildPool is
 			"Withdraw amount cannot exceed collected matic in instantWithdrawalFees"
 		);
 
-		IERC20Upgradeable(polygonERC20).safeTransfer(_msgSender(), _amount);
+		IERC20Upgradeable(polygonERC20).safeTransfer(instantPoolOwner, _amount);
 
 		instantWithdrawalFees -= _amount;
 	}
