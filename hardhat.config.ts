@@ -76,7 +76,7 @@ task("deployChildPoolProxy", "Deploy ChildPool Proxy only")
   .addPositionalParam("instantPoolOwner")
   .addPositionalParam("treasury")
   .addPositionalParam("instantWithdrawalFeeBps")
-  .setAction(async ({fxStateChildTunnel, maticX, manager, treasury, instantPoolOwner, instantWithdrawalFeeBps}, hre: HardhatRuntimeEnvironment) => {
+  .setAction(async ({fxStateChildTunnel, maticX, manager, instantPoolOwner, treasury, instantWithdrawalFeeBps}, hre: HardhatRuntimeEnvironment) => {
     if (!isChildNetwork(hre.network.name)) return
     await deployProxy(hre, "ChildPool", fxStateChildTunnel, maticX, manager, instantPoolOwner, treasury, instantWithdrawalFeeBps)
   }
