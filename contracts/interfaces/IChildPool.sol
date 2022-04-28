@@ -4,6 +4,8 @@ pragma solidity 0.8.7;
 interface IChildPool {
 	function version() external view returns (string memory);
 
+	function treasury() external view returns (address);
+
 	function instantPoolOwner() external view returns (address);
 
 	function instantPoolMatic() external view returns (uint256);
@@ -27,6 +29,8 @@ interface IChildPool {
 	function swapMaticForMaticXViaInstantPool(uint256 _amount) external;
 
 	function swapMaticXForMaticViaInstantPool(uint256 _amount) external;
+
+	function setTreasury(address _address) external;
 
 	function setInstantPoolOwner(address _address) external;
 
@@ -55,6 +59,7 @@ interface IChildPool {
 			address _trustedForwarder
 		);
 
+	event SetTreasury(address _address);
 	event SetInstantPoolOwner(address _address);
 	event SetFxStateChildTunnel(address _address);
 	event SetTrustedForwarder(address _address);

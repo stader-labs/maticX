@@ -23,6 +23,7 @@ contract ChildPool is
 	address private maticX;
 	address private trustedForwarder;
 
+	address public override treasury;
 	address public override instantPoolOwner;
 	uint256 public override instantPoolMatic;
 	uint256 public override instantPoolMaticX;
@@ -37,6 +38,7 @@ contract ChildPool is
 	 * @param _polygonERC20 - Address of matic token on Polygon
 	 * @param _manager - Address of the manager
 	 * @param _instantPoolOwner - Address of the instant pool owner
+	 * @param _treasury - Address of the treasury
 	 * @param _instantWithdrawalFeeBps - Fee basis points for using instant withdrawal feature
 	 */
 	function initialize(
@@ -45,6 +47,7 @@ contract ChildPool is
 		address _polygonERC20,
 		address _manager,
 		address _instantPoolOwner,
+		address _treasury,
 		uint256 _instantWithdrawalFeeBps
 	) external initializer {
 		__AccessControl_init();
@@ -53,6 +56,7 @@ contract ChildPool is
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
 		_setupRole(INSTANT_POOL_OWNER, _instantPoolOwner);
 		instantPoolOwner = _instantPoolOwner;
+		treasury = _treasury;
 
 		fxStateChildTunnel = _fxStateChildTunnel;
 		polygonERC20 = _polygonERC20;
@@ -73,13 +77,13 @@ contract ChildPool is
 		onlyRole(INSTANT_POOL_OWNER)
 	{
 		require(_amount > 0, "Invalid amount");
+
+		instantPoolMatic += _amount;
 		IERC20Upgradeable(polygonERC20).safeTransferFrom(
 			_msgSender(),
 			address(this),
 			_amount
 		);
-
-		instantPoolMatic += _amount;
 	}
 
 	function provideInstantPoolMaticX(uint256 _amount)
@@ -89,13 +93,13 @@ contract ChildPool is
 		onlyRole(INSTANT_POOL_OWNER)
 	{
 		require(_amount > 0, "Invalid amount");
+
+		instantPoolMaticX += _amount;
 		IERC20Upgradeable(maticX).safeTransferFrom(
 			_msgSender(),
 			address(this),
 			_amount
 		);
-
-		instantPoolMaticX += _amount;
 	}
 
 	function withdrawInstantPoolMaticX(uint256 _amount)
@@ -132,16 +136,14 @@ contract ChildPool is
 		external
 		override
 		whenNotPaused
-		onlyRole(INSTANT_POOL_OWNER)
 	{
 		require(
 			instantWithdrawalFees >= _amount,
 			"Withdraw amount cannot exceed collected matic in instantWithdrawalFees"
 		);
 
-		IERC20Upgradeable(polygonERC20).safeTransfer(instantPoolOwner, _amount);
-
 		instantWithdrawalFees -= _amount;
+		IERC20Upgradeable(polygonERC20).safeTransfer(treasury, _amount);
 	}
 
 	function swapMaticForMaticXViaInstantPool(uint256 _amount)
@@ -150,6 +152,7 @@ contract ChildPool is
 		whenNotPaused
 	{
 		require(_amount > 0, "Invalid amount");
+		instantPoolMatic += _amount;
 		IERC20Upgradeable(polygonERC20).safeTransferFrom(
 			_msgSender(),
 			address(this),
@@ -163,9 +166,8 @@ contract ChildPool is
 			"Not enough maticX to instant swap"
 		);
 
-		IERC20Upgradeable(maticX).safeTransfer(_msgSender(), amountInMaticX);
-		instantPoolMatic += _amount;
 		instantPoolMaticX -= amountInMaticX;
+		IERC20Upgradeable(maticX).safeTransfer(_msgSender(), amountInMaticX);
 	}
 
 	function swapMaticXForMaticViaInstantPool(uint256 _amount)
@@ -173,33 +175,35 @@ contract ChildPool is
 		override
 		whenNotPaused
 	{
-		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(maticX).safeTransferFrom(
-			_msgSender(),
-			address(this),
-			_amount
-		);
+		// TODO: it is disabled for now!
+		revert("Disabled");
 
-		(uint256 amountInMatic, , ) = IFxStateChildTunnel(fxStateChildTunnel)
-			.convertMaticXToMatic(_amount);
-		(
-			uint256 amountInMaticAfterFees,
-			uint256 fees
-		) = getAmountAfterInstantWithdrawalFees(amountInMatic);
-		require(
-			instantPoolMatic >= amountInMaticAfterFees,
-			"Not enough matic to instant swap"
-		);
+		// require(_amount > 0, "Invalid amount");
+		// instantPoolMaticX += _amount;
+		// IERC20Upgradeable(maticX).safeTransferFrom(
+		// 	_msgSender(),
+		// 	address(this),
+		// 	_amount
+		// );
 
-		IERC20Upgradeable(polygonERC20).safeTransfer(
-			_msgSender(),
-			amountInMaticAfterFees
-		);
-		instantPoolMatic -= amountInMaticAfterFees;
-		instantPoolMaticX += _amount;
+		// (uint256 amountInMatic, , ) = IFxStateChildTunnel(fxStateChildTunnel)
+		// 	.convertMaticXToMatic(_amount);
+		// (
+		// 	uint256 amountInMaticAfterFees,
+		// 	uint256 fees
+		// ) = getAmountAfterInstantWithdrawalFees(amountInMatic);
+		// require(
+		// 	instantPoolMatic >= amountInMaticAfterFees,
+		// 	"Not enough matic to instant swap"
+		// );
 
-		instantWithdrawalFees += fees;
-		emit CollectedInstantWithdrawalFees(fees);
+		// instantPoolMatic -= amountInMaticAfterFees;
+		// instantWithdrawalFees += fees;
+		// IERC20Upgradeable(polygonERC20).safeTransfer(
+		// 	_msgSender(),
+		// 	amountInMaticAfterFees
+		// );
+		// emit CollectedInstantWithdrawalFees(fees);
 	}
 
 	/**
@@ -214,6 +218,16 @@ contract ChildPool is
 	/////                 ***Setters***                      ///
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
+
+	function setTreasury(address _address)
+		external
+		override
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		treasury = _address;
+
+		emit SetTreasury(_address);
+	}
 
 	function setInstantPoolOwner(address _address)
 		external
@@ -241,7 +255,7 @@ contract ChildPool is
 
 	/**
 	 * @dev Function that sets instant withdrawal fee basis points
-	 * @notice Callable only by manager
+	 * @notice Callable only by admin
 	 * @param _feeBps - Fee basis points (100 = 0.1%)
 	 */
 	function setInstantWithdrawalFeeBps(uint256 _feeBps)
