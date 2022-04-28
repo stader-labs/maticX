@@ -12,5 +12,6 @@
   "rate_provider": "0xeE652bbF72689AA59F0B8F981c9c90e2A8Af8d8f",
   "fx_state_child_tunnel": "0xC65e29DF11F289842bf1B070fFd67CF588b93B32",
   "fx_state_root_tunnel": "0x40FB804Cc07302b89EC16a9f8d040506f64dFe29",
-  "child_pool": ""
+  "child_pool_proxy": "",
+  "child_pool_impl": ""
 }
