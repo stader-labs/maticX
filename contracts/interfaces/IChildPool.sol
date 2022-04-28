@@ -44,6 +44,24 @@ interface IChildPool {
 
 	function togglePause() external;
 
+	function convertMaticXToMatic(uint256 _balance)
+		external
+		view
+		returns (
+			uint256,
+			uint256,
+			uint256
+		);
+
+	function convertMaticToMaticX(uint256 _balance)
+		external
+		view
+		returns (
+			uint256,
+			uint256,
+			uint256
+		);
+
 	function getAmountAfterInstantWithdrawalFees(uint256 _amount)
 		external
 		view

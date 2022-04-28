@@ -149,8 +149,7 @@ contract ChildPool is
 		require(msg.value > 0, "Invalid amount");
 		instantPoolMatic += msg.value;
 
-		(uint256 amountInMaticX, , ) = IFxStateChildTunnel(fxStateChildTunnel)
-			.convertMaticToMaticX(msg.value);
+		(uint256 amountInMaticX, , ) = convertMaticToMaticX(msg.value);
 		require(
 			instantPoolMaticX >= amountInMaticX,
 			"Not enough maticX to instant swap"
@@ -279,6 +278,38 @@ contract ChildPool is
 	/////                 ***Getters***                      ///
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
+
+	function convertMaticXToMatic(uint256 _balance)
+		public
+		view
+		override
+		returns (
+			uint256,
+			uint256,
+			uint256
+		)
+	{
+		return
+			IFxStateChildTunnel(fxStateChildTunnel).convertMaticXToMatic(
+				_balance
+			);
+	}
+
+	function convertMaticToMaticX(uint256 _balance)
+		public
+		view
+		override
+		returns (
+			uint256,
+			uint256,
+			uint256
+		)
+	{
+		return
+			IFxStateChildTunnel(fxStateChildTunnel).convertMaticToMaticX(
+				_balance
+			);
+	}
 
 	function getAmountAfterInstantWithdrawalFees(uint256 _amount)
 		public
