@@ -21,12 +21,11 @@ contract ChildPool is
 	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
 
 	address private fxStateChildTunnel;
-	address private polygonERC20;
 	address private maticX;
 	address private trustedForwarder;
 
-	address public override treasury;
-	address public override instantPoolOwner;
+	address payable public override treasury;
+	address payable public override instantPoolOwner;
 	uint256 public override instantPoolMatic;
 	uint256 public override instantPoolMaticX;
 
@@ -37,7 +36,6 @@ contract ChildPool is
 	/**
 	 * @param _fxStateChildTunnel - Address of the fxStateChildTunnel contract
 	 * @param _maticX - Address of maticX token on Polygon
-	 * @param _polygonERC20 - Address of matic token on Polygon
 	 * @param _manager - Address of the manager
 	 * @param _instantPoolOwner - Address of the instant pool owner
 	 * @param _treasury - Address of the treasury
@@ -46,10 +44,9 @@ contract ChildPool is
 	function initialize(
 		address _fxStateChildTunnel,
 		address _maticX,
-		address _polygonERC20,
 		address _manager,
-		address _instantPoolOwner,
-		address _treasury,
+		address payable _instantPoolOwner,
+		address payable _treasury,
 		uint256 _instantWithdrawalFeeBps
 	) external initializer {
 		__AccessControl_init();
@@ -61,7 +58,6 @@ contract ChildPool is
 		treasury = _treasury;
 
 		fxStateChildTunnel = _fxStateChildTunnel;
-		polygonERC20 = _polygonERC20;
 		maticX = _maticX;
 		instantWithdrawalFeeBps = _instantWithdrawalFeeBps;
 	}
@@ -72,20 +68,16 @@ contract ChildPool is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
-	function provideInstantPoolMatic(uint256 _amount)
+	function provideInstantPoolMatic()
 		external
+		payable
 		override
 		whenNotPaused
 		onlyRole(INSTANT_POOL_OWNER)
 	{
-		require(_amount > 0, "Invalid amount");
+		require(msg.value > 0, "Invalid amount");
 
-		instantPoolMatic += _amount;
-		IERC20Upgradeable(polygonERC20).safeTransferFrom(
-			_msgSender(),
-			address(this),
-			_amount
-		);
+		instantPoolMatic += msg.value;
 	}
 
 	function provideInstantPoolMaticX(uint256 _amount)
@@ -131,7 +123,7 @@ contract ChildPool is
 		);
 
 		instantPoolMatic -= _amount;
-		IERC20Upgradeable(polygonERC20).safeTransfer(instantPoolOwner, _amount);
+		instantPoolOwner.transfer(_amount);
 	}
 
 	function withdrawInstantWithdrawalFees(uint256 _amount)
@@ -145,24 +137,20 @@ contract ChildPool is
 		);
 
 		instantWithdrawalFees -= _amount;
-		IERC20Upgradeable(polygonERC20).safeTransfer(treasury, _amount);
+		treasury.transfer(_amount);
 	}
 
-	function swapMaticForMaticXViaInstantPool(uint256 _amount)
+	function swapMaticForMaticXViaInstantPool()
 		external
+		payable
 		override
 		whenNotPaused
 	{
-		require(_amount > 0, "Invalid amount");
-		instantPoolMatic += _amount;
-		IERC20Upgradeable(polygonERC20).safeTransferFrom(
-			_msgSender(),
-			address(this),
-			_amount
-		);
+		require(msg.value > 0, "Invalid amount");
+		instantPoolMatic += msg.value;
 
 		(uint256 amountInMaticX, , ) = IFxStateChildTunnel(fxStateChildTunnel)
-			.convertMaticToMaticX(_amount);
+			.convertMaticToMaticX(msg.value);
 		require(
 			instantPoolMaticX >= amountInMaticX,
 			"Not enough maticX to instant swap"
@@ -221,7 +209,7 @@ contract ChildPool is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
-	function setTreasury(address _address)
+	function setTreasury(address payable _address)
 		external
 		override
 		onlyRole(DEFAULT_ADMIN_ROLE)
@@ -231,7 +219,7 @@ contract ChildPool is
 		emit SetTreasury(_address);
 	}
 
-	function setInstantPoolOwner(address _address)
+	function setInstantPoolOwner(address payable _address)
 		external
 		override
 		onlyRole(DEFAULT_ADMIN_ROLE)
@@ -309,13 +297,11 @@ contract ChildPool is
 		override
 		returns (
 			address _fxStateChildTunnel,
-			address _polygonERC20,
 			address _maticX,
 			address _trustedForwarder
 		)
 	{
 		_fxStateChildTunnel = fxStateChildTunnel;
-		_polygonERC20 = polygonERC20;
 		_maticX = maticX;
 		_trustedForwarder = trustedForwarder;
 	}

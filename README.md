@@ -39,7 +39,7 @@ To deploy contract directly, run:
 npx hardhat deployFxStateChildTunnel --network matic
 npx hardhat deployRateProvider <fxStateChildTunnelAddress> --network matic
 npx hardhat deployChildPoolImpl --network matic
-npx hardhat deployChildPoolProxy <fxStateChildTunnelAddress> <maticX> <polygonErc20> <manager> <instantPoolOwner> <treasury> <instantWithdrawalFeeBps> --network matic
+npx hardhat deployChildPoolProxy <fxStateChildTunnelAddress> <maticX> <manager> <instantPoolOwner> <treasury> <instantWithdrawalFeeBps> --network matic
 npx hardhat deployFxStateRootTunnel <maticXAddress> --network mainnet
 npx hardhat deployMaticXImpl --network mainnet
 npx hardhat deployValidatorRegistryImpl --network mainnet

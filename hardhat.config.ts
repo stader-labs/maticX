@@ -72,14 +72,13 @@ task("deployValidatorRegistryImpl", "Deploy ValidatorRegistry Implementation onl
 task("deployChildPoolProxy", "Deploy ChildPool Proxy only")
   .addPositionalParam("fxStateChildTunnel")
   .addPositionalParam("maticX")
-  .addPositionalParam("polygonErc20")
   .addPositionalParam("manager")
   .addPositionalParam("instantPoolOwner")
   .addPositionalParam("treasury")
   .addPositionalParam("instantWithdrawalFeeBps")
-  .setAction(async ({fxStateChildTunnel, maticX, polygonErc20, manager, treasury, instantPoolOwner, instantWithdrawalFeeBps}, hre: HardhatRuntimeEnvironment) => {
+  .setAction(async ({fxStateChildTunnel, maticX, manager, treasury, instantPoolOwner, instantWithdrawalFeeBps}, hre: HardhatRuntimeEnvironment) => {
     if (!isChildNetwork(hre.network.name)) return
-    await deployProxy(hre, "ChildPool", fxStateChildTunnel, maticX, polygonErc20, manager, instantPoolOwner, treasury, instantWithdrawalFeeBps)
+    await deployProxy(hre, "ChildPool", fxStateChildTunnel, maticX, manager, instantPoolOwner, treasury, instantWithdrawalFeeBps)
   }
 );
 

@@ -4,9 +4,9 @@ pragma solidity 0.8.7;
 interface IChildPool {
 	function version() external view returns (string memory);
 
-	function treasury() external view returns (address);
+	function treasury() external view returns (address payable);
 
-	function instantPoolOwner() external view returns (address);
+	function instantPoolOwner() external view returns (address payable);
 
 	function instantPoolMatic() external view returns (uint256);
 
@@ -16,7 +16,7 @@ interface IChildPool {
 
 	function instantWithdrawalFeeBps() external view returns (uint256);
 
-	function provideInstantPoolMatic(uint256 _amount) external;
+	function provideInstantPoolMatic() external payable;
 
 	function provideInstantPoolMaticX(uint256 _amount) external;
 
@@ -26,13 +26,13 @@ interface IChildPool {
 
 	function withdrawInstantWithdrawalFees(uint256 _amount) external;
 
-	function swapMaticForMaticXViaInstantPool(uint256 _amount) external;
+	function swapMaticForMaticXViaInstantPool() external payable;
 
 	function swapMaticXForMaticViaInstantPool(uint256 _amount) external;
 
-	function setTreasury(address _address) external;
+	function setTreasury(address payable _address) external;
 
-	function setInstantPoolOwner(address _address) external;
+	function setInstantPoolOwner(address payable _address) external;
 
 	function setFxStateChildTunnel(address _address) external;
 
@@ -54,7 +54,6 @@ interface IChildPool {
 		view
 		returns (
 			address _fxStateChildTunnel,
-			address _polygonERC20,
 			address _maticX,
 			address _trustedForwarder
 		);
