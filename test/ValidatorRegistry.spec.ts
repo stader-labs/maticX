@@ -15,6 +15,7 @@ describe('ValidatorRegistry contract', function () {
   let manager: SignerWithAddress
   let instant_pool_owner: SignerWithAddress
   let treasury: SignerWithAddress
+  let staderBot: SignerWithAddress
   let users: SignerWithAddress[] = []
   let maticX: MaticX
   let polygonMock: PolygonMock
@@ -84,7 +85,7 @@ describe('ValidatorRegistry contract', function () {
   })
 
   beforeEach(async () => {
-    ;[deployer, ...users] = await ethers.getSigners()
+    ;[deployer, staderBot, ...users] = await ethers.getSigners()
     manager = deployer
     treasury = deployer
     instant_pool_owner = deployer
@@ -123,6 +124,8 @@ describe('ValidatorRegistry contract', function () {
     )) as MaticX
     await maticX.deployed()
 
+    const STADER_BOT_ROLE = "0xdc5584c338b3cd38267eb688df4873122630c06eb34aa2e61f227e0cd9244751"
+    await validatorRegistry.grantRole(STADER_BOT_ROLE, staderBot.address)
     await validatorRegistry.setMaticX(maticX.address)
   })
 
@@ -185,7 +188,7 @@ describe('ValidatorRegistry contract', function () {
   it('Should not remove an validator when it is preferred for deposits', async function () {
     await createValidator(manager, 1)
     await addValidator(manager, 1)
-    await expect(await setPreferredDepositValidatorId(manager, 1))
+    await expect(await setPreferredDepositValidatorId(staderBot, 1))
       .emit(validatorRegistry, 'SetPreferredDepositValidatorId')
       .withArgs(1)
 
@@ -197,7 +200,7 @@ describe('ValidatorRegistry contract', function () {
   it('Should not remove an validator when it is preferred for withdrawals', async function () {
     await createValidator(manager, 1)
     await addValidator(manager, 1)
-    await expect(await setPreferredWithdrawalValidatorId(manager, 1))
+    await expect(await setPreferredWithdrawalValidatorId(staderBot, 1))
       .emit(validatorRegistry, 'SetPreferredWithdrawalValidatorId')
       .withArgs(1)
 

@@ -85,8 +85,6 @@ interface IMaticX is IERC20Upgradeable {
 			uint256
 		);
 
-	function mint(address _user, uint256 _amount) external;
-
 	function setFeePercent(uint8 _feePercent) external;
 
 	function setInstantPoolOwner(address _address) external;
@@ -147,7 +145,6 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 indexed _toValidatorId,
 		uint256 _amount
 	);
-	event MintFromPolygon(address indexed _user, uint256 _amount);
 	event SetFeePercent(uint8 _feePercent);
 	event SetInstantPoolOwner(address _address);
 	event SetTreasury(address _address);

@@ -19,6 +19,7 @@ describe('MaticX contract', function () {
   let manager: SignerWithAddress
   let instant_pool_owner: SignerWithAddress
   let treasury: SignerWithAddress
+  let staderBot: SignerWithAddress
   let users: SignerWithAddress[] = []
   let maticX: MaticX
   let polygonMock: PolygonMock
@@ -87,6 +88,14 @@ describe('MaticX contract', function () {
   let setFeePercent: (
     signer: SignerWithAddress,
     feePercent: BigNumberish,
+  ) => Promise<Transaction>
+  let setPreferredDepositValidatorId: (
+    signer: SignerWithAddress,
+    validatorId: BigNumberish,
+  ) => Promise<Transaction>
+  let setPreferredWithdrawalValidatorId: (
+    signer: SignerWithAddress,
+    validatorId: BigNumberish,
   ) => Promise<Transaction>
 
   before(() => {
@@ -176,10 +185,20 @@ describe('MaticX contract', function () {
       const signerMaticX = maticX.connect(signer)
       return signerMaticX.setFeePercent(feePercent)
     }
+
+    setPreferredDepositValidatorId = async (signer, validatorId) => {
+      const signerValidatorRegistry = validatorRegistry.connect(signer)
+      return signerValidatorRegistry.setPreferredDepositValidatorId(validatorId)
+    }
+
+    setPreferredWithdrawalValidatorId = async (signer, validatorId) => {
+      const signerValidatorRegistry = validatorRegistry.connect(signer)
+      return signerValidatorRegistry.setPreferredWithdrawalValidatorId(validatorId)
+    }
   })
 
   beforeEach(async () => {
-    ;[deployer, ...users] = await ethers.getSigners()
+    ;[deployer, staderBot, ...users] = await ethers.getSigners()
     manager = deployer
     treasury = users[1]
     instant_pool_owner = deployer
@@ -237,11 +256,14 @@ describe('MaticX contract', function () {
     )) as MaticX
     await maticX.deployed()
 
+    const STADER_BOT_ROLE = "0xdc5584c338b3cd38267eb688df4873122630c06eb34aa2e61f227e0cd9244751"
+    await maticX.grantRole(STADER_BOT_ROLE, staderBot.address)
+    await validatorRegistry.grantRole(STADER_BOT_ROLE, staderBot.address)
     await validatorRegistry.setMaticX(maticX.address)
     await stakeManagerMock.createValidator(1)
     await validatorRegistry.addValidator(1)
-    await validatorRegistry.setPreferredDepositValidatorId(1)
-    await validatorRegistry.setPreferredWithdrawalValidatorId(1)
+    await setPreferredDepositValidatorId(staderBot, 1)
+    await setPreferredWithdrawalValidatorId(staderBot, 1)
     await stakeManagerMock.createValidator(2)
     await validatorRegistry.addValidator(2)
     await maticX.setFxStateRootTunnel(fxStateRootTunnel.address);
@@ -567,7 +589,7 @@ describe('MaticX contract', function () {
     await polygonMock.mintTo(maticX.address, rewards)
 
     const stakeRewardsAndDistributeFeesTx = await stakeRewardsAndDistributeFees(
-      manager,
+      staderBot,
       1,
     )
     await expect(stakeRewardsAndDistributeFeesTx)
@@ -591,7 +613,7 @@ describe('MaticX contract', function () {
     await stakeManagerMock.createValidator(123)
     await validatorRegistry.addValidator(123)
 
-    await expect(await migrateDelegation(manager, 1, 123, 100))
+    await expect(await migrateDelegation(staderBot, 1, 123, 100))
       .emit(maticX, 'MigrateDelegation')
       .withArgs(1, 123, 100)
   })
@@ -625,7 +647,7 @@ describe('MaticX contract', function () {
   
     await polygonMock.mintTo(maticX.address, rewardsAmount)
     await stakeRewardsAndDistributeFees(
-      manager,
+      staderBot,
       1,
     )
 

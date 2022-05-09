@@ -37,9 +37,12 @@ contract MaticX is
 	/// @notice Mapping of all user ids with withdraw requests.
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 
+	/// @notice Deprecated since Polygon side token is not mintable by Stader Labs
 	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
 
 	address public override fxStateRootTunnel;
+
+	bytes32 public constant STADER_BOT_ROLE = keccak256("STADER_BOT_ROLE");
 
 	/**
 	 * @param _validatorRegistry - Address of the validator registry
@@ -327,7 +330,7 @@ contract MaticX is
 		external
 		override
 		whenNotPaused
-		onlyRole(DEFAULT_ADMIN_ROLE)
+		onlyRole(STADER_BOT_ROLE)
 	{
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
@@ -375,7 +378,7 @@ contract MaticX is
 		uint256 _fromValidatorId,
 		uint256 _toValidatorId,
 		uint256 _amount
-	) external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+	) external override whenNotPaused onlyRole(STADER_BOT_ROLE) {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_fromValidatorId
@@ -542,16 +545,6 @@ contract MaticX is
 		uint256 balanceInMaticX = (_balance * totalShares) / totalPooledMatic;
 
 		return (balanceInMaticX, totalShares, totalPooledMatic);
-	}
-
-	// TODO: Add logic and enable it in V2
-	function mint(address _user, uint256 _amount)
-		external
-		override
-		whenNotPaused
-		onlyRole(PREDICATE_ROLE)
-	{
-		emit MintFromPolygon(_user, _amount);
 	}
 
 	////////////////////////////////////////////////////////////

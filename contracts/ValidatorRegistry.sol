@@ -29,6 +29,8 @@ contract ValidatorRegistry is
 
 	uint256[] private validators;
 
+	bytes32 public constant STADER_BOT_ROLE = keccak256("STADER_BOT_ROLE");
+
 	/// -------------------------- initialize ----------------------------------
 
 	/// @notice Initialize the ValidatorRegistry contract.
@@ -127,7 +129,7 @@ contract ValidatorRegistry is
 		override
 		whenNotPaused
 		whenValidatorIdExists(_validatorId)
-		onlyRole(DEFAULT_ADMIN_ROLE)
+		onlyRole(STADER_BOT_ROLE)
 	{
 		preferredDepositValidatorId = _validatorId;
 
@@ -141,7 +143,7 @@ contract ValidatorRegistry is
 		override
 		whenNotPaused
 		whenValidatorIdExists(_validatorId)
-		onlyRole(DEFAULT_ADMIN_ROLE)
+		onlyRole(STADER_BOT_ROLE)
 	{
 		preferredWithdrawalValidatorId = _validatorId;
 
