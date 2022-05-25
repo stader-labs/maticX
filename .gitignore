@@ -1,6 +1,6 @@
 node_modules
 .env
-.env.test
+.env.test2
 
 #Hardhat files
 cache
@@ -8,3 +8,5 @@ artifacts
 typechain
 
 .openzeppelin
+
+.idea
