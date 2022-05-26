@@ -1,7 +1,8 @@
-import chai from "chai";
-import {  Transaction } from 'ethers'
+import { expect } from "chai";
+import {  utils } from 'ethers'
 import { ethers, upgrades } from 'hardhat'
 import {
+    IFxStateChildTunnel,
     ChildPool,
     FxRootMock,
     FxStateChildTunnel,
@@ -12,9 +13,6 @@ import {
 } from "../typechain";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {BigNumber, BigNumberish} from "@ethersproject/bignumber";
-import { solidity } from "ethereum-waffle";
-chai.use(solidity);
-const {expect} = chai;
 
 
 describe('ChildPool', () => {
@@ -34,13 +32,45 @@ describe('ChildPool', () => {
     let fxStateChildTunnel: FxStateChildTunnel
     let rateProvider: RateProvider
 
-    // let convertMaticToMaticX: (_balance: BigNumberish) => Promise<void>
+    let maticApprove: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+    let maticXApprove: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+    let swapMaticForMaticXViaInstantPool: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+    let provideInstantPoolMatic: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+    let provideInstantPoolMaticX: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
 
     before(()=>{
-        /*convertMaticToMaticX = async (_balance) => {
-            const signerMaticX = childPool.connect(signer)
-            return signerMaticX.submit(amount)
-        }*/
+
+        maticApprove = async (signer, amount) => {
+            const signerERC20 = polygonMock.connect(signer)
+            await signerERC20.approve(maticX.address, amount)
+            console.log('matic balance',await signerERC20.balanceOf(signer.address));
+        }
+
+        maticXApprove = async (signer, amount) => {
+            const signerMaticX = maticX.connect(signer)
+            await signerMaticX.approve(maticX.address, amount)
+            console.log('maticX balance',await signerMaticX.balanceOf(signer.address));
+        }
+
+        provideInstantPoolMatic = async (signer, amount) => {
+            await maticApprove(signer, amount)
+            const signerChildPool = childPool.connect(signer)
+            await signerChildPool.provideInstantPoolMatic({value: amount})
+        }
+        provideInstantPoolMaticX = async (signer, amount) => {
+            await maticXApprove(signer, amount)
+            const signerChildPool = childPool.connect(signer)
+            await signerChildPool.provideInstantPoolMaticX(amount)
+        }
+
+        swapMaticForMaticXViaInstantPool = async (signer: SignerWithAddress, amount: BigNumberish) => {
+            const signerChildPool = await childPool.connect(signer)
+            const result = await signerChildPool.swapMaticForMaticXViaInstantPool({
+                value: amount
+            })
+            console.log(result);
+            //return result;
+        }
     });
 
     beforeEach(async () => {
@@ -103,18 +133,6 @@ describe('ChildPool', () => {
         )) as MaticX
         await maticX.deployed()
 
-        await validatorRegistry.setMaticX(maticX.address)
-        await stakeManagerMock.createValidator(1)
-        await validatorRegistry.addValidator(1)
-        await validatorRegistry.setPreferredDepositValidatorId(1)
-        await validatorRegistry.setPreferredWithdrawalValidatorId(1)
-        await stakeManagerMock.createValidator(2)
-        await validatorRegistry.addValidator(2)
-        await maticX.setFxStateRootTunnel(fxStateRootTunnel.address);
-        await fxStateRootTunnel.setMaticX(maticX.address);
-        await fxStateRootTunnel.setFxChildTunnel(fxStateChildTunnel.address);
-        await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
-
         childPool = (await upgrades.deployProxy(
             await ethers.getContractFactory('ChildPool'),
             [
@@ -127,6 +145,41 @@ describe('ChildPool', () => {
             ],
         )) as ChildPool
         await childPool.deployed()
+
+
+        await validatorRegistry.setMaticX(maticX.address)
+        await stakeManagerMock.createValidator(1)
+        await validatorRegistry.addValidator(1)
+        await validatorRegistry.setPreferredDepositValidatorId(1)
+        await validatorRegistry.setPreferredWithdrawalValidatorId(1)
+        await stakeManagerMock.createValidator(2)
+        await validatorRegistry.addValidator(2)
+        await maticX.setFxStateRootTunnel(fxStateRootTunnel.address);
+        await fxStateRootTunnel.setMaticX(maticX.address);
+        await fxStateRootTunnel.setFxChildTunnel(fxStateChildTunnel.address);
+        await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
+        await childPool.setFxStateChildTunnel(fxStateChildTunnel.address);
+
+
+        /*await maticApprove(instant_pool_owner, ethers.utils.parseEther("1000.0"));
+        await maticXApprove(instant_pool_owner, ethers.utils.parseEther("1000.0"));
+        await childPool.provideInstantPoolMatic({
+            from: instant_pool_owner.address,
+            value: ethers.utils.parseEther("1000.0")
+        });
+        await childPool.provideInstantPoolMaticX(ethers.utils.parseEther("1000.0"), {
+            from: instant_pool_owner.address
+        });*/
+        const abiCoder = new utils.AbiCoder();
+        /*await fxRootMock.sendMessageToChild(fxStateChildTunnel.address, abiCoder.encode(
+            [ "uint", "string" ], [ 1234, "Hello World" ]
+        ),{
+            from: fxStateRootTunnel.address
+        });*/
+
+        await fxRootMock.sendMessageToChildWithAddress(fxStateChildTunnel.address, fxStateRootTunnel.address, abiCoder.encode(
+            [ "uint", "uint" ], [ 1000, 1000 ]
+        ));
     });
 
     it('get contract addresses', async () => {
@@ -141,20 +194,29 @@ describe('ChildPool', () => {
         expect(result).to.eql([BigNumber.from('999'), BigNumber.from('1')]);
     });
 
-    /** TODO: mock the getreserves() **/
-   /* it('gives the amount of maticX if converted from matic', async () => {
-        const result = await childPool.convertMaticToMaticX(1000);
-        console.log('result : ',result);
-        const t1 = BigNumber.from('999');
-        const t2 = BigNumber.from('1');
-        expect(result).to.equal([t1, t2]);
-    });*/
+    it('gives the amount of maticX if converted from matic', async () => {
+        /*const setup = await ethers.getContractAt("IFxStateChildTunnel", fxStateChildTunnel.address);
+        console.log(await setup.convertMaticToMaticX(
+            100
+        ));*/
+        const result = await childPool.convertMaticToMaticX(100);
+        expect(result).to.eql([BigNumber.from('100'), BigNumber.from('1000'), BigNumber.from('1000')])
+    });
 
 
-    /**TODO: to pass amount in msg.value **/
-    /*it('get maticX from matic via instant pool', async () => {
-        const result = await childPool.convertMaticToMaticX(1000);
+    it('get maticX from matic via instant pool', async () => {
+        console.log(await childPool.instantPoolMaticX());
+        console.log(await childPool.instantPoolMatic());
+        console.log('1');
+        await provideInstantPoolMatic(instant_pool_owner, ethers.utils.parseEther("100.0"))
+        console.log('2');
+        console.log(await childPool.instantPoolMaticX());
+        console.log(await childPool.instantPoolMatic());
+        await provideInstantPoolMaticX(deployer, ethers.utils.parseEther("100.0"))
+        console.log('3');
+        console.log(await childPool.instantPoolMaticX());
+        console.log(await childPool.instantPoolMatic());
+        const result = await swapMaticForMaticXViaInstantPool(users[0], ethers.utils.parseEther("2"));
         console.log('result : ',result);
-        expect(result).to.equal([990, 10]);
-    });*/
+    });
 })
