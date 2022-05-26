@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import {  utils } from 'ethers'
+import {Transaction, utils} from 'ethers'
 import { ethers, upgrades } from 'hardhat'
 import {
     IFxStateChildTunnel,
@@ -32,33 +32,39 @@ describe('ChildPool', () => {
     let fxStateChildTunnel: FxStateChildTunnel
     let rateProvider: RateProvider
 
-    let maticApprove: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
-    let maticXApprove: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+    let mintAndApproveMatic: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+    let maticXApproveForChildPool: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
+    let mintMaticX: (signer: SignerWithAddress, amount: BigNumber ) => Promise<Transaction>
     let swapMaticForMaticXViaInstantPool: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
     let provideInstantPoolMatic: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
     let provideInstantPoolMaticX: (signer: SignerWithAddress, amount: BigNumberish) => Promise<void>
 
     before(()=>{
 
-        maticApprove = async (signer, amount) => {
-            const signerERC20 = polygonMock.connect(signer)
-            await signerERC20.approve(maticX.address, amount)
-            console.log('matic balance',await signerERC20.balanceOf(signer.address));
+        mintAndApproveMatic = async (signer, amount) => {
+            const signerERC = polygonMock.connect(signer)
+            await signerERC.mint(amount)
+            await signerERC.approve(maticX.address, amount)
         }
 
-        maticXApprove = async (signer, amount) => {
+        maticXApproveForChildPool = async (signer, amount) => {
             const signerMaticX = maticX.connect(signer)
-            await signerMaticX.approve(maticX.address, amount)
-            console.log('maticX balance',await signerMaticX.balanceOf(signer.address));
+            await signerMaticX.approve(childPool.address, amount)
+        }
+
+        mintMaticX = async (signer, amount) => {
+            await mintAndApproveMatic(signer, amount)
+            const signerMaticX = maticX.connect(signer)
+            return await signerMaticX.submit(amount)
         }
 
         provideInstantPoolMatic = async (signer, amount) => {
-            await maticApprove(signer, amount)
             const signerChildPool = childPool.connect(signer)
             await signerChildPool.provideInstantPoolMatic({value: amount})
         }
+
         provideInstantPoolMaticX = async (signer, amount) => {
-            await maticXApprove(signer, amount)
+            await maticXApproveForChildPool(signer, amount);
             const signerChildPool = childPool.connect(signer)
             await signerChildPool.provideInstantPoolMaticX(amount)
         }
@@ -68,8 +74,6 @@ describe('ChildPool', () => {
             const result = await signerChildPool.swapMaticForMaticXViaInstantPool({
                 value: amount
             })
-            console.log(result);
-            //return result;
         }
     });
 
@@ -195,28 +199,21 @@ describe('ChildPool', () => {
     });
 
     it('gives the amount of maticX if converted from matic', async () => {
-        /*const setup = await ethers.getContractAt("IFxStateChildTunnel", fxStateChildTunnel.address);
-        console.log(await setup.convertMaticToMaticX(
-            100
-        ));*/
         const result = await childPool.convertMaticToMaticX(100);
         expect(result).to.eql([BigNumber.from('100'), BigNumber.from('1000'), BigNumber.from('1000')])
     });
 
 
     it('get maticX from matic via instant pool', async () => {
-        console.log(await childPool.instantPoolMaticX());
-        console.log(await childPool.instantPoolMatic());
-        console.log('1');
-        await provideInstantPoolMatic(instant_pool_owner, ethers.utils.parseEther("100.0"))
-        console.log('2');
-        console.log(await childPool.instantPoolMaticX());
-        console.log(await childPool.instantPoolMatic());
-        await provideInstantPoolMaticX(deployer, ethers.utils.parseEther("100.0"))
-        console.log('3');
-        console.log(await childPool.instantPoolMaticX());
-        console.log(await childPool.instantPoolMatic());
+        const wei = BigNumber.from(10).pow(18);
+        expect(await childPool.instantPoolMaticX()).to.eql(BigNumber.from('0'))
+        await mintMaticX(instant_pool_owner, ethers.utils.parseEther("1000.0"))
+        expect(await maticX.balanceOf(instant_pool_owner.address)).to.eql(BigNumber.from(1000).mul(wei))
+        await provideInstantPoolMaticX(instant_pool_owner, ethers.utils.parseEther("1000.0"))
+        expect(await childPool.instantPoolMaticX()).to.eql(BigNumber.from('1000').mul(wei))
+        expect(await maticX.balanceOf(instant_pool_owner.address)).to.eql(BigNumber.from('0').mul(wei))
+        expect(await maticX.balanceOf(users[0].address)).to.eql(BigNumber.from('0').mul(wei))
         const result = await swapMaticForMaticXViaInstantPool(users[0], ethers.utils.parseEther("2"));
-        console.log('result : ',result);
+        expect(await maticX.balanceOf(users[0].address)).to.eql(BigNumber.from('2').mul(wei))
     });
 })
