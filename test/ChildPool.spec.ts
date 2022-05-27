@@ -2,7 +2,6 @@ import { expect } from "chai";
 import {Transaction, utils} from 'ethers'
 import { ethers, upgrades } from 'hardhat'
 import {
-    IFxStateChildTunnel,
     ChildPool,
     FxRootMock,
     FxStateChildTunnel,
@@ -164,23 +163,7 @@ describe('ChildPool', () => {
         await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
         await childPool.setFxStateChildTunnel(fxStateChildTunnel.address);
 
-
-        /*await maticApprove(instant_pool_owner, ethers.utils.parseEther("1000.0"));
-        await maticXApprove(instant_pool_owner, ethers.utils.parseEther("1000.0"));
-        await childPool.provideInstantPoolMatic({
-            from: instant_pool_owner.address,
-            value: ethers.utils.parseEther("1000.0")
-        });
-        await childPool.provideInstantPoolMaticX(ethers.utils.parseEther("1000.0"), {
-            from: instant_pool_owner.address
-        });*/
         const abiCoder = new utils.AbiCoder();
-        /*await fxRootMock.sendMessageToChild(fxStateChildTunnel.address, abiCoder.encode(
-            [ "uint", "string" ], [ 1234, "Hello World" ]
-        ),{
-            from: fxStateRootTunnel.address
-        });*/
-
         await fxRootMock.sendMessageToChildWithAddress(fxStateChildTunnel.address, fxStateRootTunnel.address, abiCoder.encode(
             [ "uint", "uint" ], [ 1000, 1000 ]
         ));

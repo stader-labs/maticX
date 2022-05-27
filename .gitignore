@@ -1,6 +1,6 @@
 node_modules
 .env
-.env.test2
+.env.test
 
 #Hardhat files
 cache
