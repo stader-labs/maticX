@@ -33,6 +33,25 @@ contract ChildPool is
 	uint256 public override instantWithdrawalFeeBps;
 	uint256 public override instantWithdrawalFees;
 
+	struct MaticXSwapRequest {
+		uint amount;
+		uint requestTime;
+		uint withdrawalTime;
+	}
+	mapping(address => MaticXSwapRequest[]) private userMaticXSwapRequests;
+	uint256 public override claimedMatic;
+	uint256 public override maticXSwapLockPeriod = 5 hours;
+	event RequestMaticXSwap(
+		address indexed _from,
+		uint256 _amountMaticX,
+		uint256 _amountMatic
+	);
+	event ClaimMaticXSwap(
+		address indexed _from,
+		uint256 indexed _idx,
+		uint256 _amountClaimed
+	);
+
 	/**
 	 * @param _fxStateChildTunnel - Address of the fxStateChildTunnel contract
 	 * @param _maticX - Address of maticX token on Polygon
@@ -157,6 +176,51 @@ contract ChildPool is
 
 		instantPoolMaticX -= amountInMaticX;
 		IERC20Upgradeable(maticX).safeTransfer(_msgSender(), amountInMaticX);
+	}
+
+	///@dev request maticX->matic swap from instant pool
+	function requestMaticXSwap (uint _amount)
+	external
+	override
+	whenNotPaused {
+		require(_amount > 0, "Invalid amount");
+		// transfer maticX from user to contract
+	    instantPoolMaticX += _amount;
+		IERC20Upgradeable(maticX).safeTransferFrom(_msgSender(), address(this), _amount);
+
+		(uint amountInMatic, , ) = IFxStateChildTunnel(fxStateChildTunnel).convertMaticXToMatic(_amount);
+		(uint amountInMaticAfterFees, uint fees) = getAmountAfterInstantWithdrawalFees(amountInMatic);
+
+		require(instantPoolMatic >= amountInMaticAfterFees, "Not enough matic to instant swap");
+
+		instantPoolMatic -= amountInMaticAfterFees;
+		claimedMatic += amountInMaticAfterFees;
+		instantWithdrawalFees += fees;
+		uint idx = userMaticXSwapRequests.push(MaticXSwapRequest(amountInMaticAfterFees, now, now + maticXSwapLockPeriod));
+		emit RequestMaticXSwap(msg.sender, _amount, amountInMaticAfterFees);
+		emit CollectedInstantWithdrawalFees(fees);
+	}
+
+	///@dev claim earlier requested maticX->matic swap from instant pool
+	function claimMaticXSwap (uint256 _idx)
+	external
+	override
+	whenNotPaused {
+		_claimWithdrawal(msg.sender, _idx);
+	}
+
+	function _claimMaticXSwap (address _to, uint256 _idx) internal {
+		// what happens to it after the function execution
+		MaticXSwapRequest[] storage userRequests = userMaticXSwapRequests[_to];
+		MaticXSwapRequest memory userRequest = userRequests[_idx];
+		require(now >= withdrawalTime, "Not able to claim yet");
+
+	    claimedMatic -= userRequest.amount;
+	    IERC20Upgradeable(polygonERC20).safeTransfer(_to, userRequest.amount);
+	    userRequests[_idx] = userRequests[userRequests.length - 1];
+		userRequests.pop();
+
+		emit ClaimWithdrawal(_to, _idx, userRequest.amount);
 	}
 
 	function swapMaticXForMaticViaInstantPool(uint256 _amount)
