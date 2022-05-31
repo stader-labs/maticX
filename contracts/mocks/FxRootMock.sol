@@ -16,4 +16,17 @@ contract FxRootMock {
 		);
 		stateId++;
 	}
+
+	function sendMessageToChildWithAddress(
+		address fxChildTunnel,
+		address fxRootTunnelAddress,
+		bytes memory _message
+	) external {
+		FxBaseChildTunnel(fxChildTunnel).processMessageFromRoot(
+			stateId,
+			fxRootTunnelAddress,
+			_message
+		);
+		stateId++;
+	}
 }

@@ -9,7 +9,9 @@
     "upgrade:main": "cross-env NODE_ENV=main npx hardhat run ./scripts/upgradeMaticX.ts --network mainnet",
     "verify:main": "cross-env NODE_ENV=main npx hardhat verifyMaticX --network mainnet",
     "test": "npx hardhat test",
-    "prettier": "prettier --write 'contracts/**/*.sol'"
+    "prettier-sol": "prettier --write 'contracts/**/*.sol'",
+    "prettier-ts": "prettier --write 'scripts/**/*.ts' 'test/**/*.ts'",
+    "lint": "eslint --ext .js,.ts ."
   },
   "repository": {
     "type": "git",
@@ -41,10 +43,13 @@
     "cross-env": "^7.0.3",
     "dotenv": "^10.0.0",
     "eslint": "^7.32.0",
+    "eslint-config-google": "^0.14.0",
     "eslint-config-standard": "^16.0.3",
     "eslint-plugin-import": "^2.24.2",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^5.1.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.4.6",
     "hardhat": "^2.6.4",
