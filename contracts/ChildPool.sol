@@ -33,24 +33,9 @@ contract ChildPool is
 	uint256 public override instantWithdrawalFeeBps;
 	uint256 public override instantWithdrawalFees;
 
-	struct MaticXSwapRequest {
-		uint amount;
-		uint requestTime;
-		uint withdrawalTime;
-	}
 	mapping(address => MaticXSwapRequest[]) private userMaticXSwapRequests;
-	uint256 public override claimedMatic;
-	uint256 public override maticXSwapLockPeriod = 5 hours;
-	event RequestMaticXSwap(
-		address indexed _from,
-		uint256 _amountMaticX,
-		uint256 _amountMatic
-	);
-	event ClaimMaticXSwap(
-		address indexed _from,
-		uint256 indexed _idx,
-		uint256 _amountClaimed
-	);
+	uint256 public claimedMatic;
+	uint256 public maticXSwapLockPeriod;
 
 	/**
 	 * @param _fxStateChildTunnel - Address of the fxStateChildTunnel contract
@@ -178,49 +163,89 @@ contract ChildPool is
 		IERC20Upgradeable(maticX).safeTransfer(_msgSender(), amountInMaticX);
 	}
 
+	function setMaticXSwapLockPeriod(uint256 _hours)
+		external
+		override
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		require(_hours <= 720, "_hours must not exceed 720 (1 month)");
+
+		maticXSwapLockPeriod = _hours * 1 hours;
+
+		emit SetMaticXSwapLockPeriod(_hours);
+	}
+
+	///@dev returns maticXSwapLockPeriod or 24 hours (default value) in seconds
+	function getMaticXSwapLockPeriod() public view override returns (uint256) {
+		return (maticXSwapLockPeriod > 0) ? maticXSwapLockPeriod : 24 hours;
+	}
+
 	///@dev request maticX->matic swap from instant pool
-	function requestMaticXSwap (uint _amount)
-	external
-	override
-	whenNotPaused {
+	function requestMaticXSwap(uint256 _amount)
+		external
+		override
+		whenNotPaused
+	{
 		require(_amount > 0, "Invalid amount");
-		// transfer maticX from user to contract
-	    instantPoolMaticX += _amount;
-		IERC20Upgradeable(maticX).safeTransferFrom(_msgSender(), address(this), _amount);
 
-		(uint amountInMatic, , ) = IFxStateChildTunnel(fxStateChildTunnel).convertMaticXToMatic(_amount);
-		(uint amountInMaticAfterFees, uint fees) = getAmountAfterInstantWithdrawalFees(amountInMatic);
+		IERC20Upgradeable(maticX).safeTransferFrom(
+			msg.sender,
+			address(this),
+			_amount
+		);
+		instantPoolMaticX += _amount;
 
-		require(instantPoolMatic >= amountInMaticAfterFees, "Not enough matic to instant swap");
+		(uint256 amountInMatic, , ) = convertMaticXToMatic(_amount);
 
-		instantPoolMatic -= amountInMaticAfterFees;
-		claimedMatic += amountInMaticAfterFees;
-		instantWithdrawalFees += fees;
-		uint idx = userMaticXSwapRequests.push(MaticXSwapRequest(amountInMaticAfterFees, now, now + maticXSwapLockPeriod));
-		emit RequestMaticXSwap(msg.sender, _amount, amountInMaticAfterFees);
-		emit CollectedInstantWithdrawalFees(fees);
+		require(
+			instantPoolMatic >= amountInMatic,
+			"Sorry we don't have enough matic in the instant pool to facilitate this swap"
+		);
+
+		instantPoolMatic -= amountInMatic;
+		claimedMatic += amountInMatic;
+		userMaticXSwapRequests[msg.sender].push(
+			MaticXSwapRequest(
+				amountInMatic,
+				block.timestamp,
+				block.timestamp + getMaticXSwapLockPeriod()
+			)
+		);
+		uint256 idx = userMaticXSwapRequests[msg.sender].length - 1;
+		emit RequestMaticXSwap(msg.sender, _amount, amountInMatic, idx);
+	}
+
+	function getUserMaticXSwapRequests()
+		external
+		view
+		override
+		returns (MaticXSwapRequest[] memory)
+	{
+		return userMaticXSwapRequests[msg.sender];
 	}
 
 	///@dev claim earlier requested maticX->matic swap from instant pool
-	function claimMaticXSwap (uint256 _idx)
-	external
-	override
-	whenNotPaused {
-		_claimWithdrawal(msg.sender, _idx);
+	function claimMaticXSwap(uint256 _idx) external override whenNotPaused {
+		_claimMaticXSwap(msg.sender, _idx);
 	}
 
-	function _claimMaticXSwap (address _to, uint256 _idx) internal {
+	function _claimMaticXSwap(address _to, uint256 _idx) internal {
 		// what happens to it after the function execution
 		MaticXSwapRequest[] storage userRequests = userMaticXSwapRequests[_to];
+		require(_idx < userRequests.length, "Invalid Index");
 		MaticXSwapRequest memory userRequest = userRequests[_idx];
-		require(now >= withdrawalTime, "Not able to claim yet");
 
-	    claimedMatic -= userRequest.amount;
-	    IERC20Upgradeable(polygonERC20).safeTransfer(_to, userRequest.amount);
-	    userRequests[_idx] = userRequests[userRequests.length - 1];
+		require(
+			block.timestamp >= userRequest.withdrawalTime,
+			"Please wait for the undelegation period to get over"
+		);
+
+		claimedMatic -= userRequest.amount;
+		payable(_to).transfer(userRequest.amount);
+		userRequests[_idx] = userRequests[userRequests.length - 1];
 		userRequests.pop();
 
-		emit ClaimWithdrawal(_to, _idx, userRequest.amount);
+		emit ClaimMaticXSwap(_to, _idx, userRequest.amount);
 	}
 
 	function swapMaticXForMaticViaInstantPool(uint256 _amount)
