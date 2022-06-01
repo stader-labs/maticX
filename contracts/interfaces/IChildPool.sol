@@ -36,8 +36,6 @@ interface IChildPool {
 
 	function swapMaticXForMaticViaInstantPool(uint256 _amount) external;
 
-	function setMaticXSwapLockPeriod(uint256 _hours) external;
-
 	function getMaticXSwapLockPeriod() external view returns (uint256);
 
 	function getUserMaticXSwapRequests()
