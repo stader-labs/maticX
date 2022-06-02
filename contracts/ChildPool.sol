@@ -232,7 +232,6 @@ contract ChildPool is
 	}
 
 	function _claimMaticXSwap(address _to, uint256 _idx) internal {
-		// what happens to it after the function execution
 		MaticXSwapRequest[] storage userRequests = userMaticXSwapRequests[_to];
 		require(_idx < userRequests.length, "Invalid Index");
 		MaticXSwapRequest memory userRequest = userRequests[_idx];
