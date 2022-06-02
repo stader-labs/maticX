@@ -43,7 +43,7 @@ interface IChildPool {
 		view
 		returns (MaticXSwapRequest[] memory);
 
-	function requestMaticXSwap(uint256 _amount) external;
+	function requestMaticXSwap(uint256 _amount) external returns (uint256);
 
 	function claimMaticXSwap(uint256 _idx) external;
 

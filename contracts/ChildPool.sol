@@ -185,6 +185,7 @@ contract ChildPool is
 		external
 		override
 		whenNotPaused
+	    returns (uint)
 	{
 		require(_amount > 0, "Invalid amount");
 
@@ -213,6 +214,7 @@ contract ChildPool is
 		);
 		uint256 idx = userMaticXSwapRequests[msg.sender].length - 1;
 		emit RequestMaticXSwap(msg.sender, _amount, amountInMatic, idx);
+		return idx;
 	}
 
 	function getUserMaticXSwapRequests()
