@@ -34,8 +34,8 @@ contract ChildPool is
 	uint256 public override instantWithdrawalFees;
 
 	mapping(address => MaticXSwapRequest[]) private userMaticXSwapRequests;
-	uint256 public claimedMatic;
-	uint256 public maticXSwapLockPeriod;
+	uint256 public override claimedMatic;
+	uint256 public override maticXSwapLockPeriod;
 
 	/**
 	 * @param _fxStateChildTunnel - Address of the fxStateChildTunnel contract
@@ -172,7 +172,7 @@ contract ChildPool is
 
 		maticXSwapLockPeriod = _hours * 1 hours;
 
-		emit SetMaticXSwapLockPeriod(_hours);
+		emit SetMaticXSwapLockPeriodEvent(_hours);
 	}
 
 	///@dev returns maticXSwapLockPeriod or 24 hours (default value) in seconds
@@ -185,7 +185,7 @@ contract ChildPool is
 		external
 		override
 		whenNotPaused
-	    returns (uint)
+		returns (uint256)
 	{
 		require(_amount > 0, "Invalid amount");
 

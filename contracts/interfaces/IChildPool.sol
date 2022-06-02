@@ -10,6 +10,10 @@ interface IChildPool {
 
 	function version() external view returns (string memory);
 
+	function claimedMatic() external view returns (uint256);
+
+	function maticXSwapLockPeriod() external view returns (uint256);
+
 	function treasury() external view returns (address payable);
 
 	function instantPoolOwner() external view returns (address payable);
@@ -37,6 +41,8 @@ interface IChildPool {
 	function swapMaticXForMaticViaInstantPool(uint256 _amount) external;
 
 	function getMaticXSwapLockPeriod() external view returns (uint256);
+
+	function setMaticXSwapLockPeriod(uint256 _hours) external;
 
 	function getUserMaticXSwapRequests()
 		external
@@ -100,7 +106,7 @@ interface IChildPool {
 	event SetVersion(string _version);
 	event CollectedInstantWithdrawalFees(uint256 _fees);
 	event SetInstantWithdrawalFeeBps(uint256 _feeBps);
-	event SetMaticXSwapLockPeriod(uint256 _hours);
+	event SetMaticXSwapLockPeriodEvent(uint256 _hours);
 	event ClaimMaticXSwap(
 		address indexed _from,
 		uint256 indexed _idx,
