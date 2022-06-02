@@ -85,7 +85,7 @@ describe("ChildPool", () => {
 		};
 
 		provideInstantPoolMatic = async (signer, amount) => {
-			await mintAndApproveMatic(signer, amount);
+			//await mintAndApproveMatic(signer, amount);
 			const signerChildPool = childPool.connect(signer);
 			await signerChildPool.provideInstantPoolMatic({ value: amount });
 		};
