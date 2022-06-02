@@ -2,7 +2,17 @@
 pragma solidity 0.8.7;
 
 interface IChildPool {
+	struct MaticXSwapRequest {
+		uint256 amount;
+		uint256 requestTime;
+		uint256 withdrawalTime;
+	}
+
 	function version() external view returns (string memory);
+
+	function claimedMatic() external view returns (uint256);
+
+	function maticXSwapLockPeriod() external view returns (uint256);
 
 	function treasury() external view returns (address payable);
 
@@ -29,6 +39,19 @@ interface IChildPool {
 	function swapMaticForMaticXViaInstantPool() external payable;
 
 	function swapMaticXForMaticViaInstantPool(uint256 _amount) external;
+
+	function getMaticXSwapLockPeriod() external view returns (uint256);
+
+	function setMaticXSwapLockPeriod(uint256 _hours) external;
+
+	function getUserMaticXSwapRequests()
+		external
+		view
+		returns (MaticXSwapRequest[] memory);
+
+	function requestMaticXSwap(uint256 _amount) external returns (uint256);
+
+	function claimMaticXSwap(uint256 _idx) external;
 
 	function setTreasury(address payable _address) external;
 
@@ -83,4 +106,17 @@ interface IChildPool {
 	event SetVersion(string _version);
 	event CollectedInstantWithdrawalFees(uint256 _fees);
 	event SetInstantWithdrawalFeeBps(uint256 _feeBps);
+	event SetMaticXSwapLockPeriodEvent(uint256 _hours);
+	event ClaimMaticXSwap(
+		address indexed _from,
+		uint256 indexed _idx,
+		uint256 _amountClaimed
+	);
+
+	event RequestMaticXSwap(
+		address indexed _from,
+		uint256 _amountMaticX,
+		uint256 _amountMatic,
+		uint256 userSwapRequestsIndex
+	);
 }

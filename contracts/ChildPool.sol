@@ -33,6 +33,10 @@ contract ChildPool is
 	uint256 public override instantWithdrawalFeeBps;
 	uint256 public override instantWithdrawalFees;
 
+	mapping(address => MaticXSwapRequest[]) private userMaticXSwapRequests;
+	uint256 public override claimedMatic;
+	uint256 public override maticXSwapLockPeriod;
+
 	/**
 	 * @param _fxStateChildTunnel - Address of the fxStateChildTunnel contract
 	 * @param _maticX - Address of maticX token on Polygon
@@ -157,6 +161,92 @@ contract ChildPool is
 
 		instantPoolMaticX -= amountInMaticX;
 		IERC20Upgradeable(maticX).safeTransfer(_msgSender(), amountInMaticX);
+	}
+
+	function setMaticXSwapLockPeriod(uint256 _hours)
+		external
+		override
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		require(_hours <= 720, "_hours must not exceed 720 (1 month)");
+
+		maticXSwapLockPeriod = _hours * 1 hours;
+
+		emit SetMaticXSwapLockPeriodEvent(_hours);
+	}
+
+	///@dev returns maticXSwapLockPeriod or 24 hours (default value) in seconds
+	function getMaticXSwapLockPeriod() public view override returns (uint256) {
+		return (maticXSwapLockPeriod > 0) ? maticXSwapLockPeriod : 24 hours;
+	}
+
+	///@dev request maticX->matic swap from instant pool
+	function requestMaticXSwap(uint256 _amount)
+		external
+		override
+		whenNotPaused
+		returns (uint256)
+	{
+		require(_amount > 0, "Invalid amount");
+
+		IERC20Upgradeable(maticX).safeTransferFrom(
+			_msgSender(),
+			address(this),
+			_amount
+		);
+		instantPoolMaticX += _amount;
+
+		(uint256 amountInMatic, , ) = convertMaticXToMatic(_amount);
+
+		require(
+			instantPoolMatic >= amountInMatic,
+			"Sorry we don't have enough matic in the instant pool to facilitate this swap"
+		);
+
+		instantPoolMatic -= amountInMatic;
+		claimedMatic += amountInMatic;
+		userMaticXSwapRequests[_msgSender()].push(
+			MaticXSwapRequest(
+				amountInMatic,
+				block.timestamp,
+				block.timestamp + getMaticXSwapLockPeriod()
+			)
+		);
+		uint256 idx = userMaticXSwapRequests[_msgSender()].length - 1;
+		emit RequestMaticXSwap(_msgSender(), _amount, amountInMatic, idx);
+		return idx;
+	}
+
+	function getUserMaticXSwapRequests()
+		external
+		view
+		override
+		returns (MaticXSwapRequest[] memory)
+	{
+		return userMaticXSwapRequests[_msgSender()];
+	}
+
+	///@dev claim earlier requested maticX->matic swap from instant pool
+	function claimMaticXSwap(uint256 _idx) external override whenNotPaused {
+		_claimMaticXSwap(_msgSender(), _idx);
+	}
+
+	function _claimMaticXSwap(address _to, uint256 _idx) internal {
+		MaticXSwapRequest[] storage userRequests = userMaticXSwapRequests[_to];
+		require(_idx < userRequests.length, "Invalid Index");
+		MaticXSwapRequest memory userRequest = userRequests[_idx];
+
+		require(
+			block.timestamp >= userRequest.withdrawalTime,
+			"Please wait for the bonding period to get over"
+		);
+
+		claimedMatic -= userRequest.amount;
+		payable(_to).transfer(userRequest.amount);
+		userRequests[_idx] = userRequests[userRequests.length - 1];
+		userRequests.pop();
+
+		emit ClaimMaticXSwap(_to, _idx, userRequest.amount);
 	}
 
 	function swapMaticXForMaticViaInstantPool(uint256 _amount)
