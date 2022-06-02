@@ -30,6 +30,7 @@ describe("ChildPool", () => {
 	let fxStateRootTunnel: FxStateRootTunnel;
 	let fxStateChildTunnel: FxStateChildTunnel;
 	let rateProvider: RateProvider;
+	const wei = BigNumber.from(10).pow(18);
 
 	let mintAndApproveMatic: (
 		signer: SignerWithAddress,
@@ -55,6 +56,15 @@ describe("ChildPool", () => {
 		signer: SignerWithAddress,
 		amount: BigNumberish
 	) => Promise<void>;
+	let requestMaticXSwap: (
+		signer: SignerWithAddress,
+		amount: BigNumber
+	) => Promise<any>;
+	let getUserMaticXSwapRequests: (signer: SignerWithAddress) => Promise<any>;
+	let claimMaticXSwap: (
+		signer: SignerWithAddress,
+		index: BigNumber
+	) => Promise<any>;
 
 	before(() => {
 		mintAndApproveMatic = async (signer, amount) => {
@@ -75,6 +85,7 @@ describe("ChildPool", () => {
 		};
 
 		provideInstantPoolMatic = async (signer, amount) => {
+			await mintAndApproveMatic(signer, amount);
 			const signerChildPool = childPool.connect(signer);
 			await signerChildPool.provideInstantPoolMatic({ value: amount });
 		};
@@ -94,6 +105,29 @@ describe("ChildPool", () => {
 				await signerChildPool.swapMaticForMaticXViaInstantPool({
 					value: amount,
 				});
+		};
+
+		requestMaticXSwap = async (
+			signer: SignerWithAddress,
+			amount: BigNumber
+		) => {
+			await mintMaticX(signer, amount);
+			await maticXApproveForChildPool(signer, amount);
+			const signerChildPool = await childPool.connect(signer);
+			return await signerChildPool.requestMaticXSwap(amount);
+		};
+
+		getUserMaticXSwapRequests = async (signer: SignerWithAddress) => {
+			const signerChildPool = await childPool.connect(signer);
+			return await signerChildPool.getUserMaticXSwapRequests();
+		};
+
+		claimMaticXSwap = async (
+			signer: SignerWithAddress,
+			index: BigNumber
+		) => {
+			const signerChildPool = await childPool.connect(signer);
+			return await signerChildPool.claimMaticXSwap(index);
 		};
 	});
 
@@ -185,6 +219,7 @@ describe("ChildPool", () => {
 		await fxStateRootTunnel.setFxChildTunnel(fxStateChildTunnel.address);
 		await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
 		await childPool.setFxStateChildTunnel(fxStateChildTunnel.address);
+		await childPool.setMaticXSwapLockPeriod(4);
 
 		const abiCoder = new utils.AbiCoder();
 		await fxRootMock.sendMessageToChildWithAddress(
@@ -218,7 +253,6 @@ describe("ChildPool", () => {
 	});
 
 	it("get maticX from matic via instant pool", async () => {
-		const wei = BigNumber.from(10).pow(18);
 		expect(await childPool.instantPoolMaticX()).to.eql(BigNumber.from("0"));
 		await mintMaticX(instant_pool_owner, ethers.utils.parseEther("1000.0"));
 		expect(await maticX.balanceOf(instant_pool_owner.address)).to.eql(
@@ -243,6 +277,127 @@ describe("ChildPool", () => {
 		);
 		expect(await maticX.balanceOf(users[0].address)).to.eql(
 			BigNumber.from("2").mul(wei)
+		);
+	});
+
+	it("request maticX withdrawal via instant pool - fails because of insufficient amount", async () => {
+		// check for initial instant pool amount
+		expect(await childPool.instantPoolMatic()).to.eql(BigNumber.from("0"));
+		const maticXAmount = ethers.utils.parseEther("50.0");
+		await expect(
+			requestMaticXSwap(users[0], maticXAmount)
+		).to.be.revertedWith(
+			"Sorry we don't have enough matic in the instant pool to facilitate this swap"
+		);
+	});
+
+	it("request maticX withdrawal via instant pool", async () => {
+		// check for initial instant pool amount
+		expect(await childPool.instantPoolMatic()).to.eql(BigNumber.from("0"));
+		// add matic to instant pool
+		await provideInstantPoolMatic(
+			instant_pool_owner,
+			ethers.utils.parseEther("1000.0")
+		);
+		// check for new value of instant pool
+		expect(await childPool.instantPoolMatic()).to.eql(
+			BigNumber.from("1000").mul(wei)
+		);
+		const maticXAmount = ethers.utils.parseEther("50.0");
+		const [maticAmount, ,] = await childPool.convertMaticXToMatic(
+			maticXAmount
+		);
+		const requestResult = await requestMaticXSwap(users[0], maticXAmount);
+		// 50 maticX deposited in instant pool
+		expect(await childPool.instantPoolMaticX()).to.eql(
+			BigNumber.from("50").mul(wei)
+		);
+		// 50 matic deducted from instant pool matic
+		expect(await childPool.instantPoolMatic()).to.eql(
+			BigNumber.from("950").mul(wei)
+		);
+		// 50 matic locked away
+		expect(await childPool.claimedMatic()).to.eql(
+			BigNumber.from("50").mul(wei)
+		);
+		// should emit RequestMaticXSwap event
+		await expect(requestResult)
+			.emit(childPool, "RequestMaticXSwap")
+			.withArgs(users[0].address, maticXAmount, maticAmount, 0);
+
+		const withdrawalRequest = (
+			await getUserMaticXSwapRequests(users[0])
+		)[0];
+		// amount should be equal to 50 matic
+		expect(withdrawalRequest.amount).to.eql(BigNumber.from("50").mul(wei));
+		// withdrawal delay of 1 hour (14400 seconds)
+		expect(
+			withdrawalRequest.withdrawalTime - withdrawalRequest.requestTime
+		).to.eql(14400);
+	});
+
+	it("claim maticX swap - fails because of lock-in period", async () => {
+		await provideInstantPoolMatic(
+			instant_pool_owner,
+			ethers.utils.parseEther("1000.0")
+		);
+		const maticXAmount = ethers.utils.parseEther("50.0");
+		await requestMaticXSwap(users[0], maticXAmount);
+		await expect(
+			claimMaticXSwap(users[0], BigNumber.from(0))
+		).to.be.revertedWith("Please wait for the bonding period to get over");
+	});
+
+	it("claim maticX swap - fails because of wrong index", async () => {
+		await provideInstantPoolMatic(
+			instant_pool_owner,
+			ethers.utils.parseEther("1000.0")
+		);
+		const maticXAmount = ethers.utils.parseEther("50.0");
+		await requestMaticXSwap(users[0], maticXAmount);
+		await expect(
+			claimMaticXSwap(users[0], BigNumber.from(1))
+		).to.be.revertedWith("Invalid Index");
+	});
+
+	it("claim maticX swap - fails because of wrong user address", async () => {
+		await provideInstantPoolMatic(
+			instant_pool_owner,
+			ethers.utils.parseEther("1000.0")
+		);
+		const maticXAmount = ethers.utils.parseEther("50.0");
+		await requestMaticXSwap(users[0], maticXAmount);
+		await expect(
+			claimMaticXSwap(users[1], BigNumber.from(0))
+		).to.be.revertedWith("Invalid Index");
+	});
+
+	it("claim maticX swap - succeeds", async () => {
+		await provideInstantPoolMatic(
+			instant_pool_owner,
+			ethers.utils.parseEther("1000.0")
+		);
+		const maticXAmount = ethers.utils.parseEther("50.0");
+		const [maticAmount, ,] = await childPool.convertMaticXToMatic(
+			maticXAmount
+		);
+		// old matic balance of user
+		expect(await polygonMock.balanceOf(users[0].address)).to.eql(
+			BigNumber.from("0").mul(wei)
+		);
+		await requestMaticXSwap(users[0], maticXAmount);
+		await ethers.provider.send("evm_increaseTime", [3600 * 5]);
+		await ethers.provider.send("evm_mine", []);
+		// await new Promise((f) => setTimeout(f, 60 * 1000));
+		const claimResult = await claimMaticXSwap(users[0], BigNumber.from(0));
+
+		await expect(claimResult)
+			.emit(childPool, "ClaimMaticXSwap")
+			.withArgs(users[0].address, 0, maticAmount);
+		expect(await getUserMaticXSwapRequests(users[0])).to.eql([]);
+		// console.log('result : ',(await polygonMock.balanceOf(users[0].address)));
+		expect(await polygonMock.balanceOf(users[0].address)).to.eql(
+			BigNumber.from(maticAmount).mul(wei)
 		);
 	});
 });

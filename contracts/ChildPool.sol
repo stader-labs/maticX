@@ -238,7 +238,7 @@ contract ChildPool is
 
 		require(
 			block.timestamp >= userRequest.withdrawalTime,
-			"Please wait for the undelegation period to get over"
+			"Please wait for the bonding period to get over"
 		);
 
 		claimedMatic -= userRequest.amount;
