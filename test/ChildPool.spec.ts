@@ -381,23 +381,32 @@ describe("ChildPool", () => {
 		const [maticAmount, ,] = await childPool.convertMaticXToMatic(
 			maticXAmount
 		);
-		// old matic balance of user
-		expect(await polygonMock.balanceOf(users[0].address)).to.eql(
-			BigNumber.from("0").mul(wei)
-		);
 		await requestMaticXSwap(users[0], maticXAmount);
+
+		// increase block time by 5 hours
 		await ethers.provider.send("evm_increaseTime", [3600 * 5]);
 		await ethers.provider.send("evm_mine", []);
-		// await new Promise((f) => setTimeout(f, 60 * 1000));
-		const claimResult = await claimMaticXSwap(users[0], BigNumber.from(0));
 
+		// old matic balance of user
+		const oldMaticBalanceOfUser = await users[0].getBalance();
+
+		const claimResult = await claimMaticXSwap(users[0], BigNumber.from(0));
+		const txReceipt = await claimResult.wait();
+		const gasUsed = txReceipt.cumulativeGasUsed.mul(
+			txReceipt.effectiveGasPrice
+		);
+
+		const newMaticBalanceOfUser = await users[0].getBalance();
+
+		// event fired
 		await expect(claimResult)
 			.emit(childPool, "ClaimMaticXSwap")
 			.withArgs(users[0].address, 0, maticAmount);
+		// no remaining withdrawal requests
 		expect(await getUserMaticXSwapRequests(users[0])).to.eql([]);
-		// console.log('result : ',(await polygonMock.balanceOf(users[0].address)));
-		expect(await polygonMock.balanceOf(users[0].address)).to.eql(
-			BigNumber.from(maticAmount).mul(wei)
-		);
+		// new balance - old balance = gas + matic claimed
+		expect(
+			newMaticBalanceOfUser.sub(oldMaticBalanceOfUser).add(gasUsed)
+		).to.eql(BigNumber.from(maticAmount));
 	});
 });
