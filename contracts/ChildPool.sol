@@ -190,7 +190,7 @@ contract ChildPool is
 		require(_amount > 0, "Invalid amount");
 
 		IERC20Upgradeable(maticX).safeTransferFrom(
-			msg.sender,
+			_msgSender(),
 			address(this),
 			_amount
 		);
@@ -205,15 +205,15 @@ contract ChildPool is
 
 		instantPoolMatic -= amountInMatic;
 		claimedMatic += amountInMatic;
-		userMaticXSwapRequests[msg.sender].push(
+		userMaticXSwapRequests[_msgSender()].push(
 			MaticXSwapRequest(
 				amountInMatic,
 				block.timestamp,
 				block.timestamp + getMaticXSwapLockPeriod()
 			)
 		);
-		uint256 idx = userMaticXSwapRequests[msg.sender].length - 1;
-		emit RequestMaticXSwap(msg.sender, _amount, amountInMatic, idx);
+		uint256 idx = userMaticXSwapRequests[_msgSender()].length - 1;
+		emit RequestMaticXSwap(_msgSender(), _amount, amountInMatic, idx);
 		return idx;
 	}
 
@@ -223,12 +223,12 @@ contract ChildPool is
 		override
 		returns (MaticXSwapRequest[] memory)
 	{
-		return userMaticXSwapRequests[msg.sender];
+		return userMaticXSwapRequests[_msgSender()];
 	}
 
 	///@dev claim earlier requested maticX->matic swap from instant pool
 	function claimMaticXSwap(uint256 _idx) external override whenNotPaused {
-		_claimMaticXSwap(msg.sender, _idx);
+		_claimMaticXSwap(_msgSender(), _idx);
 	}
 
 	function _claimMaticXSwap(address _to, uint256 _idx) internal {
