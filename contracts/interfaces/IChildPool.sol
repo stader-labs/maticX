@@ -44,7 +44,7 @@ interface IChildPool {
 
 	function setMaticXSwapLockPeriod(uint256 _hours) external;
 
-	function getUserMaticXSwapRequests()
+	function getUserMaticXSwapRequests(address _address)
 		external
 		view
 		returns (MaticXSwapRequest[] memory);
