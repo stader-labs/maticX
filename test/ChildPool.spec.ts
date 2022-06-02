@@ -60,7 +60,6 @@ describe("ChildPool", () => {
 		signer: SignerWithAddress,
 		amount: BigNumber
 	) => Promise<any>;
-	let getUserMaticXSwapRequests: (signer: SignerWithAddress) => Promise<any>;
 	let claimMaticXSwap: (
 		signer: SignerWithAddress,
 		index: BigNumber
@@ -85,7 +84,7 @@ describe("ChildPool", () => {
 		};
 
 		provideInstantPoolMatic = async (signer, amount) => {
-			//await mintAndApproveMatic(signer, amount);
+			// await mintAndApproveMatic(signer, amount);
 			const signerChildPool = childPool.connect(signer);
 			await signerChildPool.provideInstantPoolMatic({ value: amount });
 		};
@@ -115,11 +114,6 @@ describe("ChildPool", () => {
 			await maticXApproveForChildPool(signer, amount);
 			const signerChildPool = await childPool.connect(signer);
 			return await signerChildPool.requestMaticXSwap(amount);
-		};
-
-		getUserMaticXSwapRequests = async (signer: SignerWithAddress) => {
-			const signerChildPool = await childPool.connect(signer);
-			return await signerChildPool.getUserMaticXSwapRequests();
 		};
 
 		claimMaticXSwap = async (
@@ -326,14 +320,14 @@ describe("ChildPool", () => {
 			.withArgs(users[0].address, maticXAmount, maticAmount, 0);
 
 		const withdrawalRequest = (
-			await getUserMaticXSwapRequests(users[0])
+			await childPool.getUserMaticXSwapRequests(users[0].address)
 		)[0];
 		// amount should be equal to 50 matic
 		expect(withdrawalRequest.amount).to.eql(BigNumber.from("50").mul(wei));
 		// withdrawal delay of 1 hour (14400 seconds)
 		expect(
-			withdrawalRequest.withdrawalTime - withdrawalRequest.requestTime
-		).to.eql(14400);
+			withdrawalRequest.withdrawalTime.sub(withdrawalRequest.requestTime)
+		).to.eql(BigNumber.from(14400));
 	});
 
 	it("claim maticX swap - fails because of lock-in period", async () => {
@@ -403,7 +397,7 @@ describe("ChildPool", () => {
 			.emit(childPool, "ClaimMaticXSwap")
 			.withArgs(users[0].address, 0, maticAmount);
 		// no remaining withdrawal requests
-		expect(await getUserMaticXSwapRequests(users[0])).to.eql([]);
+		expect(await childPool.getUserMaticXSwapRequests(users[0].address)).to.eql([]);
 		// new balance - old balance = gas + matic claimed
 		expect(
 			newMaticBalanceOfUser.sub(oldMaticBalanceOfUser).add(gasUsed)

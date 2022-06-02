@@ -217,13 +217,13 @@ contract ChildPool is
 		return idx;
 	}
 
-	function getUserMaticXSwapRequests()
+	function getUserMaticXSwapRequests(address _address)
 		external
 		view
 		override
 		returns (MaticXSwapRequest[] memory)
 	{
-		return userMaticXSwapRequests[_msgSender()];
+		return userMaticXSwapRequests[_address];
 	}
 
 	///@dev claim earlier requested maticX->matic swap from instant pool
