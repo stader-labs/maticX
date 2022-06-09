@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
 import "./interfaces/IChildPool.sol";
 import "./interfaces/IFxStateChildTunnel.sol";
@@ -127,7 +128,7 @@ contract ChildPool is
 		);
 
 		instantPoolMatic -= _amount;
-		instantPoolOwner.transfer(_amount);
+		AddressUpgradeable.sendValue(instantPoolOwner, _amount);
 	}
 
 	function withdrawInstantWithdrawalFees(uint256 _amount)
@@ -141,7 +142,7 @@ contract ChildPool is
 		);
 
 		instantWithdrawalFees -= _amount;
-		treasury.transfer(_amount);
+		AddressUpgradeable.sendValue(treasury, _amount);
 	}
 
 	function swapMaticForMaticXViaInstantPool()
@@ -242,9 +243,9 @@ contract ChildPool is
 		);
 
 		claimedMatic -= userRequest.amount;
-		payable(_to).transfer(userRequest.amount);
 		userRequests[_idx] = userRequests[userRequests.length - 1];
 		userRequests.pop();
+		AddressUpgradeable.sendValue(payable(_to), userRequest.amount);
 
 		emit ClaimMaticXSwap(_to, _idx, userRequest.amount);
 	}
