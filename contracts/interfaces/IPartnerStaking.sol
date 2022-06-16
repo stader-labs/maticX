@@ -49,7 +49,7 @@ interface IPartnerStaking {
 	}
 	enum BatchStatus {
 		CREATED,
-		DELEGATED,
+		UNDELEGATED,
 		CLAIMED,
 		DISBURSED
 	}
@@ -64,6 +64,6 @@ interface IPartnerStaking {
 		uint32 currentPartnerCount;
 		mapping(uint32 => PartnerUnstakeShare) partnersShare;
 	}
-	mapping(uint32 => Batch) batches;
+	mapping(uint32 => Batch) public batches;
 	uint32 currentBatchId;
 }

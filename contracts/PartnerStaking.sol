@@ -233,6 +233,8 @@ contract PartnerStaking is
 	}
 
 	function createUndelegationBatch(uint32 _batchPartnerCount) external onlyManager returns (uint32) {
+		// check that earlier batch is not in a limbo state
+		require(batches[currentBatchId].status == BatchStatus.UNDELEGATED, 'Earlier Batch has not undelegated yet');
 		require(_batchPartnerCount > 0 && _batchPartnerCount <= totalPartnerCount, 'Invalid PartnerCount');
 		(uint256 _maticXRate, , ) = IMaticX(_maticX).convertMaticToMaticX(100);
 	    uint32 _batchId = currentBatchId+1;
@@ -280,7 +282,7 @@ contract PartnerStaking is
 		require(_currentBatch.status == BatchStatus.CREATED, 'Invalid Batch Status');
 		require(_currentBatch.currentPartnerCount < _currentBatch.totalPartnerCount, 'Partner Count incomplete');
 
-		_currentBatch.status = BatchStatus.DELEGATED;
+		_currentBatch.status = BatchStatus.UNDELEGATED;
 		_currentBatch.currentPartnerCount = 0;
 		IMaticX(_maticX).requestWithdraw(_currentBatch.maticXBurned);
 		// will this give correct values all the time? because of eventual consistencies?
@@ -306,7 +308,7 @@ contract PartnerStaking is
 	function claimBatchUndelegation(uint32 _batchId) external onlyManager returns (Batch) {
 		Batch memory _currentBatch = batches[_batchId];
 		require(_currentBatch.partnerCount > 0, 'Invalid BatchId');
-		require(_currentBatch.status == BatchStatus.DELEGATED, 'Invalid Batch Status');
+		require(_currentBatch.status == BatchStatus.UNDELEGATED, 'Invalid Batch Status');
 
 		// get request
 		UnstakeRequest[] memory _requests = unstakeRequests;
