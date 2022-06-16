@@ -1,80 +1,69 @@
 pragma solidity 0.8.7;
 
 interface IPartnerStaking {
-    enum PartnerStatus {
-        ACTIVE,
-        INACTIVE
-    }
-    struct Partner {
-        string name;
-        address walletAddress;
-        string website;
-        bytes metadata;
-        uint256 registeredAt;
-        uint256 totalMaticStaked;
-        uint256 totalMaticX;
-        PartnerStatus status;
-    }
+	enum PartnerStatus {
+		ACTIVE,
+		INACTIVE
+	}
+	struct Partner {
+		string name;
+		address walletAddress;
+		string website;
+		bytes metadata;
+		uint64 registeredAt;
+		uint256 totalMaticStaked;
+		uint256 totalMaticX;
+		PartnerStatus status;
+	}
 
-    mapping(uint => Partner) partners;
-    mapping(address => uint) partnerAddresses;
-    uint partnerCount;
-    uint pageSize;
+	mapping(uint32 => Partner) partners;
+	mapping(address => uint32) partnerAddressToId;
+	uint32 totalPartnerCount;
 
-    enum PartnerActivityType {
-        ClAIMED,
-        AUTO_DISBURSED
-    }
+	enum PartnerActivityType {
+		ClAIMED,
+		AUTO_DISBURSED
+	}
+	struct PartnerActivityLog {
+		uint64 timestamp;
+		uint256 maticAmount;
+		uint256 maticXUsed;
+		PartnerActivityType activity;
+	}
+	mapping(uint32 => PartnerActivityLog[]) partnerLog;
 
-    struct PartnerActivityLog {
-        uint256 timestamp;
-        uint256 maticAmount;
-        uint256 maticXUsed;
-        PartnerActivityType activity;
-    }
+	struct UnstakeRequest {
+		uint32 index;
+		uint256 validatorNonce;
+		uint256 requestEpoch;
+		address validatorAddress;
+		uint256 maticXBurned;
+		uint32 partnerId;
+		uint32 batchId;
+	}
+	UnstakeRequest[] private unstakeRequests;
 
-    enum FoundationActivityType {
-        STAKED,
-        UNSTAKED,
-        CLAIMED
-    }
-
-    struct FoundationActivityLog {
-        uint256 timestamp;
-        uint256 maticAmount;
-        uint256 partnerId;
-        FoundationActivityType activity;
-    }
-
-    mapping(uint256 => PartnerActivityLog[]) partnerLog;
-    FoundationActivityLog[] foundationLog;
-
-    struct WithdrawalRequest {
-        uint256 validatorNonce;
-        uint256 requestEpoch;
-        address validatorAddress;
-    }
-
-    enum UnstakeRequestType {
-        FOUNDATION_UNSTAKE,
-        PARTNER_REWARD_UNSTAKE
-    }
-    struct PartnerUnstakeShare {
-        uint256 partnerId;
-        uint256 maticXUsed;
-    }
-    struct UnstakeRequest {
-        uint256 index;
-        uint256 validatorNonce;
-        uint256 requestEpoch;
-        address validatorAddress;
-        uint256 maticXBurned;
-        uint256 partnerId;
-        uint256 pageNumber;
-        UnstakeRequestType requestType;
-        PartnerUnstakeShare[] partnerShares;
-    }
-
-    UnstakeRequest[] private unstakeRequests;
-    mapping (string => bool) unstakeRequestPageStatus;
+	struct PartnerUnstakeShare {
+		uint256 maticXUsed;
+		bool isDisbursed;
+	}
+	enum BatchStatus {
+		CREATED,
+		DELEGATED,
+		CLAIMED,
+		DISBURSED
+	}
+	struct Batch {
+		uint64 createdAt;
+		uint64 withdrawalEpoch;
+		BatchStatus status;
+		uint256 maticXRate; //100 matic value in maticX
+		uint256 maticXBurned;
+		uint256 maticReceived;
+		uint32 totalPartnerCount;
+		uint32 currentPartnerCount;
+		mapping(uint32 => PartnerUnstakeShare) partnersShare;
+	}
+	mapping(uint32 => Batch) batches;
+	uint32 currentBatchId;
 }
