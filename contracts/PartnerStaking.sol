@@ -355,6 +355,10 @@ contract PartnerStaking is
 			)
 		);
 		_currentBatch.partnersShare[_partnerId].isDisbursed == true;
+		_currentBatch.currentPartnerCount += 1;
+		if(_currentBatch.currentPartnerCount == _currentBatch.totalPartnerCount){
+			_currentBatch.status = BatchStatus.DISBURSED;
+		}
 		batches[_batchId] = _currentBatch;
 
 		IERC20Upgradeable(polygonERC20).safeTransfer(
