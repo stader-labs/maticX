@@ -16,24 +16,22 @@ interface IPartnerStaking {
 		PartnerStatus status;
 	}
 
-	mapping(uint32 => Partner) partners;
-	mapping(address => uint32) partnerAddressToId;
+	mapping(uint32 => Partner) private partners;
+	mapping(address => uint32) private partnerAddressToId;
 	uint32 totalPartnerCount;
 
 	enum PartnerActivityType {
 		ClAIMED,
 		AUTO_DISBURSED
 	}
-	struct PartnerActivityLog {
-		uint64 timestamp;
-		uint256 maticAmount;
-		uint256 maticXUsed;
-		PartnerActivityType activity;
-	}
-	mapping(uint32 => PartnerActivityLog[]) partnerLog;
+	event PartnerActivity(
+		uint64 timestamp,
+		uint256 maticAmount,
+		uint256 maticXUsed,
+		PartnerActivityType activity
+	);
 
 	struct UnstakeRequest {
-		uint32 index;
 		uint256 validatorNonce;
 		uint256 requestEpoch;
 		address validatorAddress;
@@ -64,6 +62,6 @@ interface IPartnerStaking {
 		uint32 currentPartnerCount;
 		mapping(uint32 => PartnerUnstakeShare) partnersShare;
 	}
-	mapping(uint32 => Batch) public batches;
+	mapping(uint32 => Batch) private batches;
 	uint32 currentBatchId;
 }
