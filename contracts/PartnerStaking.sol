@@ -166,8 +166,6 @@ contract PartnerStaking is
 	function getAllUnstakingRequests()
 		external
 		view
-		onlyFoundation
-		onlyManager
 		returns (UnstakeRequest[])
 	{
 		return unstakeRequests;
