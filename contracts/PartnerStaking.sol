@@ -119,7 +119,10 @@ contract PartnerStaking is
 		require(_maticAmount > 0, "Invalid amount");
 		Partner storage partner = partners[_partnerId];
 		require(partner.status == PartnerStatus.ACTIVE, "Inactive Partner");
-		uint256 _maticXAmount = IMaticX(_maticX).submit(_maticAmount);
+		IERC20Upgradeable(polygonERC20).safeApprove(
+			maticX, _maticAmount
+		);
+		uint256 _maticXAmount = IMaticX(maticX).submit(_maticAmount);
 		partner[totalMaticStaked] += _maticAmount;
 		partner[totalMaticX] += _maticXAmount;
 	}
@@ -138,15 +141,18 @@ contract PartnerStaking is
 			"Invalid amount"
 		);
 
-		(uint256 _maticXAmount, , ) = IMaticX(_maticX).convertMaticToMaticX(
+		(uint256 _maticXAmount, , ) = IMaticX(maticX).convertMaticToMaticX(
 			_maticAmount
 		);
 
-		IMaticX(_maticX).requestWithdraw(_maticXAmount);
+		IERC20Upgradeable(maticX).safeApprove(
+			maticX, _maticXAmount
+		);
+		IMaticX(maticX).requestWithdraw(_maticXAmount);
 
 		uint32 _idx = unstakeRequests.length;
 		WithdrawalRequest memory _withdrawalRequest = (
-			IMaticX(_maticX).getUserWithdrawalRequests(address(this))
+			IMaticX(maticX).getUserWithdrawalRequests(address(this))
 		)[_idx];
 		unstakeRequests.push(
 			UnstakeRequest(
@@ -181,7 +187,7 @@ contract PartnerStaking is
 			currentRequest.partnerId > 0,
 			"Not a foundation unstake request"
 		);
-		uint256 amountToClaim = IMaticX(_maticX).claimWithdrawal(_reqIdx);
+		uint256 amountToClaim = IMaticX(maticX).claimWithdrawal(_reqIdx);
 
 		unstakeRequests[_reqIdx] = unstakeRequests[unstakeRequests.length - 1];
 		unstakeRequests.pop();
@@ -206,7 +212,7 @@ contract PartnerStaking is
 			_batchPartnerCount > 0 && _batchPartnerCount <= totalPartnerCount,
 			"Invalid PartnerCount"
 		);
-		(uint256 _maticXRate, , ) = IMaticX(_maticX).convertMaticToMaticX(100);
+		(uint256 _maticXRate, , ) = IMaticX(maticX).convertMaticToMaticX(100);
 		uint32 _batchId = currentBatchId + 1;
 		batches[_batchId] = Batch(
 			uint64(block.timestamp), //createdAt
@@ -284,7 +290,10 @@ contract PartnerStaking is
 
 		_currentBatch.status = BatchStatus.UNDELEGATED;
 		_currentBatch.currentPartnerCount = 0;
-		IMaticX(_maticX).requestWithdraw(_currentBatch.maticXBurned);
+		IERC20Upgradeable(maticX).safeApprove(
+			maticX, _currentBatch.maticXBurned
+		);
+		IMaticX(maticX).requestWithdraw(_currentBatch.maticXBurned);
 		uint32 _idx = unstakeRequests.length;
 		WithdrawalRequest memory _withdrawalRequest = (
 			IMaticX(_maticX).getUserWithdrawalRequests(address(this))
@@ -324,7 +333,7 @@ contract PartnerStaking is
 			"Invalid Batch Status"
 		);
 
-		uint256 _maticReceived = IMaticX(_maticX).claimWithdrawal(_reqIdx);
+		uint256 _maticReceived = IMaticX(maticX).claimWithdrawal(_reqIdx);
 
 		unstakeRequests[_reqIdx] = unstakeRequests[unstakeRequests.length - 1];
 		unstakeRequests.pop();
