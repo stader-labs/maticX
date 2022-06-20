@@ -31,15 +31,14 @@ interface IPartnerStaking {
 		PartnerActivityType activity
 	);
 
+	///@@dev UI needs to differentiate between foundation unstake request and partner reward unstake request for a request, _batchId > 0 -> partner reward request, _partnerId > 0 -> foundation reward request
 	struct UnstakeRequest {
 		uint32 partnerId;
 		uint32 batchId;
-		uint256 validatorNonce;
-		uint256 requestEpoch;
-		address validatorAddress;
 		uint256 maticXBurned;
 	}
-	UnstakeRequest[] private unstakeRequests;
+
+	UnstakeRequest[] public unstakeRequests;
 
 	struct PartnerUnstakeShare {
 		uint256 maticXUnstaked;
@@ -60,6 +59,42 @@ interface IPartnerStaking {
 		BatchStatus status;
 		mapping(uint32 => PartnerUnstakeShare) partnersShare;
 	}
-	mapping(uint32 => Batch) private batches;
+
+	mapping(uint32 => Batch) public batches;
 	uint32 currentBatchId;
+
+	function registerPartner(
+		address _partnerAddress,
+		string _name,
+		string _website,
+		bytes _metadata
+	) external returns (uint32);
+
+	function getPartnerDetails(uint32 _partnerId)
+		external
+		view
+		returns (Partner partner);
+
+	function getPartners(uint32 _count, uint32 _offset)
+		external
+		view
+		returns (Partner[]);
+
+	function stake(uint32 _partnerId, uint256 _maticAmount) external;
+
+	function unStake(uint32 _partnerId, uint256 _maticAmount) external;
+
+	function withdrawUnstakedAmount(uint256 _reqIdx) external;
+
+	function addDueRewardsToCurrentBatch(uint32[] _partnerIds)
+		external
+		returns (Batch);
+
+	function unDelegateCurrentBatch() external returns (Batch);
+
+	function claimUnstakeRewards(uint32 _reqIdx) external returns (Batch);
+
+	function disbursePartnersReward(uint32 _batchId, uint32[] _partnerIds)
+		external
+		returns (Batch);
 }
