@@ -32,6 +32,18 @@ contract PartnerStaking is
 		foundation = _foundation;
 		maticX = _maticX;
 		manager = _manager;
+
+		// create a new batch
+		currentBatchId = 1;
+		batches[currentBatchId] = Batch(
+			uint64(block.timestamp),
+			0,
+			0,
+			0,
+			0,
+			0,
+			BatchStatus.CREATED
+		);
 	}
 
 	function _msgSender()
@@ -119,9 +131,7 @@ contract PartnerStaking is
 		require(_maticAmount > 0, "Invalid amount");
 		Partner storage partner = partners[_partnerId];
 		require(partner.status == PartnerStatus.ACTIVE, "Inactive Partner");
-		IERC20Upgradeable(polygonERC20).safeApprove(
-			maticX, _maticAmount
-		);
+		IERC20Upgradeable(polygonERC20).safeApprove(maticX, _maticAmount);
 		uint256 _maticXAmount = IMaticX(maticX).submit(_maticAmount);
 		partner[totalMaticStaked] += _maticAmount;
 		partner[totalMaticX] += _maticXAmount;
@@ -145,9 +155,7 @@ contract PartnerStaking is
 			_maticAmount
 		);
 
-		IERC20Upgradeable(maticX).safeApprove(
-			maticX, _maticXAmount
-		);
+		IERC20Upgradeable(maticX).safeApprove(maticX, _maticXAmount);
 		IMaticX(maticX).requestWithdraw(_maticXAmount);
 
 		uint32 _idx = unstakeRequests.length;
@@ -156,12 +164,12 @@ contract PartnerStaking is
 		)[_idx];
 		unstakeRequests.push(
 			UnstakeRequest(
+				_partnerId, // partnerId
+				0, // batchId
 				_withdrawalRequest.validatorNonce,
 				_withdrawalRequest.requestEpoch,
 				_withdrawalRequest.validatorAddress,
-				_currentBatch.maticXBurned, //maticXBurned
-				_partnerId, // partnerId
-				0 // batchId
+				_currentBatch.maticXBurned //maticXBurned
 			)
 		);
 
@@ -198,100 +206,61 @@ contract PartnerStaking is
 		);
 	}
 
-	function createUndelegationBatch(uint32 _batchPartnerCount)
-		external
-		onlyManager
-		returns (uint32)
-	{
-		// check that earlier batch is not in a limbo state
-		require(
-			batches[currentBatchId].status != BatchStatus.CREATED,
-			"Earlier Batch has not undelegated yet"
-		);
-		require(
-			_batchPartnerCount > 0 && _batchPartnerCount <= totalPartnerCount,
-			"Invalid PartnerCount"
-		);
-		(uint256 _maticXRate, , ) = IMaticX(maticX).convertMaticToMaticX(100);
-		uint32 _batchId = currentBatchId + 1;
-		batches[_batchId] = Batch(
-			uint64(block.timestamp), //createdAt
-			0, //withdrawalEpoch
-			BatchStatus.CREATED, //status
-			_maticXRate, //maticXRate
-			0, //maticXUsed
-			0, //maticReceived
-			_batchPartnerCount,
-			0
-		);
-		currentBatchId = _batchId;
-		return _batchId;
-	}
-
-	function addPartnerToBatch(uint32 _batchId, uint32 _partnerId)
+	function addDueRewardsToCurrentBatch(uint32[] _partnerIds)
 		external
 		onlyManager
 		returns (Batch)
 	{
-		Batch memory _currentBatch = batches[_batchId];
-		require(_currentBatch.partnerCount > 0, "Invalid BatchId");
+		Batch memory _currentBatch = batches[currentBatchId];
 		require(
 			_currentBatch.status == BatchStatus.CREATED,
 			"Invalid Batch Status"
 		);
 
-		Partner memory _currentPartner = partners[_partnerId];
-		require(
-			_currentPartner.walletAddress != address(0),
-			"Invalid PartnerId"
+		(uint256 _maticXRate, , ) = IMaticX(maticX).convertMaticToMaticX(
+			10**18
 		);
 
-		uint256 _partnerMaticX = _currentPartner.totalMaticX -
-			((_currentPartner.totalMaticStaked * _currentBatch.maticXRate) /
-				100);
+		for (uint32 i = 0; i < _partnerIds.length; i++) {
+			uint32 _partnerId = _partnerIds[i];
+			Partner storage _currentPartner = partners[_partnerId];
+			require(
+				_currentPartner.walletAddress != address(0),
+				"Invalid PartnerId"
+			);
 
-		_currentPartner.totalMaticX -= _partnerMaticX;
+			uint256 _reward = _currentPartner.totalMaticX -
+				((_currentPartner.totalMaticStaked * _maticXRate) / 10**18);
 
-		_currentBatch.maticXBurned += _partnerMaticX;
-		_currentBatch.partnersShare[_partnerId] = PartnerUnstakeShare(
-			_partnerMaticX,
-			false
-		);
-		_currentBatch.currentPartnerCount += 1;
+			_currentPartner.totalMaticX -= _reward;
 
-		require(
-			_currentBatch.currentPartnerCount <=
-				_currentBatch.totalPartnerCount,
-			"Partner Count exceeding"
-		);
-
+			_currentBatch.maticXBurned += _reward;
+			_currentBatch.partnersShare[_partnerId] = PartnerUnstakeShare(
+				_reward,
+				false
+			);
+		}
 		// save changes to storage
-		partners[_partnerId] = _currentPartner;
-		batches[_batchId] = _currentBatch;
+		batches[currentBatchId] = _currentBatch;
 
 		return _currentBatch;
 	}
 
-	function unDelegateBatch(uint32 _batchId)
-		external
-		onlyManager
-		returns (Batch)
-	{
+	function unDelegateCurrentBatch() external onlyManager returns (Batch) {
+		uint32 _batchId = currentBatchId;
 		Batch memory _currentBatch = batches[_batchId];
-		require(_currentBatch.partnerCount > 0, "Invalid BatchId");
+		require(
+			_currentBatch.maticXBurned > 0,
+			"Cannot undelegate empty batch"
+		);
 		require(
 			_currentBatch.status == BatchStatus.CREATED,
 			"Invalid Batch Status"
 		);
-		require(
-			_currentBatch.currentPartnerCount < _currentBatch.totalPartnerCount,
-			"Partner Count incomplete"
-		);
 
-		_currentBatch.status = BatchStatus.UNDELEGATED;
-		_currentBatch.currentPartnerCount = 0;
 		IERC20Upgradeable(maticX).safeApprove(
-			maticX, _currentBatch.maticXBurned
+			maticX,
+			_currentBatch.maticXBurned
 		);
 		IMaticX(maticX).requestWithdraw(_currentBatch.maticXBurned);
 		uint32 _idx = unstakeRequests.length;
@@ -300,21 +269,37 @@ contract PartnerStaking is
 		)[_idx];
 		unstakeRequests.push(
 			UnstakeRequest(
+				0, // partnerId
+				_batchId,
 				_withdrawalRequest.validatorNonce,
 				_withdrawalRequest.requestEpoch,
 				_withdrawalRequest.validatorAddress,
-				_currentBatch.maticXBurned, //maticXBurned
-				0, // partnerId
-				_batchId
+				_currentBatch.maticXBurned //maticXBurned
 			)
 		);
-		_currentBatch.withdrawalEpoch = uint64(_withdrawalRequest.requestEpoch);
-		batches[_batchId] = _currentBatch;
 
-		return _currentBatch;
+		batches[_batchId].undelegatedAt = uint64(block.timestamp);
+		batches[_batchId].withdrawalEpoch = uint64(
+			_withdrawalRequest.requestEpoch
+		);
+		batches[_batchId].status = BatchStatus.UNDELEGATED;
+
+		// create a new batch
+		currentBatchId += 1;
+		batches[currentBatchId] = Batch(
+			uint64(block.timestamp), // createdAt
+			0,
+			0,
+			0,
+			0,
+			0,
+			BatchStatus.CREATED
+		);
+
+		return batches[_batchId];
 	}
 
-	function claimBatchUndelegation(uint32 _reqIdx)
+	function claimUnstakeRewards(uint32 _reqIdx)
 		external
 		onlyManager
 		returns (Batch)
@@ -338,58 +323,52 @@ contract PartnerStaking is
 		unstakeRequests[_reqIdx] = unstakeRequests[unstakeRequests.length - 1];
 		unstakeRequests.pop();
 
-		_currentBatch.maticReceived = _maticReceived;
-		_currentBatch.status = BatchStatus.CLAIMED;
-
-		batches[_batchId] = _currentBatch;
+		batches[_batchId].maticReceived = _maticReceived;
+		batches[_batchId].claimedAt = uint64(block.timestamp);
+		batches[_batchId].status = BatchStatus.CLAIMED;
 
 		return _currentBatch;
 	}
 
-	function disbursePartnerReward(uint32 _batchId, uint32 _partnerId)
+	function disbursePartnerReward(uint32 _batchId, uint32[] _partnerIds)
 		external
 		onlyManager
 		returns (Batch)
 	{
 		Batch memory _currentBatch = batches[_batchId];
-		require(_currentBatch.partnerCount > 0, "Invalid BatchId");
 		require(
 			_currentBatch.status == BatchStatus.CLAIMED,
-			"Invalid Batch Status"
-		);
-		require(
-			_currentBatch.partnersShare[_partnerId].maticXUsed > 0,
-			"Invalid PartnerId"
-		);
-		require(
-			_currentBatch.partnersShare[_partnerId].isDisbursed == true,
-			"Partner Reward already disbursed"
+			"Batch Rewards hasn't been claimed yet"
 		);
 
-		uint256 _maticShare = (_currentBatch
-			.partnersShare[_partnerId]
-			.maticXUsed * _currentBatch.maticReceived) /
-			_currentBatch.maticXBurned;
+		for (uint32 i = 0; i < _partnerIds.length; i++) {
+			uint32 _partnerId = _partnerIds[i];
+			PartnerUnstakeShare memory _partnerShare = _currentBatch
+				.partnersShare[_partnerId];
+			require(_partnerShare.maticXUsed > 0, "Invalid PartnerId");
+			require(
+				_partnerShare.isDisbursed == true,
+				"Partner Reward has already been disbursed"
+			);
 
-		_currentBatch.partnersShare[_partnerId].isDisbursed == true;
-		_currentBatch.currentPartnerCount += 1;
-		if (
-			_currentBatch.currentPartnerCount == _currentBatch.totalPartnerCount
-		) {
-			_currentBatch.status = BatchStatus.DISBURSED;
+			uint256 _maticShare = (_partnerShare.maticXUnstaked *
+				_currentBatch.maticReceived) / _currentBatch.maticXBurned;
+
+			// save the state
+			batches[_batchId].partnersShare[_partnerId].isDisbursed == true;
+
+			// transfer rewards
+			IERC20Upgradeable(polygonERC20).safeTransfer(
+				partners[_partnerId].walletAddress,
+				_maticShare
+			);
+			emit PartnerActivity(
+				block.timestamp,
+				_maticShare,
+				_partnerShare.maticXUsed,
+				PartnerActivityType.AUTO_DISBURSED
+			);
 		}
-		batches[_batchId] = _currentBatch;
-
-		IERC20Upgradeable(polygonERC20).safeTransfer(
-			partners[_partnerId].walletAddress,
-			_maticShare
-		);
-		emit PartnerActivity(
-			block.timestamp,
-			_maticShare,
-			_currentBatch.partnersShare[_partnerId].maticXUsed,
-			PartnerActivityType.AUTO_DISBURSED
-		);
 
 		return _currentBatch;
 	}

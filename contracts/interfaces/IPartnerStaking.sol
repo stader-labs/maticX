@@ -32,34 +32,32 @@ interface IPartnerStaking {
 	);
 
 	struct UnstakeRequest {
+		uint32 partnerId;
+		uint32 batchId;
 		uint256 validatorNonce;
 		uint256 requestEpoch;
 		address validatorAddress;
 		uint256 maticXBurned;
-		uint32 partnerId;
-		uint32 batchId;
 	}
 	UnstakeRequest[] private unstakeRequests;
 
 	struct PartnerUnstakeShare {
-		uint256 maticXUsed;
+		uint256 maticXUnstaked;
 		bool isDisbursed;
 	}
 	enum BatchStatus {
 		CREATED,
 		UNDELEGATED,
-		CLAIMED,
-		DISBURSED
+		CLAIMED
 	}
 	struct Batch {
 		uint64 createdAt;
+		uint64 undelegatedAt;
+		uint64 claimedAt;
 		uint64 withdrawalEpoch;
-		BatchStatus status;
-		uint256 maticXRate; //100 matic value in maticX
 		uint256 maticXBurned;
 		uint256 maticReceived;
-		uint32 totalPartnerCount;
-		uint32 currentPartnerCount;
+		BatchStatus status;
 		mapping(uint32 => PartnerUnstakeShare) partnersShare;
 	}
 	mapping(uint32 => Batch) private batches;
