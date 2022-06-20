@@ -25,7 +25,7 @@ contract PartnerStaking is
 		address _foundation,
 		address _maticX,
 		address _manager
-	) external initializer {
+	) external override initializer {
 		__AccessControl_init();
 		__Pausable_init();
 
@@ -63,12 +63,12 @@ contract PartnerStaking is
 		}
 	}
 
-	modifier onlyFoundation() {
+	modifier onlyFoundation() override {
 		require(_msgSender() == foundation, "Not Authorized");
 		_;
 	}
 
-	modifier onlyManager() {
+	modifier onlyManager() override {
 		require(_msgSender() == manager, "Not Authorized");
 		_;
 	}
@@ -78,7 +78,7 @@ contract PartnerStaking is
 		string _name,
 		string _website,
 		bytes _metadata
-	) external onlyFoundation returns (uint32) {
+	) external override onlyFoundation returns (uint32) {
 		require(
 			partnerAddressToId[_partnerAddress] == 0,
 			"This partner is already registered"
@@ -102,6 +102,7 @@ contract PartnerStaking is
 	function getPartnerDetails(uint32 _partnerId)
 		external
 		view
+		override
 		returns (Partner partner)
 	{
 		return partners[_partnerId];
@@ -110,6 +111,7 @@ contract PartnerStaking is
 	function getPartners(uint32 _count, uint32 _offset)
 		external
 		view
+		override
 		returns (Partner[])
 	{
 		Partner[] memory result;
@@ -124,6 +126,7 @@ contract PartnerStaking is
 
 	function stake(uint32 _partnerId, uint256 _maticAmount)
 		external
+		override
 		onlyFoundation
 	{
 		require(
@@ -141,6 +144,7 @@ contract PartnerStaking is
 
 	function unStake(uint32 _partnerId, uint256 _maticAmount)
 		external
+		override
 		onlyFoundation
 	{
 		require(
@@ -160,39 +164,16 @@ contract PartnerStaking is
 		IERC20Upgradeable(maticX).safeApprove(maticX, _maticXAmount);
 		IMaticX(maticX).requestWithdraw(_maticXAmount);
 
-		uint32 _idx = unstakeRequests.length;
-		WithdrawalRequest memory _withdrawalRequest = (
-			IMaticX(maticX).getUserWithdrawalRequests(address(this))
-		)[_idx];
 		unstakeRequests.push(
 			UnstakeRequest(
 				_partnerId, // partnerId
 				0, // batchId
-				_withdrawalRequest.validatorNonce,
-				_withdrawalRequest.requestEpoch,
-				_withdrawalRequest.validatorAddress,
 				_currentBatch.maticXBurned //maticXBurned
 			)
 		);
 
 		partner[totalMaticStaked] -= _maticAmount;
 		partner[totalMaticX] -= maticXAmount;
-	}
-
-	///@@dev UI needs to differentiate between foundation unstake request and partner reward unstake request for a request, _batchId > 0 -> partner reward request, _partnerId > 0 -> foundation reward request
-	function getUnstakingRequests(uint32 _count, uint32 _offset)
-		external
-		view
-		returns (UnstakeRequest[])
-	{
-		UnstakeRequest[] memory result;
-		uint32 _i = (unstakeRequests.length - 1) - _offset;
-		while (_i > 0 && _count > 0) {
-			result.push(unstakeRequests[_i]);
-			_i--;
-			_count--;
-		}
-		return result;
 	}
 
 	function withdrawUnstakedAmount(uint256 _reqIdx) external onlyFoundation {
@@ -216,24 +197,9 @@ contract PartnerStaking is
 		);
 	}
 
-	///@@dev returns paginated batches in reverse order of creation
-	function getRewardBatches(uint32 _count, uint32 _offset)
-		external
-		view
-		returns (Batch[])
-	{
-		Batch[] memory result;
-		uint32 _i = currentBatchId - _offset;
-		while (_i > 0 && _count > 0) {
-			result.push(batches[_i]);
-			_i--;
-			_count--;
-		}
-		return result;
-	}
-
 	function addDueRewardsToCurrentBatch(uint32[] _partnerIds)
 		external
+		override
 		onlyManager
 		returns (Batch)
 	{
@@ -272,7 +238,12 @@ contract PartnerStaking is
 		return _currentBatch;
 	}
 
-	function unDelegateCurrentBatch() external onlyManager returns (Batch) {
+	function unDelegateCurrentBatch()
+		external
+		override
+		onlyManager
+		returns (Batch)
+	{
 		uint32 _batchId = currentBatchId;
 		Batch memory _currentBatch = batches[_batchId];
 		require(
@@ -297,9 +268,6 @@ contract PartnerStaking is
 			UnstakeRequest(
 				0, // partnerId
 				_batchId,
-				_withdrawalRequest.validatorNonce,
-				_withdrawalRequest.requestEpoch,
-				_withdrawalRequest.validatorAddress,
 				_currentBatch.maticXBurned //maticXBurned
 			)
 		);
@@ -327,6 +295,7 @@ contract PartnerStaking is
 
 	function claimUnstakeRewards(uint32 _reqIdx)
 		external
+		override
 		onlyManager
 		returns (Batch)
 	{
@@ -358,6 +327,7 @@ contract PartnerStaking is
 
 	function disbursePartnersReward(uint32 _batchId, uint32[] _partnerIds)
 		external
+		override
 		onlyManager
 		returns (Batch)
 	{
