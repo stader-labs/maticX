@@ -20,7 +20,7 @@ contract PartnerStaking is
 
 	mapping(uint32 => Partner) partners;
 	mapping(address => uint32) partnerAddressToId;
-	uint32 totalPartnerCount;
+	uint32 public totalPartnerCount;
 	UnstakeRequest[] public unstakeRequests;
 
 	mapping(uint32 => Batch) public batches;
@@ -164,6 +164,12 @@ contract PartnerStaking is
 		require(_maticAmount > 0, "Invalid amount");
 		Partner storage partner = partners[_partnerId];
 		require(partner.status == PartnerStatus.ACTIVE, "Inactive Partner");
+		// do i really need this?
+		IERC20Upgradeable(polygonERC20).safeTransferFrom(
+			msg.sender,
+			address(this),
+			_maticAmount
+		);
 		IERC20Upgradeable(polygonERC20).safeApprove(maticX, _maticAmount);
 		uint256 _maticXAmount = IMaticX(maticX).submit(_maticAmount);
 		partner.totalMaticStaked += _maticAmount;
