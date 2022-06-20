@@ -16,20 +16,23 @@ interface IPartnerStaking {
 		PartnerStatus status;
 	}
 
-	mapping(uint32 => Partner) private partners;
-	mapping(address => uint32) private partnerAddressToId;
-	uint32 totalPartnerCount;
-
 	enum PartnerActivityType {
 		ClAIMED,
 		AUTO_DISBURSED
 	}
 	event PartnerActivity(
-		uint64 timestamp,
+		uint256 timestamp,
 		uint256 maticAmount,
 		uint256 maticXUsed,
 		PartnerActivityType activity
 	);
+	event SetTrustedForwarder(address _address);
+
+	struct WithdrawalRequest {
+		uint256 validatorNonce;
+		uint256 requestEpoch;
+		address validatorAddress;
+	}
 
 	///@@dev UI needs to differentiate between foundation unstake request and partner reward unstake request for a request, _batchId > 0 -> partner reward request, _partnerId > 0 -> foundation reward request
 	struct UnstakeRequest {
@@ -37,8 +40,6 @@ interface IPartnerStaking {
 		uint32 batchId;
 		uint256 maticXBurned;
 	}
-
-	UnstakeRequest[] public unstakeRequests;
 
 	struct PartnerUnstakeShare {
 		uint256 maticXUnstaked;
@@ -60,25 +61,24 @@ interface IPartnerStaking {
 		mapping(uint32 => PartnerUnstakeShare) partnersShare;
 	}
 
-	mapping(uint32 => Batch) public batches;
-	uint32 currentBatchId;
+	function setTrustedForwarder(address _address) external;
 
 	function registerPartner(
 		address _partnerAddress,
-		string _name,
-		string _website,
-		bytes _metadata
+		string calldata _name,
+		string calldata _website,
+		bytes calldata _metadata
 	) external returns (uint32);
 
 	function getPartnerDetails(uint32 _partnerId)
 		external
 		view
-		returns (Partner partner);
+		returns (Partner memory);
 
 	function getPartners(uint32 _count, uint32 _offset)
 		external
 		view
-		returns (Partner[]);
+		returns (Partner[] memory);
 
 	function stake(uint32 _partnerId, uint256 _maticAmount) external;
 
@@ -86,15 +86,15 @@ interface IPartnerStaking {
 
 	function withdrawUnstakedAmount(uint256 _reqIdx) external;
 
-	function addDueRewardsToCurrentBatch(uint32[] _partnerIds)
-		external
-		returns (Batch);
+	function addDueRewardsToCurrentBatch(uint32[] calldata _partnerIds)
+		external;
 
-	function unDelegateCurrentBatch() external returns (Batch);
+	function unDelegateCurrentBatch() external;
 
-	function claimUnstakeRewards(uint32 _reqIdx) external returns (Batch);
+	function claimUnstakeRewards(uint32 _reqIdx) external;
 
-	function disbursePartnersReward(uint32 _batchId, uint32[] _partnerIds)
-		external
-		returns (Batch);
+	function disbursePartnersReward(
+		uint32 _batchId,
+		uint32[] calldata _partnerIds
+	) external;
 }
