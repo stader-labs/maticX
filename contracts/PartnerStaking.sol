@@ -107,15 +107,17 @@ contract PartnerStaking is
 		return partners[_partnerId];
 	}
 
-	// paginated
-	function getAllPartnerDetails(uint32 _startId, uint32 _count)
+	function getPartners(uint32 _count, uint32 _offset)
 		external
 		view
 		returns (Partner[])
 	{
 		Partner[] memory result;
-		for (uint32 i = _startId; i <= _startId + _count; i++) {
-			result.push(partners[i]);
+		uint32 _i = totalPartnerCount - _offset;
+		while (_i > 0 && _count > 0) {
+			result.push(partners[_i]);
+			_i--;
+			_count--;
 		}
 		return result;
 	}
@@ -177,12 +179,20 @@ contract PartnerStaking is
 		partner[totalMaticX] -= maticXAmount;
 	}
 
-	function getAllUnstakingRequests()
+	///@@dev UI needs to differentiate between foundation unstake request and partner reward unstake request for a request, _batchId > 0 -> partner reward request, _partnerId > 0 -> foundation reward request
+	function getUnstakingRequests(uint32 _count, uint32 _offset)
 		external
 		view
 		returns (UnstakeRequest[])
 	{
-		return unstakeRequests;
+		UnstakeRequest[] memory result;
+		uint32 _i = (unstakeRequests.length - 1) - _offset;
+		while (_i > 0 && _count > 0) {
+			result.push(unstakeRequests[_i]);
+			_i--;
+			_count--;
+		}
+		return result;
 	}
 
 	function withdrawUnstakedAmount(uint256 _reqIdx) external onlyFoundation {
@@ -210,12 +220,12 @@ contract PartnerStaking is
 	function getRewardBatches(uint32 _count, uint32 _offset)
 		external
 		view
-		returns (Partner[])
+		returns (Batch[])
 	{
 		Batch[] memory result;
 		uint32 _i = currentBatchId - _offset;
 		while (_i > 0 && _count > 0) {
-			result.push(partners[_i]);
+			result.push(batches[_i]);
 			_i--;
 			_count--;
 		}
@@ -346,7 +356,7 @@ contract PartnerStaking is
 		return _currentBatch;
 	}
 
-	function disbursePartnerReward(uint32 _batchId, uint32[] _partnerIds)
+	function disbursePartnersReward(uint32 _batchId, uint32[] _partnerIds)
 		external
 		onlyManager
 		returns (Batch)
