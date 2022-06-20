@@ -206,6 +206,22 @@ contract PartnerStaking is
 		);
 	}
 
+	///@@dev returns paginated batches in reverse order of creation
+	function getRewardBatches(uint32 _count, uint32 _offset)
+		external
+		view
+		returns (Partner[])
+	{
+		Batch[] memory result;
+		uint32 _i = currentBatchId - _offset;
+		while (_i > 0 && _count > 0) {
+			result.push(partners[_i]);
+			_i--;
+			_count--;
+		}
+		return result;
+	}
+
 	function addDueRewardsToCurrentBatch(uint32[] _partnerIds)
 		external
 		onlyManager
