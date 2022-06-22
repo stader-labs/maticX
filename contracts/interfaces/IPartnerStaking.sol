@@ -1,19 +1,39 @@
 pragma solidity 0.8.7;
 
 interface IPartnerStaking {
+	function totalPartnerCount() external view returns (uint32);
+
+	function currentBatchId() external view returns (uint32);
+
+	function feePercent() external view returns (uint8);
+
+	function feeReimbursalPool() external view returns (uint256);
+
+	enum DisbursalCycleType {
+		WEEK,
+		FORTNIGHT,
+		MONTH,
+		QUARTER,
+		YEAR
+	}
 	enum PartnerStatus {
 		ACTIVE,
 		INACTIVE
 	}
 	struct Partner {
-		string name;
-		address walletAddress;
-		string website;
-		bytes metadata;
+		uint32 remFrequency;
+		uint32 totalFrequency;
 		uint64 registeredAt;
 		uint256 totalMaticStaked;
 		uint256 totalMaticX;
+		uint256 pastManualRewards;
+		uint256 disbursedRewards;
+		address walletAddress;
+		string name;
+		string website;
+		bytes metadata;
 		PartnerStatus status;
+		DisbursalCycleType disbursalCycle;
 	}
 
 	enum PartnerActivityType {
@@ -23,10 +43,12 @@ interface IPartnerStaking {
 	event PartnerActivity(
 		uint256 timestamp,
 		uint256 maticAmount,
+		uint256 reimbursedFee,
 		uint256 maticXUsed,
 		PartnerActivityType activity
 	);
 	event SetTrustedForwarder(address _address);
+	event SetFeePercent(uint8 _feePercent);
 
 	struct WithdrawalRequest {
 		uint256 validatorNonce;
@@ -63,12 +85,28 @@ interface IPartnerStaking {
 
 	function setTrustedForwarder(address _address) external;
 
+	function setFeePercent(uint8 _feePercent) external;
+
+	function provideFeeReimbursalMatic(uint256 _amount) external;
+
 	function registerPartner(
-		address _partnerAddress,
+		address _walletAddress,
 		string calldata _name,
 		string calldata _website,
-		bytes calldata _metadata
+		bytes calldata _metadata,
+		DisbursalCycleType _disbursalCycle,
+		uint32 _totalFrequency,
+		uint256 _pastManualRewards
 	) external returns (uint32);
+
+	function changePartnerWalletAddress(
+		address _oldWalletAddress,
+		address _newWalletAddress
+	) external;
+
+	function unregisterPartner(uint32 _partnerId)
+		external
+		returns (Partner memory);
 
 	function getPartnerDetails(uint32 _partnerId)
 		external
