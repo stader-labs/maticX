@@ -141,7 +141,7 @@ contract PartnerStaking is
 		string calldata _website,
 		bytes calldata _metadata,
 		DisbursalCycleType _disbursalCycle,
-		uint32 _totalFrequency,
+		uint32 _totalDisbursals,
 		uint256 _pastManualRewards
 	) external override whenNotPaused onlyFoundation returns (uint32) {
 		require(
@@ -149,19 +149,18 @@ contract PartnerStaking is
 			"This partner is already registered"
 		);
 		require(
-			_totalFrequency > 0,
-			"Total Frequency for partner delegation cannot be 0"
+			_totalDisbursals > 0,
+			"Total Disbursals for partner delegation cannot be 0"
 		);
 		uint32 _partnerId = totalPartnerCount + 1;
 		totalPartnerCount += 1;
 		partners[_partnerId] = Partner(
-			_totalFrequency, //remFrequency
-			_totalFrequency, //totalFrequency
+			_totalDisbursals, //remDisbursals
+			_totalDisbursals, //totalDisbursals
 			uint64(block.timestamp), //registeredAt
 			0, //totalMaticStaked;
 			0, //totalMaticX
 			_pastManualRewards, //pastManualRewards
-			0, //disbursedRewards
 			_walletAddress, //walletAddress;
 			_name, //name
 			_website, //website
@@ -190,6 +189,32 @@ contract PartnerStaking is
 		partners[_partnerId].walletAddress = _newWalletAddress;
 		partnerAddressToId[_newWalletAddress] = _partnerId;
 		partnerAddressToId[_oldWalletAddress] = 0;
+	}
+
+	function changePartnerDisbursalCount(
+		uint32 _partnerId,
+		uint32 _newDisbursalCount
+	) external override onlyFoundation returns (Partner memory) {
+		Partner memory _partner = partners[_partnerId];
+		require(_partner.walletAddress != address(0), "Invalid PartnerId");
+		if (_newDisbursalCount > _partner.totalDisbursals) {
+			partners[_partnerId].remDisbursals +=
+				_newDisbursalCount -
+				_partner.totalDisbursals;
+			partners[_partnerId].totalDisbursals = _newDisbursalCount;
+		}
+		if (_newDisbursalCount < _partner.totalDisbursals) {
+			require(
+				_partner.totalDisbursals - _newDisbursalCount <
+					_partner.remDisbursals,
+				"Invalid Disbursal count"
+			);
+			partners[_partnerId].remDisbursals -=
+				_partner.totalDisbursals -
+				_newDisbursalCount;
+			partners[_partnerId].totalDisbursals = _newDisbursalCount;
+		}
+		return _partner;
 	}
 
 	function unregisterPartner(uint32 _partnerId)
@@ -356,6 +381,11 @@ contract PartnerStaking is
 				"Inactive Partner"
 			);
 
+			require(
+				_currentPartner.remDisbursals > 0,
+				"No disbursals remaining for this partner"
+			);
+
 			uint256 _reward = _currentPartner.totalMaticX -
 				((_currentPartner.totalMaticStaked * _maticXRate) / 10**18);
 
@@ -483,8 +513,8 @@ contract PartnerStaking is
 
 			// save the state
 			_currentBatch.partnersShare[_partnerId].isDisbursed == true;
-			partners[_partnerId].disbursedRewards += _maticShare;
 			feeReimbursalPool -= _reimbursedFee;
+			partners[_partnerId].remDisbursals--;
 
 			// transfer rewards
 			IERC20Upgradeable(polygonERC20).safeTransfer(

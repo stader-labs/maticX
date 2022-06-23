@@ -21,13 +21,12 @@ interface IPartnerStaking {
 		INACTIVE
 	}
 	struct Partner {
-		uint32 remFrequency;
-		uint32 totalFrequency;
+		uint32 remDisbursals;
+		uint32 totalDisbursals;
 		uint64 registeredAt;
 		uint256 totalMaticStaked;
 		uint256 totalMaticX;
 		uint256 pastManualRewards;
-		uint256 disbursedRewards;
 		address walletAddress;
 		string name;
 		string website;
@@ -107,6 +106,11 @@ interface IPartnerStaking {
 	function unregisterPartner(uint32 _partnerId)
 		external
 		returns (Partner memory);
+
+	function changePartnerDisbursalCount(
+		uint32 _partnerId,
+		uint32 _newDisbursalCount
+	) external returns (Partner memory);
 
 	function getPartnerDetails(uint32 _partnerId)
 		external
