@@ -32,6 +32,7 @@ contract PartnerStaking is
 	address private maticX;
 	address private polygonERC20;
 	address private manager;
+	address private disbursalBot;
 	address private trustedForwarder;
 
 	function initialize(
@@ -39,6 +40,7 @@ contract PartnerStaking is
 		address _polygonERC20,
 		address _maticX,
 		address _manager,
+		address _disbursalBot,
 		uint8 _feePercent
 	) external initializer {
 		__AccessControl_init();
@@ -47,6 +49,7 @@ contract PartnerStaking is
 		foundation = _foundation;
 		maticX = _maticX;
 		manager = _manager;
+		disbursalBot = _disbursalBot;
 		polygonERC20 = _polygonERC20;
 		feePercent = 5;
 
@@ -57,10 +60,27 @@ contract PartnerStaking is
 		_currentBatch.status = BatchStatus.CREATED;
 	}
 
+	modifier onlyFoundation() {
+		require(_msgSender() == foundation, "Not Authorized");
+		_;
+	}
+
+	modifier onlyManager() {
+		require(_msgSender() == manager, "Not Authorized");
+		_;
+	}
+
+	function setDisbursalBot(address _address) external override onlyManager {
+		require(_address != address(0), "Invalid Address");
+		disbursalBot = _address;
+
+		emit SetDisbursalBot(_address);
+	}
+
 	function setTrustedForwarder(address _address)
 		external
 		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
+		onlyManager
 	{
 		trustedForwarder = _address;
 
@@ -93,21 +113,11 @@ contract PartnerStaking is
 		}
 	}
 
-	modifier onlyFoundation() {
-		require(_msgSender() == foundation, "Not Authorized");
-		_;
-	}
-
-	modifier onlyManager() {
-		require(_msgSender() == manager, "Not Authorized");
-		_;
-	}
-
 	function setFeePercent(uint8 _feePercent)
 		external
 		override
 		whenNotPaused
-		onlyRole(DEFAULT_ADMIN_ROLE)
+		onlyManager
 	{
 		uint8 maticXFeePercent = IMaticX(maticX).feePercent();
 		require(
@@ -135,13 +145,20 @@ contract PartnerStaking is
 		feeReimbursalPool += _amount;
 	}
 
+	function validatePartnerId(uint32 _partnerId) internal {
+		require(
+			partners[_partnerId].walletAddress != address(0),
+			"Invalid PartnerId"
+		);
+	}
+
 	function registerPartner(
 		address _walletAddress,
 		string calldata _name,
 		string calldata _website,
 		bytes calldata _metadata,
 		DisbursalCycleType _disbursalCycle,
-		uint32 _totalDisbursals,
+		uint32 _disbursalCount,
 		uint256 _pastManualRewards
 	) external override whenNotPaused onlyFoundation returns (uint32) {
 		require(
@@ -149,14 +166,14 @@ contract PartnerStaking is
 			"This partner is already registered"
 		);
 		require(
-			_totalDisbursals > 0,
-			"Total Disbursals for partner delegation cannot be 0"
+			_disbursalCount > 0,
+			"Disbursal Count for partner delegation cannot be 0"
 		);
-		uint32 _partnerId = totalPartnerCount + 1;
 		totalPartnerCount += 1;
+		uint32 _partnerId = totalPartnerCount;
 		partners[_partnerId] = Partner(
-			_totalDisbursals, //remDisbursals
-			_totalDisbursals, //totalDisbursals
+			_disbursalCount, //remDisbursals
+			_disbursalCount, //disbursalCount
 			uint64(block.timestamp), //registeredAt
 			0, //totalMaticStaked;
 			0, //totalMaticX
@@ -173,62 +190,59 @@ contract PartnerStaking is
 	}
 
 	function changePartnerWalletAddress(
-		address _oldWalletAddress,
+		uint32 _partnerId,
 		address _newWalletAddress
-	) external override onlyFoundation {
-		require(
-			_oldWalletAddress != address(0) && _newWalletAddress != address(0),
-			"Invalid Addresses"
-		);
+	) external override onlyFoundation returns (Partner memory) {
+		validatePartnerId(_partnerId);
+		require(_newWalletAddress != address(0), "Invalid Addresses");
 		require(
 			partnerAddressToId[_newWalletAddress] == 0,
 			"New Wallet address is already assigned to other partner"
 		);
-		uint32 _partnerId = partnerAddressToId[_oldWalletAddress];
-		require(_partnerId > 0, "Partner not registered/found");
+		address _oldWalletAddress = partners[_partnerId].walletAddress;
 		partners[_partnerId].walletAddress = _newWalletAddress;
 		partnerAddressToId[_newWalletAddress] = _partnerId;
 		partnerAddressToId[_oldWalletAddress] = 0;
+		return partners[_partnerId];
 	}
 
 	function changePartnerDisbursalCount(
 		uint32 _partnerId,
 		uint32 _newDisbursalCount
 	) external override onlyFoundation returns (Partner memory) {
+		validatePartnerId(_partnerId);
 		Partner memory _partner = partners[_partnerId];
-		require(_partner.walletAddress != address(0), "Invalid PartnerId");
-		if (_newDisbursalCount > _partner.totalDisbursals) {
+		if (_newDisbursalCount > _partner.disbursalCount) {
 			partners[_partnerId].remDisbursals +=
 				_newDisbursalCount -
-				_partner.totalDisbursals;
-			partners[_partnerId].totalDisbursals = _newDisbursalCount;
+				_partner.disbursalCount;
+			partners[_partnerId].disbursalCount = _newDisbursalCount;
 		}
-		if (_newDisbursalCount < _partner.totalDisbursals) {
+		if (_newDisbursalCount < _partner.disbursalCount) {
 			require(
-				_partner.totalDisbursals - _newDisbursalCount <
+				_partner.disbursalCount - _newDisbursalCount <
 					_partner.remDisbursals,
 				"Invalid Disbursal count"
 			);
 			partners[_partnerId].remDisbursals -=
-				_partner.totalDisbursals -
+				_partner.disbursalCount -
 				_newDisbursalCount;
-			partners[_partnerId].totalDisbursals = _newDisbursalCount;
+			partners[_partnerId].disbursalCount = _newDisbursalCount;
 		}
 		return _partner;
 	}
 
-	function unregisterPartner(uint32 _partnerId)
+	function changePartnerStatus(uint32 _partnerId, bool _isActive)
 		external
 		override
 		whenNotPaused
 		onlyFoundation
 		returns (Partner memory)
 	{
-		require(
-			partners[_partnerId].walletAddress != address(0),
-			"Invalid PartnerId"
-		);
-		partners[_partnerId].status = PartnerStatus.INACTIVE;
+		validatePartnerId(_partnerId);
+		partners[_partnerId].status = _isActive == true
+			? PartnerStatus.ACTIVE
+			: PartnerStatus.INACTIVE;
 		return partners[_partnerId];
 	}
 
@@ -364,7 +378,7 @@ contract PartnerStaking is
 			"Invalid Batch Status"
 		);
 
-		(uint256 _maticXRate, , ) = IMaticX(maticX).convertMaticToMaticX(
+		(uint256 _maticToMaticXRate, , ) = IMaticX(maticX).convertMaticToMaticX(
 			10**18
 		);
 
@@ -387,13 +401,18 @@ contract PartnerStaking is
 			);
 
 			uint256 _reward = _currentPartner.totalMaticX -
-				((_currentPartner.totalMaticStaked * _maticXRate) / 10**18);
+				((_currentPartner.totalMaticStaked * _maticToMaticXRate) /
+					10**18);
 
 			_currentPartner.totalMaticX -= _reward;
 
 			_currentBatch.maticXBurned += _reward;
+			// it will be default 0
+			uint256 _partnerPrevShare = _currentBatch
+				.partnersShare[_partnerId]
+				.maticXUnstaked;
 			_currentBatch.partnersShare[_partnerId] = PartnerUnstakeShare(
-				_reward,
+				_reward + _partnerPrevShare,
 				false
 			);
 		}
@@ -422,8 +441,9 @@ contract PartnerStaking is
 		);
 		IMaticX(maticX).requestWithdraw(_currentBatch.maticXBurned);
 		uint32 _idx = uint32(unstakeRequests.length);
-		// TODO: figure this out
-		//(,uint256 _requestEpoch,) = (IMaticX(maticX).getUserWithdrawalRequests(address(this)));
+		IMaticX.WithdrawalRequest[] memory withdrawalRequests = IMaticX(maticX)
+			.getUserWithdrawalRequests(address(this));
+		uint256 _requestEpoch = withdrawalRequests[_idx].requestEpoch;
 		unstakeRequests.push(
 			UnstakeRequest(
 				0, // partnerId
@@ -433,7 +453,7 @@ contract PartnerStaking is
 		);
 
 		_currentBatch.undelegatedAt = uint64(block.timestamp);
-		//_currentBatch.withdrawalEpoch = uint64(_requestEpoch);
+		_currentBatch.withdrawalEpoch = uint64(_requestEpoch);
 		_currentBatch.status = BatchStatus.UNDELEGATED;
 
 		// create a new batch
@@ -454,7 +474,7 @@ contract PartnerStaking is
 			"Invalid Request Index"
 		);
 		uint32 _batchId = unstakeRequests[_reqIdx].batchId;
-		require(_batchId > 0, "Not a partner reward unstake request");
+		require(_batchId > 0, "Not a disbursal reward unstake request");
 		Batch storage _currentBatch = batches[_batchId];
 		require(
 			_currentBatch.status == BatchStatus.UNDELEGATED,

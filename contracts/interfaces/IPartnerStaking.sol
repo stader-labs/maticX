@@ -22,7 +22,7 @@ interface IPartnerStaking {
 	}
 	struct Partner {
 		uint32 remDisbursals;
-		uint32 totalDisbursals;
+		uint32 disbursalCount;
 		uint64 registeredAt;
 		uint256 totalMaticStaked;
 		uint256 totalMaticX;
@@ -47,13 +47,8 @@ interface IPartnerStaking {
 		PartnerActivityType activity
 	);
 	event SetTrustedForwarder(address _address);
+	event SetDisbursalBot(address _address);
 	event SetFeePercent(uint8 _feePercent);
-
-	struct WithdrawalRequest {
-		uint256 validatorNonce;
-		uint256 requestEpoch;
-		address validatorAddress;
-	}
 
 	///@@dev UI needs to differentiate between foundation unstake request and partner reward unstake request for a request, _batchId > 0 -> partner reward request, _partnerId > 0 -> foundation reward request
 	struct UnstakeRequest {
@@ -82,6 +77,8 @@ interface IPartnerStaking {
 		mapping(uint32 => PartnerUnstakeShare) partnersShare;
 	}
 
+	function setDisbursalBot(address _address) external;
+
 	function setTrustedForwarder(address _address) external;
 
 	function setFeePercent(uint8 _feePercent) external;
@@ -99,11 +96,11 @@ interface IPartnerStaking {
 	) external returns (uint32);
 
 	function changePartnerWalletAddress(
-		address _oldWalletAddress,
+		uint32 _partnerId,
 		address _newWalletAddress
-	) external;
+	) external returns (Partner memory);
 
-	function unregisterPartner(uint32 _partnerId)
+	function changePartnerStatus(uint32 _partnerId, bool _isActive)
 		external
 		returns (Partner memory);
 
