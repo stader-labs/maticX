@@ -18,8 +18,8 @@ contract PartnerStaking is
 {
 	using SafeERC20Upgradeable for IERC20Upgradeable;
 
-	mapping(uint32 => Partner) partners;
-	mapping(address => uint32) partnerAddressToId;
+	mapping(uint32 => Partner) private partners;
+	mapping(address => uint32) private partnerAddressToId;
 	uint32 public override totalPartnerCount;
 	UnstakeRequest[] public unstakeRequests;
 
@@ -28,7 +28,8 @@ contract PartnerStaking is
 	uint8 public override feePercent;
 	uint256 public override feeReimbursalPool;
 
-	address private foundation;
+	address private foundationPrimaryAddress;
+	mapping(address => uint64) foundationAddresses;
 	address private maticX;
 	address private polygonERC20;
 	address private manager;
@@ -36,7 +37,7 @@ contract PartnerStaking is
 	address private trustedForwarder;
 
 	function initialize(
-		address _foundation,
+		address _foundationPrimaryAddress,
 		address _polygonERC20,
 		address _maticX,
 		address _manager,
@@ -46,7 +47,8 @@ contract PartnerStaking is
 		__AccessControl_init();
 		__Pausable_init();
 
-		foundation = _foundation;
+		foundationPrimaryAddress = _foundationPrimaryAddress;
+		foundationAddresses[foundationPrimaryAddress] = uint64(block.timestamp);
 		maticX = _maticX;
 		manager = _manager;
 		disbursalBot = _disbursalBot;
@@ -61,13 +63,39 @@ contract PartnerStaking is
 	}
 
 	modifier onlyFoundation() {
-		require(_msgSender() == foundation, "Not Authorized");
+		require(_msgSender() == foundationPrimaryAddress, "Not Authorized");
 		_;
 	}
 
 	modifier onlyManager() {
 		require(_msgSender() == manager, "Not Authorized");
 		_;
+	}
+
+	function addFoundationAddress(address _address)
+		external
+		override
+		onlyFoundation
+	{
+		require(_address != address(0), "Invalid Address");
+		foundationAddresses[_address] = uint64(block.timestamp);
+	}
+
+	function removeFoundationAddress(address _address)
+		external
+		override
+		onlyFoundation
+	{
+		require(_address != address(0), "Invalid Address");
+		foundationAddresses[_address] = uint64(0);
+	}
+
+	function isFoundationAddress(address _address)
+		external
+		override
+		returns (bool)
+	{
+		return foundationAddresses[_address] > 0 ? true : false;
 	}
 
 	function setDisbursalBot(address _address) external override onlyManager {
@@ -244,6 +272,15 @@ contract PartnerStaking is
 			? PartnerStatus.ACTIVE
 			: PartnerStatus.INACTIVE;
 		return partners[_partnerId];
+	}
+
+	function getPartnerId(address _walletAddress)
+		external
+		view
+		override
+		returns (uint32 _partnerId)
+	{
+		return partnerAddressToId[_walletAddress];
 	}
 
 	function getPartnerDetails(uint32 _partnerId)

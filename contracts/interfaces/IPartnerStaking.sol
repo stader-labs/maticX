@@ -77,6 +77,12 @@ interface IPartnerStaking {
 		mapping(uint32 => PartnerUnstakeShare) partnersShare;
 	}
 
+	function addFoundationAddress(address _address) external;
+
+	function removeFoundationAddress(address _address) external;
+
+	function isFoundationAddress(address _address) external returns (bool);
+
 	function setDisbursalBot(address _address) external;
 
 	function setTrustedForwarder(address _address) external;
@@ -108,6 +114,11 @@ interface IPartnerStaking {
 		uint32 _partnerId,
 		uint32 _newDisbursalCount
 	) external returns (Partner memory);
+
+	function getPartnerId(address _walletAddress)
+		external
+		view
+		returns (uint32 _partnerId);
 
 	function getPartnerDetails(uint32 _partnerId)
 		external
