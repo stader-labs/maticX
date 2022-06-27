@@ -140,17 +140,17 @@ interface IPartnerStaking {
 	event UnstakePartnerReward(
 		uint32 indexed _partnerId,
 		uint32 indexed _batchId,
-		uint256 _timestamp,
-		uint256 _maticXUnstaked
+		uint256 _maticXUnstaked,
+		uint256 _timestamp
 	);
 
 	event DisbursePartnerReward(
 		uint32 indexed _partnerId,
 		uint32 indexed _batchId,
-		uint256 _timestamp,
 		uint256 _maticDisbursed,
 		uint256 _reimbursedFee,
-		uint256 _maticXUsed
+		uint256 _maticXUsed,
+		uint256 _timestamp
 	);
 
 	function addFoundationAddress(address _address) external;

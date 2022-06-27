@@ -497,8 +497,8 @@ contract PartnerStaking is
 			emit UnstakePartnerReward(
 				_partnerId,
 				currentBatchId,
-				block.timestamp,
-				_reward
+				_reward,
+				block.timestamp
 			);
 		}
 	}
@@ -638,10 +638,10 @@ contract PartnerStaking is
 			emit DisbursePartnerReward(
 				_partnerId,
 				_batchId,
-				block.timestamp,
 				_maticShare + _reimbursedFee,
 				_reimbursedFee,
-				_partnerShare.maticXUnstaked
+				_partnerShare.maticXUnstaked,
+				block.timestamp
 			);
 		}
 	}
