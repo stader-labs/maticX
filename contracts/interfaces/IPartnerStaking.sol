@@ -5,7 +5,7 @@ interface IPartnerStaking {
 
 	function currentBatchId() external view returns (uint32);
 
-	function feePercent() external view returns (uint8);
+	function feeReimbursalPercent() external view returns (uint8);
 
 	function feeReimbursalPool() external view returns (uint256);
 
@@ -48,7 +48,7 @@ interface IPartnerStaking {
 	);
 	event SetTrustedForwarder(address _address);
 	event SetDisbursalBot(address _address);
-	event SetFeePercent(uint8 _feePercent);
+	event SetFeeReimbursalPercent(uint8 _feeReimbursalPercent);
 
 	///@@dev UI needs to differentiate between foundation unstake request and partner reward unstake request for a request, _batchId > 0 -> partner reward request, _partnerId > 0 -> foundation reward request
 	struct UnstakeRequest {
@@ -87,7 +87,7 @@ interface IPartnerStaking {
 
 	function setTrustedForwarder(address _address) external;
 
-	function setFeePercent(uint8 _feePercent) external;
+	function setFeeReimbursalPercent(uint8 _feeReimbursalPercent) external;
 
 	function provideFeeReimbursalMatic(uint256 _amount) external;
 

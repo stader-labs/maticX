@@ -25,11 +25,11 @@ contract PartnerStaking is
 
 	mapping(uint32 => Batch) public batches;
 	uint32 public override currentBatchId;
-	uint8 public override feePercent;
+	uint8 public override feeReimbursalPercent;
 	uint256 public override feeReimbursalPool;
 
-	address private foundationPrimaryAddress;
-	mapping(address => uint64) foundationAddresses;
+	address private foundationAddress;
+	mapping(address => uint64) foundationApprovedAddresses;
 	address private maticX;
 	address private polygonERC20;
 	address private manager;
@@ -37,7 +37,7 @@ contract PartnerStaking is
 	address private trustedForwarder;
 
 	function initialize(
-		address _foundationPrimaryAddress,
+		address _foundationAddress,
 		address _polygonERC20,
 		address _maticX,
 		address _manager,
@@ -47,13 +47,15 @@ contract PartnerStaking is
 		__AccessControl_init();
 		__Pausable_init();
 
-		foundationPrimaryAddress = _foundationPrimaryAddress;
-		foundationAddresses[foundationPrimaryAddress] = uint64(block.timestamp);
+		foundationAddress = _foundationAddress;
+		foundationApprovedAddresses[foundationAddress] = uint64(
+			block.timestamp
+		);
 		maticX = _maticX;
 		manager = _manager;
 		disbursalBot = _disbursalBot;
 		polygonERC20 = _polygonERC20;
-		feePercent = 5;
+		feeReimbursalPercent = 5;
 
 		// create a new batch
 		currentBatchId = 1;
@@ -63,7 +65,7 @@ contract PartnerStaking is
 	}
 
 	modifier onlyFoundation() {
-		require(_msgSender() == foundationPrimaryAddress, "Not Authorized");
+		require(_msgSender() == foundationAddress, "Not Authorized");
 		_;
 	}
 
@@ -78,7 +80,7 @@ contract PartnerStaking is
 		onlyFoundation
 	{
 		require(_address != address(0), "Invalid Address");
-		foundationAddresses[_address] = uint64(block.timestamp);
+		foundationApprovedAddresses[_address] = uint64(block.timestamp);
 	}
 
 	function removeFoundationAddress(address _address)
@@ -87,7 +89,7 @@ contract PartnerStaking is
 		onlyFoundation
 	{
 		require(_address != address(0), "Invalid Address");
-		foundationAddresses[_address] = uint64(0);
+		foundationApprovedAddresses[_address] = uint64(0);
 	}
 
 	function isFoundationAddress(address _address)
@@ -95,7 +97,7 @@ contract PartnerStaking is
 		override
 		returns (bool)
 	{
-		return foundationAddresses[_address] > 0 ? true : false;
+		return foundationApprovedAddresses[_address] > 0 ? true : false;
 	}
 
 	function setDisbursalBot(address _address) external override onlyManager {
@@ -141,7 +143,7 @@ contract PartnerStaking is
 		}
 	}
 
-	function setFeePercent(uint8 _feePercent)
+	function setFeeReimbursalPercent(uint8 _feeReimbursalPercent)
 		external
 		override
 		whenNotPaused
@@ -149,13 +151,13 @@ contract PartnerStaking is
 	{
 		uint8 maticXFeePercent = IMaticX(maticX).feePercent();
 		require(
-			_feePercent <= maticXFeePercent,
+			_feeReimbursalPercent <= maticXFeePercent,
 			"_feePercent must not exceed maticX fee percent"
 		);
 
-		feePercent = _feePercent;
+		feeReimbursalPercent = _feeReimbursalPercent;
 
-		emit SetFeePercent(_feePercent);
+		emit SetFeeReimbursalPercent(_feeReimbursalPercent);
 	}
 
 	function provideFeeReimbursalMatic(uint256 _amount)
@@ -292,22 +294,24 @@ contract PartnerStaking is
 		return partners[_partnerId];
 	}
 
-	function getPartners(uint32 _count, uint32 _offset)
+	function getPartners(uint32 _count, uint32 _startId)
 		external
 		view
 		override
 		returns (Partner[] memory)
 	{
-		Partner[] memory result;
-		uint32 _i = totalPartnerCount - _offset;
-		uint32 _idx = 0;
-		while (_i > 0 && _count > 0) {
-			result[_idx] = partners[_i];
-			_i--;
-			_count--;
+		Partner[] memory results;
+		uint32 _totalPartnerCount = totalPartnerCount;
+		uint32 _idx;
+		for (
+			uint32 _i = _startId;
+			_i <= _totalPartnerCount && _i < (_startId + _count);
+			_i++
+		) {
+			results[_idx] = partners[_i];
 			_idx++;
 		}
-		return result;
+		return results;
 	}
 
 	function stake(uint32 _partnerId, uint256 _maticAmount)
@@ -545,7 +549,7 @@ contract PartnerStaking is
 		);
 
 		uint8 _maticXFeePercent = IMaticX(maticX).feePercent();
-		uint8 _reimbursalFeePercent = _maticXFeePercent - feePercent;
+		uint8 _feeReimbursalPercent = feeReimbursalPercent;
 
 		for (uint32 i = 0; i < _partnerIds.length; i++) {
 			uint32 _partnerId = _partnerIds[i];
@@ -564,7 +568,7 @@ contract PartnerStaking is
 			uint256 _maticShare = (_partnerShare.maticXUnstaked *
 				_currentBatch.maticReceived) / _currentBatch.maticXBurned;
 
-			uint256 _reimbursedFee = (uint256(_reimbursalFeePercent) *
+			uint256 _reimbursedFee = (uint256(_feeReimbursalPercent) *
 				_maticShare *
 				100) / uint256(100 - _maticXFeePercent);
 
