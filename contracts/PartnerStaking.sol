@@ -19,7 +19,7 @@ contract PartnerStaking is
 	using SafeERC20Upgradeable for IERC20Upgradeable;
 
 	mapping(uint32 => Partner) private partners;
-	mapping(address => uint32) private partnerAddressToId;
+	mapping(address => uint32) public partnerAddressToId;
 	uint32 public override totalPartnerCount;
 	UnstakeRequest[] public unstakeRequests;
 
@@ -29,11 +29,11 @@ contract PartnerStaking is
 	uint256 public override feeReimbursalPool;
 
 	address private foundationAddress;
-	mapping(address => uint64) foundationApprovedAddresses;
+	mapping(address => uint64) private foundationApprovedAddresses;
 	address private maticX;
 	address private polygonERC20;
 	address private manager;
-	address private disbursalBot;
+	address private disbursalBotAddress;
 	address private trustedForwarder;
 
 	function initialize(
@@ -41,8 +41,7 @@ contract PartnerStaking is
 		address _polygonERC20,
 		address _maticX,
 		address _manager,
-		address _disbursalBot,
-		uint8 _feePercent
+		address _disbursalBotAddress
 	) external initializer {
 		__AccessControl_init();
 		__Pausable_init();
@@ -53,7 +52,7 @@ contract PartnerStaking is
 		);
 		maticX = _maticX;
 		manager = _manager;
-		disbursalBot = _disbursalBot;
+		disbursalBotAddress = _disbursalBotAddress;
 		polygonERC20 = _polygonERC20;
 		feeReimbursalPercent = 5;
 
@@ -81,6 +80,7 @@ contract PartnerStaking is
 	{
 		require(_address != address(0), "Invalid Address");
 		foundationApprovedAddresses[_address] = uint64(block.timestamp);
+		emit AddFoundationAddress(_address, block.timestamp);
 	}
 
 	function removeFoundationAddress(address _address)
@@ -90,6 +90,7 @@ contract PartnerStaking is
 	{
 		require(_address != address(0), "Invalid Address");
 		foundationApprovedAddresses[_address] = uint64(0);
+		emit RemoveFoundationAddress(_address, block.timestamp);
 	}
 
 	function isFoundationAddress(address _address)
@@ -100,11 +101,15 @@ contract PartnerStaking is
 		return foundationApprovedAddresses[_address] > 0 ? true : false;
 	}
 
-	function setDisbursalBot(address _address) external override onlyManager {
+	function setDisbursalBotAddress(address _address)
+		external
+		override
+		onlyManager
+	{
 		require(_address != address(0), "Invalid Address");
-		disbursalBot = _address;
+		disbursalBotAddress = _address;
 
-		emit SetDisbursalBot(_address);
+		emit SetDisbursalBotAddress(_address, block.timestamp);
 	}
 
 	function setTrustedForwarder(address _address)
@@ -157,7 +162,7 @@ contract PartnerStaking is
 
 		feeReimbursalPercent = _feeReimbursalPercent;
 
-		emit SetFeeReimbursalPercent(_feeReimbursalPercent);
+		emit SetFeeReimbursalPercent(_feeReimbursalPercent, block.timestamp);
 	}
 
 	function provideFeeReimbursalMatic(uint256 _amount)
@@ -173,6 +178,7 @@ contract PartnerStaking is
 		);
 
 		feeReimbursalPool += _amount;
+		emit ProvideFeeReimbursalMatic(_amount, block.timestamp);
 	}
 
 	function validatePartnerId(uint32 _partnerId) internal {
@@ -216,6 +222,7 @@ contract PartnerStaking is
 			_disbursalCycle //disbursalCycle
 		);
 		partnerAddressToId[_walletAddress] = _partnerId;
+		emit RegisterPartner(_partnerId, _walletAddress, block.timestamp);
 		return _partnerId;
 	}
 
@@ -233,6 +240,13 @@ contract PartnerStaking is
 		partners[_partnerId].walletAddress = _newWalletAddress;
 		partnerAddressToId[_newWalletAddress] = _partnerId;
 		partnerAddressToId[_oldWalletAddress] = 0;
+
+		emit ChangePartnerWalletAddress(
+			_partnerId,
+			_oldWalletAddress,
+			_newWalletAddress,
+			block.timestamp
+		);
 		return partners[_partnerId];
 	}
 
@@ -242,6 +256,10 @@ contract PartnerStaking is
 	) external override onlyFoundation returns (Partner memory) {
 		validatePartnerId(_partnerId);
 		Partner memory _partner = partners[_partnerId];
+		require(
+			_newDisbursalCount != _partner.disbursalCount,
+			"Nothing to change"
+		);
 		if (_newDisbursalCount > _partner.disbursalCount) {
 			partners[_partnerId].remDisbursals +=
 				_newDisbursalCount -
@@ -259,6 +277,11 @@ contract PartnerStaking is
 				_newDisbursalCount;
 			partners[_partnerId].disbursalCount = _newDisbursalCount;
 		}
+		emit ChangePartnerDisbursalCount(
+			_partnerId,
+			_newDisbursalCount,
+			block.timestamp
+		);
 		return _partner;
 	}
 
@@ -273,6 +296,7 @@ contract PartnerStaking is
 		partners[_partnerId].status = _isActive == true
 			? PartnerStatus.ACTIVE
 			: PartnerStatus.INACTIVE;
+		emit ChangePartnerStatus(_partnerId, _isActive, block.timestamp);
 		return partners[_partnerId];
 	}
 
@@ -337,6 +361,12 @@ contract PartnerStaking is
 		uint256 _maticXAmount = IMaticX(maticX).submit(_maticAmount);
 		partner.totalMaticStaked += _maticAmount;
 		partner.totalMaticX += _maticXAmount;
+		emit FoundationStake(
+			_partnerId,
+			_maticAmount,
+			_maticXAmount,
+			block.timestamp
+		);
 	}
 
 	function unStake(uint32 _partnerId, uint256 _maticAmount)
@@ -372,6 +402,12 @@ contract PartnerStaking is
 
 		partner.totalMaticStaked -= _maticAmount;
 		partner.totalMaticX -= _maticXAmount;
+		emit FoundationStake(
+			_partnerId,
+			_maticAmount,
+			_maticXAmount,
+			block.timestamp
+		);
 	}
 
 	function withdrawUnstakedAmount(uint256 _reqIdx)
@@ -405,6 +441,7 @@ contract PartnerStaking is
 			_msgSender(),
 			amountToClaim
 		);
+		emit FoundationWithdraw(_reqIdx, amountToClaim, block.timestamp);
 	}
 
 	function addDueRewardsToCurrentBatch(uint32[] calldata _partnerIds)
@@ -456,6 +493,13 @@ contract PartnerStaking is
 				_reward + _partnerPrevShare,
 				false
 			);
+
+			emit UnstakePartnerReward(
+				_partnerId,
+				currentBatchId,
+				block.timestamp,
+				_reward
+			);
 		}
 	}
 
@@ -502,6 +546,14 @@ contract PartnerStaking is
 		Batch storage _newBatch = batches[currentBatchId];
 		_newBatch.createdAt = uint64(block.timestamp);
 		_newBatch.status = BatchStatus.CREATED;
+
+		emit UndelegateBatch(
+			_batchId,
+			block.timestamp,
+			_currentBatch.maticXBurned
+		);
+
+		emit CreateBatch(currentBatchId, block.timestamp);
 	}
 
 	function claimUnstakeRewards(uint32 _reqIdx)
@@ -536,6 +588,7 @@ contract PartnerStaking is
 		_currentBatch.maticReceived = _maticReceived;
 		_currentBatch.claimedAt = uint64(block.timestamp);
 		_currentBatch.status = BatchStatus.CLAIMED;
+		emit ClaimBatch(_batchId, block.timestamp, _maticReceived);
 	}
 
 	function disbursePartnersReward(
@@ -582,12 +635,13 @@ contract PartnerStaking is
 				partners[_partnerId].walletAddress,
 				_maticShare + _reimbursedFee
 			);
-			emit PartnerActivity(
+			emit DisbursePartnerReward(
+				_partnerId,
+				_batchId,
 				block.timestamp,
 				_maticShare + _reimbursedFee,
 				_reimbursedFee,
-				_partnerShare.maticXUnstaked,
-				PartnerActivityType.AUTO_DISBURSED
+				_partnerShare.maticXUnstaked
 			);
 		}
 	}

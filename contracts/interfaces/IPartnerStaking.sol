@@ -35,21 +35,6 @@ interface IPartnerStaking {
 		DisbursalCycleType disbursalCycle;
 	}
 
-	enum PartnerActivityType {
-		ClAIMED,
-		AUTO_DISBURSED
-	}
-	event PartnerActivity(
-		uint256 timestamp,
-		uint256 maticAmount,
-		uint256 reimbursedFee,
-		uint256 maticXUsed,
-		PartnerActivityType activity
-	);
-	event SetTrustedForwarder(address _address);
-	event SetDisbursalBot(address _address);
-	event SetFeeReimbursalPercent(uint8 _feeReimbursalPercent);
-
 	///@@dev UI needs to differentiate between foundation unstake request and partner reward unstake request for a request, _batchId > 0 -> partner reward request, _partnerId > 0 -> foundation reward request
 	struct UnstakeRequest {
 		uint32 partnerId;
@@ -77,13 +62,104 @@ interface IPartnerStaking {
 		mapping(uint32 => PartnerUnstakeShare) partnersShare;
 	}
 
+	//events
+	event AddFoundationAddress(address _address, uint256 _timestamp);
+
+	event RemoveFoundationAddress(address _address, uint256 _timestamp);
+
+	event SetDisbursalBotAddress(address _address, uint256 _timestamp);
+
+	event SetTrustedForwarder(address _address);
+
+	event SetFeeReimbursalPercent(
+		uint8 _feeReimbursalPercent,
+		uint256 _timestamp
+	);
+
+	event ProvideFeeReimbursalMatic(uint256 _amount, uint256 _timestamp);
+
+	event RegisterPartner(
+		uint32 indexed _partnerId,
+		address indexed _walletAddress,
+		uint256 _timestamp
+	);
+
+	event ChangePartnerWalletAddress(
+		uint32 indexed _partnerId,
+		address indexed _oldWalletAddress,
+		address indexed _newWalletAddress,
+		uint256 _timestamp
+	);
+
+	event ChangePartnerDisbursalCount(
+		uint32 indexed partnerId,
+		uint32 _newDisbursalCount,
+		uint256 _timestamp
+	);
+
+	event ChangePartnerStatus(
+		uint32 indexed _partnerId,
+		bool _isActive,
+		uint256 _timestamp
+	);
+
+	event FoundationStake(
+		uint32 indexed _partnerId,
+		uint256 _maticAmount,
+		uint256 _maticXMinted,
+		uint256 _timestamp
+	);
+
+	event FoundationUnStake(
+		uint32 indexed _partnerId,
+		uint256 _maticAmount,
+		uint256 _maticXBurned,
+		uint256 _timestamp
+	);
+
+	event FoundationWithdraw(
+		uint256 _reqIdx,
+		uint256 _maticAmount,
+		uint256 _timestamp
+	);
+
+	event CreateBatch(uint32 indexed _batchId, uint256 _timestamp);
+
+	event UndelegateBatch(
+		uint32 indexed _batchId,
+		uint256 _timestamp,
+		uint256 _maticXBurned
+	);
+
+	event ClaimBatch(
+		uint32 indexed _batchId,
+		uint256 _timestamp,
+		uint256 _maticAmount
+	);
+
+	event UnstakePartnerReward(
+		uint32 indexed _partnerId,
+		uint32 indexed _batchId,
+		uint256 _timestamp,
+		uint256 _maticXUnstaked
+	);
+
+	event DisbursePartnerReward(
+		uint32 indexed _partnerId,
+		uint32 indexed _batchId,
+		uint256 _timestamp,
+		uint256 _maticDisbursed,
+		uint256 _reimbursedFee,
+		uint256 _maticXUsed
+	);
+
 	function addFoundationAddress(address _address) external;
 
 	function removeFoundationAddress(address _address) external;
 
 	function isFoundationAddress(address _address) external returns (bool);
 
-	function setDisbursalBot(address _address) external;
+	function setDisbursalBotAddress(address _address) external;
 
 	function setTrustedForwarder(address _address) external;
 
