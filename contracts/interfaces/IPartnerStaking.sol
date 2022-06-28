@@ -105,6 +105,7 @@ interface IPartnerStaking {
 
 	event FoundationStake(
 		uint32 indexed _partnerId,
+		address indexed _partnerAddress,
 		uint256 _maticAmount,
 		uint256 _maticXMinted,
 		uint256 _timestamp
@@ -112,6 +113,7 @@ interface IPartnerStaking {
 
 	event FoundationUnStake(
 		uint32 indexed _partnerId,
+		address indexed _partnerAddress,
 		uint256 _maticAmount,
 		uint256 _maticXBurned,
 		uint256 _timestamp
@@ -139,6 +141,7 @@ interface IPartnerStaking {
 
 	event UnstakePartnerReward(
 		uint32 indexed _partnerId,
+		address indexed _partnerAddress,
 		uint32 indexed _batchId,
 		uint256 _maticXUnstaked,
 		uint256 _timestamp
@@ -146,6 +149,7 @@ interface IPartnerStaking {
 
 	event DisbursePartnerReward(
 		uint32 indexed _partnerId,
+		address indexed _partnerAddress,
 		uint32 indexed _batchId,
 		uint256 _maticDisbursed,
 		uint256 _reimbursedFee,

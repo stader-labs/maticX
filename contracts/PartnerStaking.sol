@@ -366,6 +366,7 @@ contract PartnerStaking is
 		partner.totalMaticX += _maticXAmount;
 		emit FoundationStake(
 			_partnerId,
+			partner.walletAddress,
 			_maticAmount,
 			_maticXAmount,
 			block.timestamp
@@ -403,6 +404,7 @@ contract PartnerStaking is
 		partner.totalMaticX -= _maticXAmount;
 		emit FoundationStake(
 			_partnerId,
+			partner.walletAddress,
 			_maticAmount,
 			_maticXAmount,
 			block.timestamp
@@ -494,6 +496,7 @@ contract PartnerStaking is
 
 			emit UnstakePartnerReward(
 				_partnerId,
+				_currentPartner.walletAddress,
 				currentBatchId,
 				_reward,
 				block.timestamp
@@ -636,9 +639,9 @@ contract PartnerStaking is
 			uint256 _maticShare = (_currentBatch.maticReceived *
 				_partnerShare.maticXUnstaked) / _currentBatch.maticXBurned;
 
-			uint256 _reimbursedFee = (uint256(_feeReimbursalPercent) *
-				_maticShare *
-				100) / (uint256(100 - _maticXFeePercent) * 100);
+			uint256 _reimbursedFee = (_maticShare *
+				(uint256(_feeReimbursalPercent))) /
+				uint256(100 - _maticXFeePercent);
 
 			// save the state
 			feeReimbursalPool -= _reimbursedFee;
@@ -650,6 +653,7 @@ contract PartnerStaking is
 			);
 			emit DisbursePartnerReward(
 				_partnerId,
+				partners[_partnerId].walletAddress,
 				_batchId,
 				_maticShare + _reimbursedFee,
 				_reimbursedFee,
