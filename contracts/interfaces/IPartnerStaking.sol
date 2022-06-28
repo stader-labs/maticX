@@ -1,7 +1,7 @@
 pragma solidity 0.8.7;
 
 interface IPartnerStaking {
-	function totalPartnerCount() external view returns (uint32);
+	function currentPartnerId() external view returns (uint32);
 
 	function currentBatchId() external view returns (uint32);
 
@@ -63,9 +63,9 @@ interface IPartnerStaking {
 	}
 
 	//events
-	event AddFoundationAddress(address _address, uint256 _timestamp);
+	event AddFoundationApprovedAddress(address _address, uint256 _timestamp);
 
-	event RemoveFoundationAddress(address _address, uint256 _timestamp);
+	event RemoveFoundationApprovedAddress(address _address, uint256 _timestamp);
 
 	event SetDisbursalBotAddress(address _address, uint256 _timestamp);
 
@@ -153,11 +153,13 @@ interface IPartnerStaking {
 		uint256 _timestamp
 	);
 
-	function addFoundationAddress(address _address) external;
+	function addFoundationApprovedAddress(address _address) external;
 
-	function removeFoundationAddress(address _address) external;
+	function removeFoundationApprovedAddress(address _address) external;
 
-	function isFoundationAddress(address _address) external returns (bool);
+	function isFoundationApprovedAddress(address _address)
+		external
+		returns (bool);
 
 	function setDisbursalBotAddress(address _address) external;
 
