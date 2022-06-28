@@ -489,7 +489,7 @@ contract PartnerStaking is
 				.maticXUnstaked;
 			_currentBatch.partnersShare[_partnerId] = PartnerUnstakeShare(
 				_reward + _partnerPrevShare,
-				false
+				0
 			);
 
 			emit UnstakePartnerReward(
@@ -554,6 +554,17 @@ contract PartnerStaking is
 		emit CreateBatch(currentBatchId, block.timestamp);
 	}
 
+	function getPartnerShare(uint32 _batchId, uint32 _partnerId)
+		external
+		view
+		override
+		whenNotPaused
+		returns (PartnerUnstakeShare memory)
+	{
+		require(batches[_batchId].createdAt > 0, "Invalid Batch Id");
+		return batches[_batchId].partnersShare[_partnerId];
+	}
+
 	function claimUnstakeRewards(uint32 _reqIdx)
 		external
 		override
@@ -586,7 +597,7 @@ contract PartnerStaking is
 		_currentBatch.maticReceived = _maticReceived;
 		_currentBatch.claimedAt = uint64(block.timestamp);
 		_currentBatch.status = BatchStatus.CLAIMED;
-		emit ClaimBatch(_batchId, block.timestamp, _maticReceived);
+		emit ClaimBatch(_batchId, _maticReceived, block.timestamp);
 	}
 
 	function disbursePartnersReward(
@@ -615,8 +626,11 @@ contract PartnerStaking is
 				"Inactive Partner"
 			);
 			require(
-				_partnerShare.isDisbursed == true,
+				_partnerShare.disbursedAt == 0,
 				"Partner Reward has already been disbursed"
+			);
+			_currentBatch.partnersShare[_partnerId].disbursedAt = uint64(
+				block.timestamp
 			);
 
 			uint256 _maticShare = (_currentBatch.maticReceived *
@@ -624,10 +638,9 @@ contract PartnerStaking is
 
 			uint256 _reimbursedFee = (uint256(_feeReimbursalPercent) *
 				_maticShare *
-				100) / uint256(100 - _maticXFeePercent);
+				100) / (uint256(100 - _maticXFeePercent) * 100);
 
 			// save the state
-			_currentBatch.partnersShare[_partnerId].isDisbursed == true;
 			feeReimbursalPool -= _reimbursedFee;
 
 			// transfer rewards

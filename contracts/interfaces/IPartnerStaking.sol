@@ -44,7 +44,7 @@ interface IPartnerStaking {
 
 	struct PartnerUnstakeShare {
 		uint256 maticXUnstaked;
-		bool isDisbursed;
+		uint64 disbursedAt;
 	}
 	enum BatchStatus {
 		CREATED,
@@ -133,8 +133,8 @@ interface IPartnerStaking {
 
 	event ClaimBatch(
 		uint32 indexed _batchId,
-		uint256 _timestamp,
-		uint256 _maticAmount
+		uint256 _maticAmount,
+		uint256 _timestamp
 	);
 
 	event UnstakePartnerReward(
@@ -218,6 +218,11 @@ interface IPartnerStaking {
 		external;
 
 	function unDelegateCurrentBatch() external;
+
+	function getPartnerShare(uint32 _batchId, uint32 _partnerId)
+		external
+		view
+		returns (PartnerUnstakeShare memory);
 
 	function claimUnstakeRewards(uint32 _reqIdx) external;
 
