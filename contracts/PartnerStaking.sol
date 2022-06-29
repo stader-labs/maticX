@@ -186,7 +186,7 @@ contract PartnerStaking is
 		emit ProvideFeeReimbursalMatic(_amount, block.timestamp);
 	}
 
-	function validateAndGetPartner(uint32 _partnerId)
+	function getValidatedPartner(uint32 _partnerId)
 		internal
 		returns (Partner storage)
 	{
@@ -239,14 +239,14 @@ contract PartnerStaking is
 		uint32 _partnerId,
 		address _newWalletAddress
 	) external override onlyFoundation returns (Partner memory) {
-		validateAndGetPartner(_partnerId);
+		Partner storage _partner = getValidatedPartner(_partnerId);
 		require(_newWalletAddress != address(0), "Invalid Addresses");
 		require(
 			partnerAddressToId[_newWalletAddress] == 0,
 			"New Wallet address is already assigned to other partner"
 		);
-		address _oldWalletAddress = partners[_partnerId].walletAddress;
-		partners[_partnerId].walletAddress = _newWalletAddress;
+		address _oldWalletAddress = _partner.walletAddress;
+		_partner.walletAddress = _newWalletAddress;
 		partnerAddressToId[_newWalletAddress] = _partnerId;
 		partnerAddressToId[_oldWalletAddress] = 0;
 
@@ -256,15 +256,14 @@ contract PartnerStaking is
 			_newWalletAddress,
 			block.timestamp
 		);
-		return partners[_partnerId];
+		return _partner;
 	}
 
 	function changePartnerDisbursalCount(
 		uint32 _partnerId,
 		uint32 _newDisbursalCount
 	) external override onlyFoundation returns (Partner memory) {
-		validateAndGetPartner(_partnerId);
-		Partner memory _partner = partners[_partnerId];
+		Partner memory _partner = getValidatedPartner(_partnerId);
 		require(
 			_newDisbursalCount != _partner.disbursalCount,
 			"Nothing to change"
@@ -300,12 +299,12 @@ contract PartnerStaking is
 		onlyFoundation
 		returns (Partner memory)
 	{
-		validateAndGetPartner(_partnerId);
-		partners[_partnerId].status = _isActive
+		Partner storage _partner = getValidatedPartner(_partnerId);
+		_partner.status = _isActive
 			? PartnerStatus.ACTIVE
 			: PartnerStatus.INACTIVE;
 		emit ChangePartnerStatus(_partnerId, _isActive, block.timestamp);
-		return partners[_partnerId];
+		return _partner;
 	}
 
 	function getPartnerId(address _walletAddress)
@@ -353,7 +352,7 @@ contract PartnerStaking is
 		onlyFoundation
 	{
 		require(_maticAmount > 0, "Invalid amount");
-		Partner storage partner = validateAndGetPartner(_partnerId);
+		Partner storage partner = getValidatedPartner(_partnerId);
 		require(partner.status == PartnerStatus.ACTIVE, "Inactive Partner");
 		IERC20Upgradeable(polygonERC20).safeTransferFrom(
 			msg.sender,
@@ -379,7 +378,7 @@ contract PartnerStaking is
 		whenNotPaused
 		onlyFoundation
 	{
-		Partner storage partner = validateAndGetPartner(_partnerId);
+		Partner storage partner = getValidatedPartner(_partnerId);
 		require(
 			_maticAmount > 0 && _maticAmount <= partner.totalMaticStaked,
 			"Invalid amount"
@@ -463,7 +462,7 @@ contract PartnerStaking is
 
 		for (uint32 i = 0; i < _partnerIds.length; i++) {
 			uint32 _partnerId = _partnerIds[i];
-			Partner storage _currentPartner = validateAndGetPartner(_partnerId);
+			Partner storage _currentPartner = getValidatedPartner(_partnerId);
 
 			require(
 				_currentPartner.status == PartnerStatus.ACTIVE,
@@ -474,7 +473,6 @@ contract PartnerStaking is
 				_currentPartner.remDisbursals > 0,
 				"No disbursals remaining for this partner"
 			);
-			partners[_partnerId].remDisbursals--;
 
 			uint256 _reward = _currentPartner.totalMaticX -
 				((_currentPartner.totalMaticStaked * _maticToMaticXRate) /
@@ -485,12 +483,16 @@ contract PartnerStaking is
 			_currentPartner.totalMaticX -= _reward;
 
 			_currentBatch.maticXBurned += _reward;
-			// it will be default 0
-			uint256 _partnerPrevShare = _currentBatch
-				.partnersShare[_partnerId]
-				.maticXUnstaked;
+			// partner has been visited already
+			if (_currentBatch.partnersShare[_partnerId].maticXUnstaked > 0) {
+				_reward += _currentBatch
+					.partnersShare[_partnerId]
+					.maticXUnstaked;
+			} else {
+				partners[_partnerId].remDisbursals--;
+			}
 			_currentBatch.partnersShare[_partnerId] = PartnerUnstakeShare(
-				_reward + _partnerPrevShare,
+				_reward,
 				0
 			);
 
