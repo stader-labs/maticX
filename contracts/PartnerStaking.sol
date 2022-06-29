@@ -303,7 +303,7 @@ contract PartnerStaking is
 		_partner.status = _isActive
 			? PartnerStatus.ACTIVE
 			: PartnerStatus.INACTIVE;
-		emit ChangePartnerStatus(_partnerId, _isActive, block.timestamp);
+		emit ChangePartnerStatus(_partnerId, _partner.walletAddress, _isActive, block.timestamp);
 		return _partner;
 	}
 

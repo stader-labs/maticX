@@ -99,6 +99,7 @@ interface IPartnerStaking {
 
 	event ChangePartnerStatus(
 		uint32 indexed _partnerId,
+		address indexed _partnerAddress,
 		bool _isActive,
 		uint256 _timestamp
 	);
