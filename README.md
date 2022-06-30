@@ -43,6 +43,8 @@ npx hardhat deployChildPoolProxy <fxStateChildTunnelAddress> <maticX> <manager> 
 npx hardhat deployFxStateRootTunnel <maticXAddress> --network mainnet
 npx hardhat deployMaticXImpl --network mainnet
 npx hardhat deployValidatorRegistryImpl --network mainnet
+npx hardhat deployPartnerStakingImpl --network mainnet
+npx hardhat deployPartnerStakingProxy <foundationAddress> <polygonERC20> <maticX> <manager> <disbursalBotAddress> --network mainnet
 ```
 
 # Upgrading

@@ -89,6 +89,25 @@ task("deployChildPoolImpl", "Deploy ChildPool Implementation only")
   }
 );
 
+task("deployPartnerStakingProxy", "Deploy PartnerStaking Proxy only")
+    .addPositionalParam("foundationAddress")
+    .addPositionalParam("polygonERC20")
+    .addPositionalParam("maticX")
+    .addPositionalParam("manager")
+    .addPositionalParam("disbursalBotAddress")
+    .setAction(async ({foundationAddress, polygonERC20, maticX, manager, disbursalBotAddress}, hre: HardhatRuntimeEnvironment) => {
+          if (!isRootNetwork(hre.network.name)) return
+          await deployProxy(hre, "PartnerStaking", foundationAddress, polygonERC20, maticX, manager, disbursalBotAddress)
+        }
+    );
+
+task("deployPartnerStakingImpl", "Deploy PartnerStaking Implementation only")
+    .setAction(async (args, hre: HardhatRuntimeEnvironment) => {
+          if (!isRootNetwork(hre.network.name)) return
+          await deployDirect(hre, "PartnerStaking")
+        }
+    );
+
 function isChildNetwork(selected: string) {
   const expected = 'matic';
   return _isCorrectNetwork(expected, selected);
