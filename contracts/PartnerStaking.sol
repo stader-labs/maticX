@@ -646,6 +646,7 @@ contract PartnerStaking is
 				uint256(100 - _maticXFeePercent);
 
 			// save the state
+			require(feeReimbursalPool >= _reimbursedFee, 'Not enough balance to reimburse fee');
 			feeReimbursalPool -= _reimbursedFee;
 
 			// transfer rewards
