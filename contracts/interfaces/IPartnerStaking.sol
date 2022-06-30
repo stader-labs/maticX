@@ -162,10 +162,6 @@ interface IPartnerStaking {
 
 	function removeFoundationApprovedAddress(address _address) external;
 
-	function isFoundationApprovedAddress(address _address)
-		external
-		returns (bool);
-
 	function setDisbursalBotAddress(address _address) external;
 
 	function setTrustedForwarder(address _address) external;
@@ -197,21 +193,6 @@ interface IPartnerStaking {
 		uint32 _partnerId,
 		uint32 _newDisbursalCount
 	) external returns (Partner memory);
-
-	function getPartnerId(address _walletAddress)
-		external
-		view
-		returns (uint32 _partnerId);
-
-	function getPartnerDetails(uint32 _partnerId)
-		external
-		view
-		returns (Partner memory);
-
-	function getPartners(uint32 _count, uint32 _offset)
-		external
-		view
-		returns (Partner[] memory);
 
 	function stake(uint32 _partnerId, uint256 _maticAmount) external;
 

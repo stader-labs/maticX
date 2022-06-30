@@ -18,7 +18,7 @@ contract PartnerStaking is
 {
 	using SafeERC20Upgradeable for IERC20Upgradeable;
 
-	mapping(uint32 => Partner) private partners;
+	mapping(uint32 => Partner) public partners;
 	mapping(address => uint32) public partnerAddressToId;
 	uint32 public override currentPartnerId;
 	UnstakeRequest[] public unstakeRequests;
@@ -100,7 +100,8 @@ contract PartnerStaking is
 
 	function isFoundationApprovedAddress(address _address)
 		external
-		override
+		view
+		virtual
 		returns (bool)
 	{
 		return (foundationApprovedAddresses[_address] > 0);
@@ -115,6 +116,15 @@ contract PartnerStaking is
 		disbursalBotAddress = _address;
 
 		emit SetDisbursalBotAddress(_address, block.timestamp);
+	}
+
+	function isDisbursalBotAddress(address _address)
+		public
+		view
+		virtual
+		returns (bool)
+	{
+		return _address == disbursalBotAddress;
 	}
 
 	function setTrustedForwarder(address _address)
@@ -310,44 +320,6 @@ contract PartnerStaking is
 			block.timestamp
 		);
 		return _partner;
-	}
-
-	function getPartnerId(address _walletAddress)
-		external
-		view
-		override
-		returns (uint32 _partnerId)
-	{
-		return partnerAddressToId[_walletAddress];
-	}
-
-	function getPartnerDetails(uint32 _partnerId)
-		external
-		view
-		override
-		returns (Partner memory)
-	{
-		return partners[_partnerId];
-	}
-
-	function getPartners(uint32 _count, uint32 _startId)
-		external
-		view
-		override
-		returns (Partner[] memory)
-	{
-		Partner[] memory results;
-		uint32 _totalPartnerCount = currentPartnerId;
-		uint32 _idx;
-		for (
-			uint32 _i = _startId;
-			_i <= _totalPartnerCount && _i < (_startId + _count);
-			_i++
-		) {
-			results[_idx] = partners[_i];
-			_idx++;
-		}
-		return results;
 	}
 
 	function stake(uint32 _partnerId, uint256 _maticAmount)

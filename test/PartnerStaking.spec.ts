@@ -51,7 +51,7 @@ describe("PartnerStaking", () => {
 	) => Promise<Transaction>;
 
 	let changeMaticXRate: () => Promise<void>;
-	let provideFeeReimbursalMatic: (amount: BigNumber) => Promise<void>;
+	let provideFeeReimbursalMatic: (amount: BigNumber) => Promise<Transaction>;
 
 	before(() => {
 		delay = (time: number) => new Promise((res) => setTimeout(res, time));
@@ -97,7 +97,7 @@ describe("PartnerStaking", () => {
 
 		provideFeeReimbursalMatic = async (amount: BigNumber) => {
 			await mintAndApproveMatic(manager, amount);
-			await partnerStaking.provideFeeReimbursalMatic(amount, {
+			return await partnerStaking.provideFeeReimbursalMatic(amount, {
 				from: manager.address,
 			});
 		};
@@ -198,6 +198,105 @@ describe("PartnerStaking", () => {
 		);
 	});
 
+	it("it changes fee reimbursal percent", async () => {
+		expect(await partnerStaking.feeReimbursalPercent()).to.eql(5);
+		const tx = await partnerStaking.setFeeReimbursalPercent(2);
+		expect(await partnerStaking.feeReimbursalPercent()).to.eql(2);
+		await expect(tx)
+			.emit(partnerStaking, "SetFeeReimbursalPercent")
+			.withArgs(2, (await ethers.provider.getBlock("latest")).timestamp);
+	});
+
+	it("it adds foundationApprovedAddress", async () => {
+		expect(
+			await partnerStaking.isFoundationApprovedAddress(manager.address)
+		).to.eql(true);
+		expect(
+			await partnerStaking.isFoundationApprovedAddress(users[0].address)
+		).to.eql(false);
+		const tx = await partnerStaking.addFoundationApprovedAddress(
+			users[0].address
+		);
+		expect(
+			await partnerStaking.isFoundationApprovedAddress(users[0].address)
+		).to.eql(true);
+		await expect(tx)
+			.emit(partnerStaking, "AddFoundationApprovedAddress")
+			.withArgs(
+				users[0].address,
+				(
+					await ethers.provider.getBlock("latest")
+				).timestamp
+			);
+	});
+
+	it("it removes foundationApprovedAddress", async () => {
+		expect(
+			await partnerStaking.isFoundationApprovedAddress(manager.address)
+		).to.eql(true);
+		await partnerStaking.addFoundationApprovedAddress(users[0].address);
+		expect(
+			await partnerStaking.isFoundationApprovedAddress(users[0].address)
+		).to.eql(true);
+		const tx = await partnerStaking.removeFoundationApprovedAddress(
+			users[0].address
+		);
+		expect(
+			await partnerStaking.isFoundationApprovedAddress(users[0].address)
+		).to.eql(false);
+		await expect(tx)
+			.emit(partnerStaking, "RemoveFoundationApprovedAddress")
+			.withArgs(
+				users[0].address,
+				(
+					await ethers.provider.getBlock("latest")
+				).timestamp
+			);
+	});
+
+	it("it sets disbursal bot address", async () => {
+		expect(
+			await partnerStaking.isDisbursalBotAddress(manager.address)
+		).to.eql(true);
+		expect(
+			await partnerStaking.isDisbursalBotAddress(users[0].address)
+		).to.eql(false);
+		const tx = await partnerStaking.setDisbursalBotAddress(
+			users[0].address
+		);
+		expect(
+			await partnerStaking.isDisbursalBotAddress(manager.address)
+		).to.eql(false);
+		expect(
+			await partnerStaking.isDisbursalBotAddress(users[0].address)
+		).to.eql(true);
+		await expect(tx)
+			.emit(partnerStaking, "SetDisbursalBotAddress")
+			.withArgs(
+				users[0].address,
+				(
+					await ethers.provider.getBlock("latest")
+				).timestamp
+			);
+	});
+
+	it("it adds funds to fee reimbursal pool", async () => {
+		expect(await partnerStaking.feeReimbursalPool()).to.eql(
+			BigNumber.from(0)
+		);
+		const amount = BigNumber.from(100);
+		const tx = await provideFeeReimbursalMatic(amount);
+		expect(await partnerStaking.feeReimbursalPool()).to.eql(amount);
+		await expect(tx)
+			.emit(partnerStaking, "ProvideFeeReimbursalMatic")
+			.withArgs(
+				amount,
+				(
+					await ethers.provider.getBlock("latest")
+				).timestamp
+			);
+	});
+
 	it("it registers partner successfully", async () => {
 		expect(await partnerStaking.currentPartnerId()).to.eql(0);
 		const tx = await registerPartner(1);
@@ -209,17 +308,83 @@ describe("PartnerStaking", () => {
 			.withArgs(1, users[0].address, latestBlock.timestamp);
 	});
 
+	it("it changes partner status", async () => {
+		await registerPartner(1);
+		expect((await partnerStaking.partners(1)).status).to.eql(0);
+		const tx = await partnerStaking.changePartnerStatus(1, false);
+		expect((await partnerStaking.partners(1)).status).to.eql(1);
+		await expect(tx)
+			.emit(partnerStaking, "ChangePartnerStatus")
+			.withArgs(
+				1,
+				users[0].address,
+				false,
+				(
+					await ethers.provider.getBlock("latest")
+				).timestamp
+			);
+	});
+
+	it("it changes partner address", async () => {
+		await registerPartner(1);
+		expect((await partnerStaking.partners(1)).walletAddress).to.eql(
+			users[0].address
+		);
+		expect(
+			await partnerStaking.partnerAddressToId(users[0].address)
+		).to.eql(1);
+		const tx = await partnerStaking.changePartnerWalletAddress(
+			1,
+			users[1].address
+		);
+		expect((await partnerStaking.partners(1)).walletAddress).to.eql(
+			users[1].address
+		);
+		expect(
+			await partnerStaking.partnerAddressToId(users[1].address)
+		).to.eql(1);
+		expect(
+			await partnerStaking.partnerAddressToId(users[0].address)
+		).to.eql(0);
+		await expect(tx)
+			.emit(partnerStaking, "ChangePartnerWalletAddress")
+			.withArgs(
+				1,
+				users[0].address,
+				users[1].address,
+				(
+					await ethers.provider.getBlock("latest")
+				).timestamp
+			);
+	});
+
+	it("it changes partner disbursal count", async () => {
+		await registerPartner(1);
+		expect((await partnerStaking.partners(1)).disbursalCount).to.eql(10);
+		const tx = await partnerStaking.changePartnerDisbursalCount(1, 11);
+		expect((await partnerStaking.partners(1)).disbursalCount).to.eql(11);
+		await expect(tx)
+			.emit(partnerStaking, "ChangePartnerDisbursalCount")
+			.withArgs(
+				1,
+				11,
+				(
+					await ethers.provider.getBlock("latest")
+				).timestamp
+			);
+	});
+
 	it("it stakes funds against a partner successfully", async () => {
 		await registerPartner(1);
-		expect(
-			(await partnerStaking.getPartnerDetails(1)).totalMaticStaked
-		).to.eql(BigNumber.from(0));
+		expect((await partnerStaking.partners(1)).totalMaticStaked).to.eql(
+			BigNumber.from(0)
+		);
 		const maticAmount = BigNumber.from(1000);
 		const tx = await stakeMatic(1, maticAmount);
 		const maticXConversionResult = await maticX.convertMaticToMaticX(
 			BigNumber.from(1000)
 		);
-		const newDetails = await partnerStaking.getPartnerDetails(1);
+		const newDetails = await partnerStaking.partners(1);
 		expect(newDetails.totalMaticStaked).to.eql(BigNumber.from(1000));
 		expect(newDetails.totalMaticX).to.eql(maticXConversionResult[0]);
 		const latestBlock = await ethers.provider.getBlock("latest");
@@ -241,8 +406,8 @@ describe("PartnerStaking", () => {
 		const partner2Matic = BigNumber.from(200);
 		await stakeMatic(1, partner1Matic.mul(weiUnit));
 		await stakeMatic(2, partner2Matic.mul(weiUnit));
-		const oldPartner1 = await partnerStaking.getPartnerDetails(1);
-		const oldPartner2 = await partnerStaking.getPartnerDetails(2);
+		const oldPartner1 = await partnerStaking.partners(1);
+		const oldPartner2 = await partnerStaking.partners(2);
 
 		/**  Unstake Rewards **/
 		//console.log(await maticX.convertMaticXToMatic(weiUnit));
@@ -252,8 +417,8 @@ describe("PartnerStaking", () => {
 		const tx = await partnerStaking.addDueRewardsToCurrentBatch([1, 2], {
 			from: manager.address,
 		});
-		const newPartner1 = await partnerStaking.getPartnerDetails(1);
-		const newPartner2 = await partnerStaking.getPartnerDetails(2);
+		const newPartner1 = await partnerStaking.partners(1);
+		const newPartner2 = await partnerStaking.partners(2);
 		// partner1 current maticX to equal matic Staked
 		expect(newPartner1.totalMaticX).to.eql(
 			newPartner1.totalMaticStaked.mul(maticXRate).div(weiUnit)
@@ -388,7 +553,6 @@ describe("PartnerStaking", () => {
 		const batchBeforeClaim = await partnerStaking.batches(1);
 		await stakeManagerMock.setEpoch(batchBeforeClaim.withdrawalEpoch);
 		await partnerStaking.claimUnstakeRewards(0);
-		const batchAfterClaim = await partnerStaking.batches(1);
 
 		const oldPartner1MaticBalance = await polygonMock.balanceOf(
 			users[0].address
@@ -487,7 +651,7 @@ describe("PartnerStaking", () => {
 		);*/
 	});
 
-	it("undelegate partner rewards - error for 2nd partner - status inactive", async () => {
+	it("it undelegates partner rewards - error for 2nd partner - status inactive", async () => {
 		// partner1
 		await registerPartner(1);
 		// partner2
@@ -497,11 +661,11 @@ describe("PartnerStaking", () => {
 		const partner2Matic = BigNumber.from(200);
 		await stakeMatic(1, partner1Matic);
 		await stakeMatic(2, partner2Matic);
-		const oldPartner1 = await partnerStaking.getPartnerDetails(1);
+		const oldPartner1 = await partnerStaking.partners(1);
 
 		// mark the second partner inactive
 		const tx1 = await partnerStaking.changePartnerStatus(2, false);
-		expect((await partnerStaking.getPartnerDetails(2)).status).to.eql(1);
+		expect((await partnerStaking.partners(2)).status).to.eql(1);
 		await expect(tx1)
 			.emit(partnerStaking, "ChangePartnerStatus")
 			.withArgs(
@@ -520,6 +684,6 @@ describe("PartnerStaking", () => {
 			})
 		).to.be.revertedWith("Inactive Partner");
 
-		expect(await partnerStaking.getPartnerDetails(1)).to.eql(oldPartner1);
+		expect(await partnerStaking.partners(1)).to.eql(oldPartner1);
 	});
 });
