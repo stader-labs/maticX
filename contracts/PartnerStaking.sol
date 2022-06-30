@@ -217,7 +217,7 @@ contract PartnerStaking is
 		currentPartnerId += 1;
 		uint32 _partnerId = currentPartnerId;
 		partners[_partnerId] = Partner(
-			_disbursalCount, //remDisbursals
+			_disbursalCount, //disbursalRemaining
 			_disbursalCount, //disbursalCount
 			uint64(block.timestamp), //registeredAt
 			0, //totalMaticStaked;
@@ -269,17 +269,17 @@ contract PartnerStaking is
 			"Nothing to change"
 		);
 		if (_newDisbursalCount > _partner.disbursalCount) {
-			partners[_partnerId].remDisbursals +=
+			partners[_partnerId].disbursalRemaining +=
 				_newDisbursalCount -
 				_partner.disbursalCount;
 			partners[_partnerId].disbursalCount = _newDisbursalCount;
 		} else {
 			require(
 				_partner.disbursalCount - _newDisbursalCount <=
-					_partner.remDisbursals,
+					_partner.disbursalRemaining,
 				"Invalid Disbursal count"
 			);
-			partners[_partnerId].remDisbursals -=
+			partners[_partnerId].disbursalRemaining -=
 				_partner.disbursalCount -
 				_newDisbursalCount;
 			partners[_partnerId].disbursalCount = _newDisbursalCount;
@@ -303,7 +303,12 @@ contract PartnerStaking is
 		_partner.status = _isActive
 			? PartnerStatus.ACTIVE
 			: PartnerStatus.INACTIVE;
-		emit ChangePartnerStatus(_partnerId, _partner.walletAddress, _isActive, block.timestamp);
+		emit ChangePartnerStatus(
+			_partnerId,
+			_partner.walletAddress,
+			_isActive,
+			block.timestamp
+		);
 		return _partner;
 	}
 
@@ -470,7 +475,7 @@ contract PartnerStaking is
 			);
 
 			require(
-				_currentPartner.remDisbursals > 0,
+				_currentPartner.disbursalRemaining > 0,
 				"No disbursals remaining for this partner"
 			);
 
@@ -483,13 +488,13 @@ contract PartnerStaking is
 			_currentPartner.totalMaticX -= _reward;
 
 			_currentBatch.maticXBurned += _reward;
-			// partner has been visited already
+			// partner has already been visited
 			if (_currentBatch.partnersShare[_partnerId].maticXUnstaked > 0) {
 				_reward += _currentBatch
 					.partnersShare[_partnerId]
 					.maticXUnstaked;
 			} else {
-				partners[_partnerId].remDisbursals--;
+				partners[_partnerId].disbursalRemaining--;
 			}
 			_currentBatch.partnersShare[_partnerId] = PartnerUnstakeShare(
 				_reward,
@@ -552,8 +557,8 @@ contract PartnerStaking is
 
 		emit UndelegateBatch(
 			_batchId,
-			block.timestamp,
-			_currentBatch.maticXBurned
+			_currentBatch.maticXBurned,
+			block.timestamp
 		);
 
 		emit CreateBatch(currentBatchId, block.timestamp);
@@ -646,7 +651,10 @@ contract PartnerStaking is
 				uint256(100 - _maticXFeePercent);
 
 			// save the state
-			require(feeReimbursalPool >= _reimbursedFee, 'Not enough balance to reimburse fee');
+			require(
+				feeReimbursalPool >= _reimbursedFee,
+				"Not enough balance to reimburse fee"
+			);
 			feeReimbursalPool -= _reimbursedFee;
 
 			// transfer rewards

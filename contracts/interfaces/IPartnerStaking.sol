@@ -21,7 +21,7 @@ interface IPartnerStaking {
 		INACTIVE
 	}
 	struct Partner {
-		uint32 remDisbursals;
+		uint32 disbursalRemaining;
 		uint32 disbursalCount;
 		uint64 registeredAt;
 		uint256 totalMaticStaked;
@@ -130,8 +130,8 @@ interface IPartnerStaking {
 
 	event UndelegateBatch(
 		uint32 indexed _batchId,
-		uint256 _timestamp,
-		uint256 _maticXBurned
+		uint256 _maticXBurned,
+		uint256 _timestamp
 	);
 
 	event ClaimBatch(
