@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { HardhatUserConfig, task } from 'hardhat/config'
+import "solidity-coverage"
 
 import 'hardhat-contract-sizer'
 import 'hardhat-gas-reporter'
