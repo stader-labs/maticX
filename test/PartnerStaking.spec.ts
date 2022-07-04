@@ -399,6 +399,14 @@ describe("PartnerStaking", () => {
 			);
 	});
 
+	it("it stakes funds against a partner successfully - fails due to inactive partner", async () => {
+		await registerPartner(1);
+		await partnerStaking.changePartnerStatus(1, false);
+		const maticAmount = BigNumber.from(1000);
+		const tx = stakeMatic(1, maticAmount);
+		await expect(tx).to.be.revertedWith("Inactive Partner");
+	});
+
 	it("it calculates due rewards for a partner and adds them to batch", async () => {
 		await registerPartner(1);
 		await registerPartner(2);
@@ -410,9 +418,9 @@ describe("PartnerStaking", () => {
 		const oldPartner2 = await partnerStaking.partners(2);
 
 		/**  Unstake Rewards **/
-		//console.log(await maticX.convertMaticXToMatic(weiUnit));
+		// console.log(await maticX.convertMaticXToMatic(weiUnit));
 		await changeMaticXRate();
-		//console.log(await maticX.convertMaticXToMatic(weiUnit));
+		// console.log(await maticX.convertMaticXToMatic(weiUnit));
 		const maticXRate = (await maticX.convertMaticToMaticX(weiUnit))[0];
 		const tx = await partnerStaking.addDueRewardsToCurrentBatch([1, 2], {
 			from: manager.address,
@@ -476,6 +484,119 @@ describe("PartnerStaking", () => {
 		expect(parnterShare2.disbursedAt).to.eql(BigNumber.from(0));
 	});
 
+	it("it calculates due rewards for a partner and adds them to batch - 0 rewards", async () => {
+		await registerPartner(1);
+		const partner1Matic = BigNumber.from(200);
+		await stakeMatic(1, partner1Matic.mul(weiUnit));
+		const oldPartner1 = await partnerStaking.partners(1);
+
+		/**  Unstake Rewards **/
+		const tx = await partnerStaking.addDueRewardsToCurrentBatch([1], {
+			from: manager.address,
+		});
+		const newPartner1 = await partnerStaking.partners(1);
+		// partner1 current maticX to equal matic Staked
+		expect(newPartner1.totalMaticX).to.eql(oldPartner1.totalMaticX);
+		expect(newPartner1.disbursalRemaining).to.eql(
+			newPartner1.disbursalCount
+		);
+		const latestBlock = await ethers.provider.getBlock("latest");
+		await expect(tx)
+			.not.emit(partnerStaking, "UnstakePartnerReward")
+			.withArgs(
+				1,
+				users[0].address,
+				1,
+				oldPartner1.totalMaticX.sub(newPartner1.totalMaticX),
+				latestBlock.timestamp
+			);
+		const batch = await partnerStaking.batches(1);
+		expect(batch.undelegatedAt).to.eql(BigNumber.from(0));
+		expect(batch.claimedAt).to.eql(BigNumber.from(0));
+		expect(batch.withdrawalEpoch).to.eql(BigNumber.from(0));
+		expect(batch.maticXBurned).to.eql(BigNumber.from(0));
+		expect(batch.maticReceived).to.eql(BigNumber.from(0));
+		expect(batch.status).to.eql(0);
+
+		const parnterShare1 = await partnerStaking.getPartnerShare(1, 1);
+		expect(parnterShare1.maticXUnstaked).to.eql(BigNumber.from(0));
+		expect(parnterShare1.disbursedAt).to.eql(BigNumber.from(0));
+	});
+
+	it("it calculates due rewards for a partner and adds them to batch - wrong partnerId", async () => {
+		await registerPartner(1);
+		await registerPartner(2);
+		const partner1Matic = BigNumber.from(101);
+		const partner2Matic = BigNumber.from(200);
+		await stakeMatic(1, partner1Matic.mul(weiUnit));
+		await stakeMatic(2, partner2Matic.mul(weiUnit));
+		const oldPartner1 = await partnerStaking.partners(1);
+		const oldPartner2 = await partnerStaking.partners(2);
+
+		/**  Unstake Rewards **/
+		// console.log(await maticX.convertMaticXToMatic(weiUnit));
+		await changeMaticXRate();
+		// console.log(await maticX.convertMaticXToMatic(weiUnit));
+		const maticXRate = (await maticX.convertMaticToMaticX(weiUnit))[0];
+		const tx = partnerStaking.addDueRewardsToCurrentBatch([1, 3], {
+			from: manager.address,
+		});
+		await expect(tx).to.be.revertedWith("Invalid PartnerId");
+		const newPartner1 = await partnerStaking.partners(1);
+		// partner1 current maticX to equal matic Staked
+		expect(newPartner1.totalMaticX).to.eql(oldPartner1.totalMaticX);
+		expect(newPartner1.disbursalRemaining).to.eql(
+			newPartner1.disbursalCount
+		);
+		const batch = await partnerStaking.batches(1);
+		expect(batch.undelegatedAt).to.eql(BigNumber.from(0));
+		expect(batch.claimedAt).to.eql(BigNumber.from(0));
+		expect(batch.withdrawalEpoch).to.eql(BigNumber.from(0));
+		expect(batch.maticXBurned).to.eql(BigNumber.from(0));
+		expect(batch.maticReceived).to.eql(BigNumber.from(0));
+		expect(batch.status).to.eql(0);
+
+		const parnterShare1 = await partnerStaking.getPartnerShare(1, 1);
+		expect(parnterShare1.maticXUnstaked).to.eql(BigNumber.from(0));
+		expect(parnterShare1.disbursedAt).to.eql(BigNumber.from(0));
+	});
+
+	it("it calculates due rewards for a partner and adds them to batch - inactive partner", async () => {
+		// partner1
+		await registerPartner(1);
+		// partner2
+		await registerPartner(2);
+
+		const partner1Matic = BigNumber.from(101);
+		const partner2Matic = BigNumber.from(200);
+		await stakeMatic(1, partner1Matic);
+		await stakeMatic(2, partner2Matic);
+		const oldPartner1 = await partnerStaking.partners(1);
+
+		// mark the second partner inactive
+		const tx1 = await partnerStaking.changePartnerStatus(2, false);
+		expect((await partnerStaking.partners(2)).status).to.eql(1);
+		await expect(tx1)
+			.emit(partnerStaking, "ChangePartnerStatus")
+			.withArgs(
+				2,
+				users[1].address,
+				false,
+				(
+					await ethers.provider.getBlock("latest")
+				).timestamp
+			);
+
+		await changeMaticXRate();
+		await expect(
+			partnerStaking.addDueRewardsToCurrentBatch([1, 2], {
+				from: manager.address,
+			})
+		).to.be.revertedWith("Inactive Partner");
+
+		expect(await partnerStaking.partners(1)).to.eql(oldPartner1);
+	});
+
 	it("it undelegates a batch", async () => {
 		await registerPartner(1);
 		await registerPartner(2);
@@ -536,6 +657,28 @@ describe("PartnerStaking", () => {
 		);
 		expect(batchAfterClaim.maticReceived).to.eql(expectedMaticReceived);
 		expect(batchAfterClaim.status).to.eql(2); // claimed
+	});
+
+	it("it claims an undelegated batch - fails because of undelegation period", async () => {
+		await registerPartner(1);
+		await registerPartner(2);
+		const partner1Matic = BigNumber.from(101);
+		const partner2Matic = BigNumber.from(200);
+		await stakeMatic(1, partner1Matic.mul(weiUnit));
+		await stakeMatic(2, partner2Matic.mul(weiUnit));
+		await changeMaticXRate();
+		await partnerStaking.addDueRewardsToCurrentBatch([1, 2], {
+			from: manager.address,
+		});
+		await partnerStaking.unDelegateCurrentBatch({
+			from: manager.address,
+		});
+		const batchBeforeClaim = await partnerStaking.batches(1);
+		const tx = partnerStaking.claimUnstakeRewards(0);
+		await expect(tx).to.be.revertedWith("Not able to claim yet");
+		const batchAfterClaim = await partnerStaking.batches(1);
+		expect(batchAfterClaim).to.deep.equal(batchBeforeClaim);
+		expect((await partnerStaking.unstakeRequests(0)).batchId).to.eql(1);
 	});
 
 	it("it disburses rewards to partner wallets", async () => {
@@ -628,62 +771,204 @@ describe("PartnerStaking", () => {
 				BigNumber.from(blockTimestamp)
 			);
 
-		/*const receipt = await ethers.provider.getTransactionReceipt(tx4.hash);
-		const iFace = new ethers.utils.Interface([
-			"event DisbursePartnerReward(uint32 indexed _partnerId, address indexed _partnerAddress, uint32 indexed _batchId, uint256 _maticDisbursed,uint256 _reimbursedFee,uint256 _maticXUsed, uint256 _timestamp)",
-		]);
-		// console.log(receipt);
-		console.log(await partnerStaking.feeReimbursalPercent());
-		console.log(await maticX.feePercent());
-		console.log(
-			iFace.decodeEventLog(
-				"DisbursePartnerReward",
-				receipt.logs[1].data,
-				receipt.logs[1].topics
-			)
-		);
-		console.log(
-			iFace.decodeEventLog(
-				"DisbursePartnerReward",
-				receipt.logs[3].data,
-				receipt.logs[3].topics
-			)
-		);*/
+		/* const receipt = await ethers.provider.getTransactionReceipt(tx4.hash);
+        const iFace = new ethers.utils.Interface([
+            "event DisbursePartnerReward(uint32 indexed _partnerId, address indexed _partnerAddress, uint32 indexed _batchId, uint256 _maticDisbursed,uint256 _reimbursedFee,uint256 _maticXUsed, uint256 _timestamp)",
+        ]);
+        // console.log(receipt);
+        console.log(await partnerStaking.feeReimbursalPercent());
+        console.log(await maticX.feePercent());
+        console.log(
+            iFace.decodeEventLog(
+                "DisbursePartnerReward",
+                receipt.logs[1].data,
+                receipt.logs[1].topics
+            )
+        );
+        console.log(
+            iFace.decodeEventLog(
+                "DisbursePartnerReward",
+                receipt.logs[3].data,
+                receipt.logs[3].topics
+            )
+        );*/
 	});
 
-	it("it undelegates partner rewards - error for 2nd partner - status inactive", async () => {
-		// partner1
+	it("it disburses rewards to partner wallets - wrong partnerId", async () => {
 		await registerPartner(1);
-		// partner2
 		await registerPartner(2);
-
-		const partner1Matic = BigNumber.from(101);
-		const partner2Matic = BigNumber.from(200);
-		await stakeMatic(1, partner1Matic);
-		await stakeMatic(2, partner2Matic);
-		const oldPartner1 = await partnerStaking.partners(1);
-
-		// mark the second partner inactive
-		const tx1 = await partnerStaking.changePartnerStatus(2, false);
-		expect((await partnerStaking.partners(2)).status).to.eql(1);
-		await expect(tx1)
-			.emit(partnerStaking, "ChangePartnerStatus")
-			.withArgs(
-				2,
-				users[1].address,
-				false,
-				(
-					await ethers.provider.getBlock("latest")
-				).timestamp
-			);
-
+		await stakeMatic(1, BigNumber.from(101).mul(weiUnit));
+		await stakeMatic(2, BigNumber.from(200).mul(weiUnit));
 		await changeMaticXRate();
-		await expect(
-			partnerStaking.addDueRewardsToCurrentBatch([1, 2], {
-				from: manager.address,
-			})
-		).to.be.revertedWith("Inactive Partner");
+		await partnerStaking.addDueRewardsToCurrentBatch([1, 2], {
+			from: manager.address,
+		});
+		await partnerStaking.unDelegateCurrentBatch({
+			from: manager.address,
+		});
+		const batchBeforeClaim = await partnerStaking.batches(1);
+		await stakeManagerMock.setEpoch(batchBeforeClaim.withdrawalEpoch);
+		await partnerStaking.claimUnstakeRewards(0);
 
-		expect(await partnerStaking.partners(1)).to.eql(oldPartner1);
+		const oldPartner1MaticBalance = await polygonMock.balanceOf(
+			users[0].address
+		);
+		const oldPartner2MaticBalance = await polygonMock.balanceOf(
+			users[1].address
+		);
+		await partnerStaking.setFeeReimbursalPercent(2);
+		const feeReimbursalPercent =
+			await partnerStaking.feeReimbursalPercent();
+		const maticXFeePercent = await maticX.feePercent();
+		const feeReimbursalMatic = BigNumber.from(100).mul(weiUnit);
+		await provideFeeReimbursalMatic(feeReimbursalMatic);
+		const tx = partnerStaking.disbursePartnersReward(1, [1, 3]);
+		await expect(tx).to.be.revertedWith(
+			"No Partner Share for this partnerId"
+		);
+		const blockTimestamp = (await ethers.provider.getBlock("latest"))
+			.timestamp;
+		const partnerShare1 = await partnerStaking.getPartnerShare(1, 1);
+		const partnerShare2 = await partnerStaking.getPartnerShare(1, 2);
+		const newPartner1MaticBalance = await polygonMock.balanceOf(
+			users[0].address
+		);
+		const newPartner2MaticBalance = await polygonMock.balanceOf(
+			users[1].address
+		);
+		expect(partnerShare1.disbursedAt).to.eql(BigNumber.from(0));
+		expect(partnerShare2.disbursedAt).to.eql(BigNumber.from(0));
+		const partner1Matic = (
+			await maticX.convertMaticXToMatic(partnerShare1.maticXUnstaked)
+		)[0];
+		const partner2Matic = (
+			await maticX.convertMaticXToMatic(partnerShare2.maticXUnstaked)
+		)[0];
+		expect(await partnerStaking.feeReimbursalPool()).to.eql(
+			feeReimbursalMatic
+		);
+		expect(newPartner1MaticBalance).to.eql(oldPartner1MaticBalance);
+		expect(newPartner2MaticBalance).to.eql(oldPartner2MaticBalance);
+	});
+
+	it("it disburses rewards to partner wallets - inactive partner", async () => {
+		await registerPartner(1);
+		await registerPartner(2);
+		await stakeMatic(1, BigNumber.from(101).mul(weiUnit));
+		await stakeMatic(2, BigNumber.from(200).mul(weiUnit));
+		await changeMaticXRate();
+		await partnerStaking.addDueRewardsToCurrentBatch([1, 2], {
+			from: manager.address,
+		});
+		await partnerStaking.unDelegateCurrentBatch({
+			from: manager.address,
+		});
+		const batchBeforeClaim = await partnerStaking.batches(1);
+		await stakeManagerMock.setEpoch(batchBeforeClaim.withdrawalEpoch);
+		await partnerStaking.claimUnstakeRewards(0);
+
+		const oldPartner1MaticBalance = await polygonMock.balanceOf(
+			users[0].address
+		);
+		const oldPartner2MaticBalance = await polygonMock.balanceOf(
+			users[1].address
+		);
+		await partnerStaking.setFeeReimbursalPercent(2);
+		const feeReimbursalPercent =
+			await partnerStaking.feeReimbursalPercent();
+		const maticXFeePercent = await maticX.feePercent();
+		const feeReimbursalMatic = BigNumber.from(100).mul(weiUnit);
+		await provideFeeReimbursalMatic(feeReimbursalMatic);
+		await partnerStaking.changePartnerStatus(2, false);
+		const tx = partnerStaking.disbursePartnersReward(1, [1, 2]);
+		await expect(tx).to.be.revertedWith("Inactive Partner");
+		const blockTimestamp = (await ethers.provider.getBlock("latest"))
+			.timestamp;
+		const partnerShare1 = await partnerStaking.getPartnerShare(1, 1);
+		const partnerShare2 = await partnerStaking.getPartnerShare(1, 2);
+		const newPartner1MaticBalance = await polygonMock.balanceOf(
+			users[0].address
+		);
+		const newPartner2MaticBalance = await polygonMock.balanceOf(
+			users[1].address
+		);
+		expect(partnerShare1.disbursedAt).to.eql(BigNumber.from(0));
+		expect(partnerShare2.disbursedAt).to.eql(BigNumber.from(0));
+		const partner1Matic = (
+			await maticX.convertMaticXToMatic(partnerShare1.maticXUnstaked)
+		)[0];
+		const partner2Matic = (
+			await maticX.convertMaticXToMatic(partnerShare2.maticXUnstaked)
+		)[0];
+		expect(await partnerStaking.feeReimbursalPool()).to.eql(
+			feeReimbursalMatic
+		);
+		expect(newPartner1MaticBalance).to.eql(oldPartner1MaticBalance);
+		expect(newPartner2MaticBalance).to.eql(oldPartner2MaticBalance);
+	});
+
+	it("it disburses rewards to partner wallets - duplicate disbursals", async () => {
+		await registerPartner(1);
+		await registerPartner(2);
+		await stakeMatic(1, BigNumber.from(101).mul(weiUnit));
+		await stakeMatic(2, BigNumber.from(200).mul(weiUnit));
+		await changeMaticXRate();
+		await partnerStaking.addDueRewardsToCurrentBatch([1, 2], {
+			from: manager.address,
+		});
+		await partnerStaking.unDelegateCurrentBatch({
+			from: manager.address,
+		});
+		const batchBeforeClaim = await partnerStaking.batches(1);
+		await stakeManagerMock.setEpoch(batchBeforeClaim.withdrawalEpoch);
+		await partnerStaking.claimUnstakeRewards(0);
+
+		const oldPartner1MaticBalance = await polygonMock.balanceOf(
+			users[0].address
+		);
+		const oldPartner2MaticBalance = await polygonMock.balanceOf(
+			users[1].address
+		);
+		await partnerStaking.setFeeReimbursalPercent(2);
+		const feeReimbursalPercent =
+			await partnerStaking.feeReimbursalPercent();
+		const maticXFeePercent = await maticX.feePercent();
+		const feeReimbursalMatic = BigNumber.from(100).mul(weiUnit);
+		await provideFeeReimbursalMatic(feeReimbursalMatic);
+
+		await partnerStaking.disbursePartnersReward(1, [2]);
+		const blockTimestamp = (await ethers.provider.getBlock("latest"))
+			.timestamp;
+		const tx = partnerStaking.disbursePartnersReward(1, [1, 2]);
+
+		await expect(tx).to.be.revertedWith(
+			"Partner Reward has already been disbursed"
+		);
+
+		const partnerShare1 = await partnerStaking.getPartnerShare(1, 1);
+		const partnerShare2 = await partnerStaking.getPartnerShare(1, 2);
+		const newPartner1MaticBalance = await polygonMock.balanceOf(
+			users[0].address
+		);
+		const newPartner2MaticBalance = await polygonMock.balanceOf(
+			users[1].address
+		);
+		expect(partnerShare1.disbursedAt).to.eql(BigNumber.from(0));
+		expect(partnerShare2.disbursedAt).to.eql(
+			BigNumber.from(blockTimestamp)
+		);
+		const partner2Matic = (
+			await maticX.convertMaticXToMatic(partnerShare2.maticXUnstaked)
+		)[0];
+		const partner2Reimbursal = partner2Matic
+			.mul(BigNumber.from(feeReimbursalPercent))
+			.div(BigNumber.from(100 - maticXFeePercent));
+		expect(await partnerStaking.feeReimbursalPool()).to.eql(
+			feeReimbursalMatic.sub(partner2Reimbursal)
+		);
+		expect(newPartner1MaticBalance).to.eql(oldPartner1MaticBalance);
+		expect(newPartner2MaticBalance.sub(oldPartner2MaticBalance)).to.eql(
+			partner2Matic.add(partner2Reimbursal)
+		);
 	});
 });
