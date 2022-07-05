@@ -172,7 +172,7 @@ contract PartnerStaking is
 		uint8 maticXFeePercent = IMaticX(maticX).feePercent();
 		require(
 			_feeReimbursalPercent <= maticXFeePercent,
-			"_feePercent must not exceed maticX fee percent"
+			"_feeReimbursalPercent must be lower than maticX fee percent"
 		);
 
 		feeReimbursalPercent = _feeReimbursalPercent;
@@ -378,7 +378,7 @@ contract PartnerStaking is
 
 		partner.totalMaticStaked -= _maticAmount;
 		partner.totalMaticX -= _maticXAmount;
-		emit FoundationStake(
+		emit FoundationUnStake(
 			_partnerId,
 			partner.walletAddress,
 			_maticAmount,
@@ -433,10 +433,6 @@ contract PartnerStaking is
 			"Invalid Batch Status"
 		);
 
-		(uint256 _maticToMaticXRate, , ) = IMaticX(maticX).convertMaticToMaticX(
-			10**18
-		);
-
 		for (uint32 i = 0; i < _partnerIds.length; i++) {
 			uint32 _partnerId = _partnerIds[i];
 			Partner storage _currentPartner = getValidatedPartner(_partnerId);
@@ -451,11 +447,12 @@ contract PartnerStaking is
 				"No disbursals remaining for this partner"
 			);
 
-			uint256 _reward = _currentPartner.totalMaticX -
-				((_currentPartner.totalMaticStaked * _maticToMaticXRate) /
-					10**18);
+			(uint256 initialMaticXVal, , ) = IMaticX(maticX).convertMaticToMaticX(
+				_currentPartner.totalMaticStaked
+			);
+			uint256 _reward = _currentPartner.totalMaticX - initialMaticXVal;
 
-			if (_reward == 0) continue;
+			if (_reward < (10**18) ) continue;
 
 			_currentPartner.totalMaticX -= _reward;
 
@@ -607,10 +604,7 @@ contract PartnerStaking is
 				partners[_partnerId].status == PartnerStatus.ACTIVE,
 				"Inactive Partner"
 			);
-			require(
-				_partnerShare.disbursedAt == 0,
-				"Partner Reward has already been disbursed"
-			);
+			if(_partnerShare.disbursedAt > 0) continue;
 			_currentBatch.partnersShare[_partnerId].disbursedAt = uint64(
 				block.timestamp
 			);
