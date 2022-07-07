@@ -447,12 +447,11 @@ contract PartnerStaking is
 				"No disbursals remaining for this partner"
 			);
 
-			(uint256 initialMaticXVal, , ) = IMaticX(maticX).convertMaticToMaticX(
-				_currentPartner.totalMaticStaked
-			);
+			(uint256 initialMaticXVal, , ) = IMaticX(maticX)
+				.convertMaticToMaticX(_currentPartner.totalMaticStaked);
 			uint256 _reward = _currentPartner.totalMaticX - initialMaticXVal;
 
-			if (_reward < (10**18) ) continue;
+			if (_reward < (10**10)) continue;
 
 			_currentPartner.totalMaticX -= _reward;
 
@@ -502,6 +501,7 @@ contract PartnerStaking is
 			_currentBatch.maticXBurned
 		);
 		IMaticX(maticX).requestWithdraw(_currentBatch.maticXBurned);
+
 		uint32 _idx = uint32(unstakeRequests.length);
 		IMaticX.WithdrawalRequest[] memory withdrawalRequests = IMaticX(maticX)
 			.getUserWithdrawalRequests(address(this));
@@ -604,7 +604,7 @@ contract PartnerStaking is
 				partners[_partnerId].status == PartnerStatus.ACTIVE,
 				"Inactive Partner"
 			);
-			if(_partnerShare.disbursedAt > 0) continue;
+			if (_partnerShare.disbursedAt > 0) continue;
 			_currentBatch.partnersShare[_partnerId].disbursedAt = uint64(
 				block.timestamp
 			);
