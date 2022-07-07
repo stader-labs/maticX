@@ -255,6 +255,7 @@ describe("MaticX contract", function () {
 		await fxStateRootTunnel.setMaticX(maticX.address);
 		await fxStateRootTunnel.setFxChildTunnel(fxStateChildTunnel.address);
 		await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
+		await maticX.setupBotRole();
 	});
 
 	it("Should submit successfully", async () => {
@@ -679,5 +680,56 @@ describe("MaticX contract", function () {
 		expect(totalSharesAfterWithdrawAll).to.equal(0);
 		expect(totalPooledMaticAfterWithdrawAll).to.equal(0);
 		expect(rateAfterWithdrawAll).to.equal(ethers.utils.parseEther("1"));
+	});
+
+	it("it should add and then remove a bot address", async () => {
+		expect(await maticX.isBot(users[0].address)).to.eql(false);
+		const tx = await maticX.addBot(users[0].address);
+		await expect(tx).to.emit(maticX, "AddBot").withArgs(users[0].address);
+		expect(await maticX.isBot(users[0].address)).to.eql(true);
+
+		const tx2 = await maticX.removeBot(users[0].address);
+		await expect(tx2)
+			.to.emit(maticX, "RemoveBot")
+			.withArgs(users[0].address);
+		expect(await maticX.isBot(users[0].address)).to.eql(false);
+	});
+
+	it("it should stakeRewards - accesscontrol check", async () => {
+		await maticX.addBot(users[1].address);
+
+		const submitAmounts: string[] = [];
+		const [minAmount, maxAmount] = [0.005, 0.01];
+		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
+		for (let i = 0; i < delegatorsAmount; i++) {
+			submitAmounts.push(
+				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
+			);
+			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
+			await mint(users[i], submitAmountWei);
+			await submit(users[i], submitAmountWei);
+		}
+		const instant_pool_matic = ethers.utils.parseEther("10");
+		await mint(deployer, instant_pool_matic);
+		await maticApprove(deployer, instant_pool_matic);
+		await provideInstantPoolMatic(deployer, instant_pool_matic);
+		const rewards = 1000000;
+		const feePercent = await maticX.feePercent();
+		const treasuryFee = (rewards * feePercent) / 100;
+		const stakedAmount = rewards - treasuryFee;
+		await polygonMock.mintTo(maticX.address, rewards);
+
+		// fails for non-bot
+		await expect(stakeRewardsAndDistributeFees(users[0], 1)).to.be.reverted;
+
+		// succeeds for bot
+		const stakeRewardsAndDistributeFeesTx =
+			await stakeRewardsAndDistributeFees(users[1], 1);
+		await expect(stakeRewardsAndDistributeFeesTx)
+			.emit(maticX, "StakeRewards")
+			.withArgs(1, stakedAmount);
+		await expect(stakeRewardsAndDistributeFeesTx)
+			.emit(maticX, "DistributeFees")
+			.withArgs(treasury.address, treasuryFee);
 	});
 });

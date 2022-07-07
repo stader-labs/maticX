@@ -397,7 +397,9 @@ describe("ChildPool", () => {
 			.emit(childPool, "ClaimMaticXSwap")
 			.withArgs(users[0].address, 0, maticAmount);
 		// no remaining withdrawal requests
-		expect(await childPool.getUserMaticXSwapRequests(users[0].address)).to.eql([]);
+		expect(
+			await childPool.getUserMaticXSwapRequests(users[0].address)
+		).to.eql([]);
 		// new balance - old balance = gas + matic claimed
 		expect(
 			newMaticBalanceOfUser.sub(oldMaticBalanceOfUser).add(gasUsed)

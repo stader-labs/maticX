@@ -64,8 +64,6 @@ contract MaticX is
 
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
 		_setupRole(INSTANT_POOL_OWNER, _instantPoolOwner);
-		_setupRole(MATICX_BOT, _instantPoolOwner);
-		_setRoleAdmin(MATICX_BOT, INSTANT_POOL_OWNER);
 		instantPoolOwner = _instantPoolOwner;
 
 		validatorRegistry = _validatorRegistry;
@@ -79,6 +77,16 @@ contract MaticX is
 			stakeManager,
 			type(uint256).max
 		);
+	}
+
+	function setupBotRole()
+		external
+		override
+		whenNotPaused
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		_setupRole(MATICX_BOT, instantPoolOwner);
+		_setRoleAdmin(MATICX_BOT, INSTANT_POOL_OWNER);
 	}
 
 	////////////////////////////////////////////////////////////
@@ -594,15 +602,30 @@ contract MaticX is
 		emit SetInstantPoolOwner(_address);
 	}
 
-	function grantBotRole(address _address)
-	external
-	override
-	onlyRole(INSTANT_POOL_OWNER)
+	function addBot(address _address)
+		external
+		override
+		onlyRole(INSTANT_POOL_OWNER)
 	{
-		require(_address != _address(0), 'Invalid Address');
+		require(_address != address(0), "Invalid Address");
 		grantRole(MATICX_BOT, _address);
 
-		emit GrantBotRole(_address);
+		emit AddBot(_address);
+	}
+
+	function removeBot(address _address)
+		external
+		override
+		onlyRole(INSTANT_POOL_OWNER)
+	{
+		require(_address != address(0), "Invalid Address");
+		revokeRole(MATICX_BOT, _address);
+
+		emit RemoveBot(_address);
+	}
+
+	function isBot(address _address) external view override returns (bool) {
+		return hasRole(MATICX_BOT, _address);
 	}
 
 	function setTreasury(address _address)
