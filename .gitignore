@@ -10,3 +10,7 @@ typechain
 .openzeppelin
 
 .idea
+
+#test coverage logs
+coverage.json
+coverage/
