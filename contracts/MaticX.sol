@@ -79,13 +79,12 @@ contract MaticX is
 		);
 	}
 
-	function setupBotRole()
+	function setupBotAdmin()
 		external
 		override
 		whenNotPaused
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
-		_setupRole(MATICX_BOT, instantPoolOwner);
 		_setRoleAdmin(MATICX_BOT, INSTANT_POOL_OWNER);
 	}
 

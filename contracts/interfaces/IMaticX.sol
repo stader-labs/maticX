@@ -14,7 +14,7 @@ interface IMaticX is IERC20Upgradeable {
 		address validatorAddress;
 	}
 
-	function setupBotRole() external;
+	function setupBotAdmin() external;
 
 	function version() external view returns (string memory);
 
