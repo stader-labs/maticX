@@ -30,7 +30,7 @@ contract MaticX is
 	uint8 public override feePercent;
 
 	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
-	bytes32 public constant BOT = keccak256("BOT");
+
 	address public override instantPoolOwner;
 	uint256 public override instantPoolMatic;
 	uint256 public override instantPoolMaticX;
@@ -41,6 +41,8 @@ contract MaticX is
 	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
 
 	address public override fxStateRootTunnel;
+
+	bytes32 public constant BOT = keccak256("BOT");
 
 	/**
 	 * @param _validatorRegistry - Address of the validator registry
