@@ -30,7 +30,7 @@ contract MaticX is
 	uint8 public override feePercent;
 
 	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
-	bytes32 public constant MATICX_BOT = keccak256("MATICX_BOT");
+	bytes32 public constant BOT = keccak256("BOT");
 	address public override instantPoolOwner;
 	uint256 public override instantPoolMatic;
 	uint256 public override instantPoolMaticX;
@@ -85,7 +85,7 @@ contract MaticX is
 		whenNotPaused
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
-		_setRoleAdmin(MATICX_BOT, INSTANT_POOL_OWNER);
+		_setRoleAdmin(BOT, INSTANT_POOL_OWNER);
 	}
 
 	////////////////////////////////////////////////////////////
@@ -337,7 +337,7 @@ contract MaticX is
 		external
 		override
 		whenNotPaused
-		onlyRole(MATICX_BOT)
+		onlyRole(BOT)
 	{
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
@@ -599,32 +599,6 @@ contract MaticX is
 		_setupRole(INSTANT_POOL_OWNER, _address);
 
 		emit SetInstantPoolOwner(_address);
-	}
-
-	function addBot(address _address)
-		external
-		override
-		onlyRole(INSTANT_POOL_OWNER)
-	{
-		require(_address != address(0), "Invalid Address");
-		grantRole(MATICX_BOT, _address);
-
-		emit AddBot(_address);
-	}
-
-	function removeBot(address _address)
-		external
-		override
-		onlyRole(INSTANT_POOL_OWNER)
-	{
-		require(_address != address(0), "Invalid Address");
-		revokeRole(MATICX_BOT, _address);
-
-		emit RemoveBot(_address);
-	}
-
-	function isBot(address _address) external view override returns (bool) {
-		return hasRole(MATICX_BOT, _address);
 	}
 
 	function setTreasury(address _address)

@@ -255,7 +255,8 @@ describe("MaticX contract", function () {
 		await fxStateRootTunnel.setMaticX(maticX.address);
 		await fxStateRootTunnel.setFxChildTunnel(fxStateChildTunnel.address);
 		await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
-		await maticX.setupBotRole();
+		await maticX.setupBotAdmin();
+		await maticX.grantRole(await maticX.BOT(), instant_pool_owner.address);
 	});
 
 	it("Should submit successfully", async () => {
@@ -683,20 +684,28 @@ describe("MaticX contract", function () {
 	});
 
 	it("it should add and then remove a bot address", async () => {
-		expect(await maticX.isBot(users[0].address)).to.eql(false);
-		const tx = await maticX.addBot(users[0].address);
-		await expect(tx).to.emit(maticX, "AddBot").withArgs(users[0].address);
-		expect(await maticX.isBot(users[0].address)).to.eql(true);
+		const botRole = await maticX.BOT();
+		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(false);
+		const tx = await maticX.grantRole(botRole, users[0].address);
+		await expect(tx).to.emit(maticX, "RoleGranted").withArgs(
+			botRole,
+			users[0].address,
+			instant_pool_owner.address
+		);
+		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(true);
 
-		const tx2 = await maticX.removeBot(users[0].address);
-		await expect(tx2)
-			.to.emit(maticX, "RemoveBot")
-			.withArgs(users[0].address);
-		expect(await maticX.isBot(users[0].address)).to.eql(false);
+		const tx2 = await maticX.revokeRole(botRole, users[0].address);
+		await expect(tx2).to.emit(maticX, "RoleRevoked").withArgs(
+			botRole,
+			users[0].address,
+			instant_pool_owner.address
+		);
+		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(false);
 	});
 
 	it("it should stakeRewards - accesscontrol check", async () => {
-		await maticX.addBot(users[1].address);
+		const botRole = await maticX.BOT();
+		await maticX.grantRole(botRole, users[1].address);
 
 		const submitAmounts: string[] = [];
 		const [minAmount, maxAmount] = [0.005, 0.01];

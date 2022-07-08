@@ -93,12 +93,6 @@ interface IMaticX is IERC20Upgradeable {
 
 	function setInstantPoolOwner(address _address) external;
 
-	function addBot(address _address) external;
-
-	function removeBot(address _address) external;
-
-	function isBot(address _address) external view returns (bool);
-
 	function setValidatorRegistry(address _address) external;
 
 	function setTreasury(address _address) external;
@@ -158,8 +152,6 @@ interface IMaticX is IERC20Upgradeable {
 	event MintFromPolygon(address indexed _user, uint256 _amount);
 	event SetFeePercent(uint8 _feePercent);
 	event SetInstantPoolOwner(address _address);
-	event AddBot(address _address);
-	event RemoveBot(address _address);
 	event SetTreasury(address _address);
 	event SetValidatorRegistry(address _address);
 	event SetFxStateRootTunnel(address _address);
