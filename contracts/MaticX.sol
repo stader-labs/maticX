@@ -30,6 +30,7 @@ contract MaticX is
 	uint8 public override feePercent;
 
 	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
+
 	address public override instantPoolOwner;
 	uint256 public override instantPoolMatic;
 	uint256 public override instantPoolMaticX;
@@ -40,6 +41,8 @@ contract MaticX is
 	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
 
 	address public override fxStateRootTunnel;
+
+	bytes32 public constant BOT = keccak256("BOT");
 
 	/**
 	 * @param _validatorRegistry - Address of the validator registry
@@ -76,6 +79,15 @@ contract MaticX is
 			stakeManager,
 			type(uint256).max
 		);
+	}
+
+	function setupBotAdmin()
+		external
+		override
+		whenNotPaused
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		_setRoleAdmin(BOT, INSTANT_POOL_OWNER);
 	}
 
 	////////////////////////////////////////////////////////////
@@ -327,7 +339,7 @@ contract MaticX is
 		external
 		override
 		whenNotPaused
-		onlyRole(DEFAULT_ADMIN_ROLE)
+		onlyRole(BOT)
 	{
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
@@ -375,7 +387,7 @@ contract MaticX is
 		uint256 _fromValidatorId,
 		uint256 _toValidatorId,
 		uint256 _amount
-	) external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+	) external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_fromValidatorId
@@ -594,7 +606,7 @@ contract MaticX is
 	function setTreasury(address _address)
 		external
 		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
+		onlyRole(INSTANT_POOL_OWNER)
 	{
 		treasury = _address;
 
