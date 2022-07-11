@@ -335,6 +335,31 @@ contract MaticX is
 		return rewards;
 	}
 
+	function withdrawValidatorsReward(uint256[] calldata _validatorIds)
+	public
+	override
+	whenNotPaused
+	returns (uint256[] memory)
+	{
+		uint256[] memory rewards;
+		for(uint i=0; i < _validatorIds.length; i++){
+			address validatorShare = IStakeManager(stakeManager)
+			.getValidatorContract(_validatorIds[i]);
+			require(validatorShare != address(0), 'Invalid Validator Id');
+
+			uint256 balanceBeforeRewards = IERC20Upgradeable(polygonERC20)
+			.balanceOf(address(this));
+			IValidatorShare(validatorShare).withdrawRewards();
+			uint256 reward = IERC20Upgradeable(polygonERC20).balanceOf(
+				address(this)
+			) - balanceBeforeRewards;
+
+			emit WithdrawRewards(_validatorIds[i], reward);
+			rewards[i] = reward;
+		}
+		return rewards;
+	}
+
 	function stakeRewardsAndDistributeFees(uint256 _validatorId)
 		external
 		override
