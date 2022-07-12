@@ -741,4 +741,77 @@ describe("MaticX contract", function () {
 			.emit(maticX, "DistributeFees")
 			.withArgs(treasury.address, treasuryFee);
 	});
+
+	it("should call the withdraw rewards on multiple validators", async () => {
+		const submitAmounts: string[] = [];
+
+		const [minAmount, maxAmount] = [0.005, 0.01];
+		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
+
+		for (let i = 0; i < delegatorsAmount; i++) {
+			submitAmounts.push(
+				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
+			);
+			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
+			await mint(users[i], submitAmountWei);
+			await submit(users[i], submitAmountWei);
+		}
+
+		/*const instant_pool_matic = ethers.utils.parseEther("10");
+		await mint(deployer, instant_pool_matic);
+		await maticApprove(deployer, instant_pool_matic);
+		await polygonMock.transfer(maticX.address, instant_pool_matic, {
+			from: deployer.address
+		});
+		expect(await polygonMock.balanceOf(maticX.address)).to.equal(
+			instant_pool_matic
+		);
+		const iFace = new ethers.utils.Interface([
+			"event WithdrawRewards(uint256 indexed _validatorId, uint256 _rewards)",
+		]);
+		const tx1 = await maticX.withdrawRewards(BigNumber.from(2));
+		const receipt = await ethers.provider.getTransactionReceipt(tx1.hash);
+		console.log(
+			iFace.decodeEventLog(
+				"WithdrawRewards",
+				receipt.logs[1].data,
+				receipt.logs[1].topics
+			)
+		);*/
+
+		const tx = await maticX.withdrawValidatorsReward([
+			BigNumber.from(1),
+			BigNumber.from(2),
+		]);
+
+		await expect(tx)
+			.to.emit(maticX, "WithdrawRewards")
+			.withArgs(BigNumber.from(1), BigNumber.from(0));
+		await expect(tx)
+			.to.emit(maticX, "WithdrawRewards")
+			.withArgs(BigNumber.from(2), BigNumber.from(0));
+	});
+
+	it("should call the withdraw rewards on multiple validators - wrong validator Id", async () => {
+		const submitAmounts: string[] = [];
+
+		const [minAmount, maxAmount] = [0.005, 0.01];
+		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
+
+		for (let i = 0; i < delegatorsAmount; i++) {
+			submitAmounts.push(
+				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
+			);
+			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
+			await mint(users[i], submitAmountWei);
+			await submit(users[i], submitAmountWei);
+		}
+
+		const tx = maticX.withdrawValidatorsReward([
+			BigNumber.from(1),
+			BigNumber.from(4),
+		]);
+
+		await expect(tx).to.be.revertedWith("function call to a non-contract account");
+	});
 });
