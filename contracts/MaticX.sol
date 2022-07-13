@@ -330,6 +330,7 @@ contract MaticX is
 		return rewards;
 	}
 
+	///@@dev Deprecated. Please use withdrawValidatorsReward instead of this
 	function withdrawRewards(uint256 _validatorId)
 		public
 		override
