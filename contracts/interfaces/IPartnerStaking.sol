@@ -158,6 +158,8 @@ interface IPartnerStaking {
 		uint256 _timestamp
 	);
 
+	function approveBalanceOnMaticX(uint256 balance) external;
+
 	function addFoundationApprovedAddress(address _address) external;
 
 	function removeFoundationApprovedAddress(address _address) external;

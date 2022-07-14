@@ -193,9 +193,11 @@ describe("PartnerStaking", () => {
 			fxStateRootTunnel.address,
 			abiCoder.encode(["uint", "uint"], [1000, 1000])
 		);
+
+		await partnerStaking.approveBalanceOnMaticX(ethers.utils.parseEther("1000000000"));
 	});
 
-	/*it("it changes fee reimbursal percent", async () => {
+	it("it changes fee reimbursal percent", async () => {
 		expect(await partnerStaking.feeReimbursalPercent()).to.eql(5);
 		const tx = await partnerStaking.setFeeReimbursalPercent(2);
 		expect(await partnerStaking.feeReimbursalPercent()).to.eql(2);
@@ -461,7 +463,7 @@ describe("PartnerStaking", () => {
 		const oldPartner1 = await partnerStaking.partners(1);
 		const oldPartner2 = await partnerStaking.partners(2);
 
-		/!**  Unstake Rewards **!/
+		/**  Unstake Rewards **/
 		// console.log(await maticX.convertMaticXToMatic(weiUnit));
 		await changeMaticXRate(BigNumber.from(10).mul(weiUnit));
 		// console.log(await maticX.convertMaticXToMatic(weiUnit));
@@ -534,7 +536,7 @@ describe("PartnerStaking", () => {
 		await stakeMatic(1, partner1Matic.mul(weiUnit));
 		const oldPartner1 = await partnerStaking.partners(1);
 
-		/!**  Unstake Rewards **!/
+		/**  Unstake Rewards **/
 		const tx = await partnerStaking.addDueRewardsToCurrentBatch([1], {
 			from: manager.address,
 		});
@@ -577,7 +579,7 @@ describe("PartnerStaking", () => {
 		const oldPartner1 = await partnerStaking.partners(1);
 		const oldPartner2 = await partnerStaking.partners(2);
 
-		/!**  Unstake Rewards **!/
+		/**  Unstake Rewards **/
 		// console.log(await maticX.convertMaticXToMatic(weiUnit));
 		await changeMaticXRate(BigNumber.from(10).mul(weiUnit));
 		// console.log(await maticX.convertMaticXToMatic(weiUnit));
@@ -848,7 +850,7 @@ describe("PartnerStaking", () => {
 				BigNumber.from(blockTimestamp)
 			);
 
-		/!* const receipt = await ethers.provider.getTransactionReceipt(tx4.hash);
+		/* const receipt = await ethers.provider.getTransactionReceipt(tx4.hash);
         const iFace = new ethers.utils.Interface([
             "event DisbursePartnerReward(uint32 indexed _partnerId, address indexed _partnerAddress, uint32 indexed _batchId, uint256 _maticDisbursed,uint256 _reimbursedFee,uint256 _maticXUsed, uint256 _timestamp)",
         ]);
@@ -868,7 +870,7 @@ describe("PartnerStaking", () => {
                 receipt.logs[3].data,
                 receipt.logs[3].topics
             )
-        );*!/
+        );*/
 	});
 
 	it("it disburses rewards to partner wallets - wrong partnerId", async () => {
@@ -1228,7 +1230,7 @@ describe("PartnerStaking", () => {
 
 		const tx = partnerStaking.unStake(1, fund.add(BigNumber.from(1)));
 		await expect(tx).to.be.revertedWith("Invalid amount");
-	});*/
+	});
 
 	it("it unstakes original funds", async () => {
 		await registerPartner(1);
@@ -1281,7 +1283,7 @@ describe("PartnerStaking", () => {
 		expect(request.maticXBurned).to.eql(maticXAmount);
 	});
 
-	/*it("it withdraws original funds", async () => {
+	it("it withdraws original funds", async () => {
 		await registerPartner(1);
 		await registerPartner(2);
 		const fund = BigNumber.from(200).mul(weiUnit);
@@ -1306,11 +1308,11 @@ describe("PartnerStaking", () => {
 		const tx = partnerStaking.withdrawUnstakedAmount(0);
 		const blockTimestamp = (await ethers.provider.getBlock("latest"))
 			.timestamp;
-		/!*await expect(tx)
+		/*await expect(tx)
 			.to.emit(partnerStaking, "FoundationWithdraw")
 			.withArgs(
 				0,
 				BigNumber.from(100),
-				BigNumber.from(blockTimestamp));*!/
-	});*/
+				BigNumber.from(blockTimestamp));*/
+	});
 });

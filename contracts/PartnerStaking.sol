@@ -78,6 +78,14 @@ contract PartnerStaking is
 		_;
 	}
 
+	function approveBalanceOnMaticX(uint256 balance)
+		public
+		override
+		onlyManager
+	{
+		IERC20Upgradeable(maticX).safeApprove(maticX, balance);
+	}
+
 	function addFoundationApprovedAddress(address _address)
 		external
 		override
@@ -365,7 +373,6 @@ contract PartnerStaking is
 			_maticAmount
 		);
 
-		IERC20Upgradeable(maticX).safeApprove(maticX, _maticXAmount);
 		IMaticX(maticX).requestWithdraw(_maticXAmount);
 
 		unstakeRequests.push(
@@ -496,10 +503,6 @@ contract PartnerStaking is
 			"Invalid Batch Status"
 		);
 
-		IERC20Upgradeable(maticX).safeApprove(
-			maticX,
-			_currentBatch.maticXBurned
-		);
 		IMaticX(maticX).requestWithdraw(_currentBatch.maticXBurned);
 
 		uint32 _idx = uint32(unstakeRequests.length);
