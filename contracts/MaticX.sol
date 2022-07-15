@@ -315,12 +315,7 @@ contract MaticX is
 		_claimWithdrawal(msg.sender, _idx);
 	}
 
-	function withdrawRewards(uint256 _validatorId)
-		public
-		override
-		whenNotPaused
-		returns (uint256)
-	{
+	function _withdrawRewards(uint256 _validatorId) internal returns (uint256) {
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
@@ -332,6 +327,31 @@ contract MaticX is
 		) - balanceBeforeRewards;
 
 		emit WithdrawRewards(_validatorId, rewards);
+		return rewards;
+	}
+
+	/**
+	 * @dev This function is deprecated. Please use withdrawValidatorsReward instead.
+	 */
+	function withdrawRewards(uint256 _validatorId)
+		public
+		override
+		whenNotPaused
+		returns (uint256)
+	{
+		return _withdrawRewards(_validatorId);
+	}
+
+	function withdrawValidatorsReward(uint256[] calldata _validatorIds)
+		public
+		override
+		whenNotPaused
+		returns (uint256[] memory)
+	{
+		uint256[] memory rewards = new uint256[](_validatorIds.length);
+		for (uint256 i = 0; i < _validatorIds.length; i++) {
+			rewards[i] = _withdrawRewards(_validatorIds[i]);
+		}
 		return rewards;
 	}
 

@@ -91,6 +91,11 @@ describe("MaticX contract", function () {
 		signer: SignerWithAddress,
 		feePercent: BigNumberish
 	) => Promise<Transaction>;
+	let mintAndTransferMatic: (
+		signer: SignerWithAddress,
+		amount: BigNumber,
+		to: string
+	) => Promise<Transaction>;
 
 	before(() => {
 		mint = async (signer, amount) => {
@@ -101,6 +106,13 @@ describe("MaticX contract", function () {
 		maticApprove = async (signer, amount) => {
 			const signerERC20 = polygonMock.connect(signer);
 			await signerERC20.approve(maticX.address, amount);
+		};
+
+		mintAndTransferMatic = async (signer, amount, to) => {
+			const signerERC = polygonMock.connect(signer);
+			await signerERC.mint(amount);
+			await signerERC.approve(to, amount);
+			return await signerERC.transfer(to, amount);
 		};
 
 		maticXApprove = async (signer, amount) => {
@@ -687,19 +699,15 @@ describe("MaticX contract", function () {
 		const botRole = await maticX.BOT();
 		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(false);
 		const tx = await maticX.grantRole(botRole, users[0].address);
-		await expect(tx).to.emit(maticX, "RoleGranted").withArgs(
-			botRole,
-			users[0].address,
-			instant_pool_owner.address
-		);
+		await expect(tx)
+			.to.emit(maticX, "RoleGranted")
+			.withArgs(botRole, users[0].address, instant_pool_owner.address);
 		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(true);
 
 		const tx2 = await maticX.revokeRole(botRole, users[0].address);
-		await expect(tx2).to.emit(maticX, "RoleRevoked").withArgs(
-			botRole,
-			users[0].address,
-			instant_pool_owner.address
-		);
+		await expect(tx2)
+			.to.emit(maticX, "RoleRevoked")
+			.withArgs(botRole, users[0].address, instant_pool_owner.address);
 		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(false);
 	});
 
@@ -740,5 +748,113 @@ describe("MaticX contract", function () {
 		await expect(stakeRewardsAndDistributeFeesTx)
 			.emit(maticX, "DistributeFees")
 			.withArgs(treasury.address, treasuryFee);
+	});
+
+	it("should call the withdraw rewards on multiple validators", async () => {
+		const submitAmounts: string[] = [];
+
+		const [minAmount, maxAmount] = [0.005, 0.01];
+		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
+
+		for (let i = 0; i < delegatorsAmount; i++) {
+			submitAmounts.push(
+				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
+			);
+			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
+			await mint(users[i], submitAmountWei);
+			await submit(users[i], submitAmountWei);
+		}
+
+		const validatorsAddress = [];
+		validatorsAddress[0] = await stakeManagerMock.getValidatorContract(
+			BigNumber.from(1)
+		);
+		validatorsAddress[1] = await stakeManagerMock.getValidatorContract(
+			BigNumber.from(2)
+		);
+		await mintAndTransferMatic(
+			deployer,
+			ethers.utils.parseEther("15"),
+			validatorsAddress[0]
+		);
+		await mintAndTransferMatic(
+			deployer,
+			ethers.utils.parseEther("17"),
+			validatorsAddress[1]
+		);
+		/*const iFace = new ethers.utils.Interface([
+			"event WithdrawRewards(uint256 indexed _validatorId, uint256 _rewards)",
+		]);
+		const tx1 = await maticX.withdrawRewards(BigNumber.from(1));
+		const receipt = await ethers.provider.getTransactionReceipt(tx1.hash);
+		console.log(
+			iFace.decodeEventLog(
+				"WithdrawRewards",
+				receipt.logs[1].data,
+				receipt.logs[1].topics
+			)
+		);*/
+
+		const oldBalance = await polygonMock.balanceOf(maticX.address);
+		const tx = await maticX.withdrawValidatorsReward([
+			BigNumber.from(1),
+			BigNumber.from(2),
+		]);
+
+		await expect(tx)
+			.to.emit(maticX, "WithdrawRewards")
+			.withArgs(BigNumber.from(1), ethers.utils.parseEther("15"));
+		await expect(tx)
+			.to.emit(maticX, "WithdrawRewards")
+			.withArgs(BigNumber.from(2), ethers.utils.parseEther("17"));
+		const newBalance = await polygonMock.balanceOf(maticX.address);
+		expect(newBalance.sub(oldBalance)).to.eql(
+			ethers.utils.parseEther("32")
+		);
+	});
+
+	it("should call the withdraw rewards on multiple validators - wrong validator Id", async () => {
+		const submitAmounts: string[] = [];
+
+		const [minAmount, maxAmount] = [0.005, 0.01];
+		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
+
+		for (let i = 0; i < delegatorsAmount; i++) {
+			submitAmounts.push(
+				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
+			);
+			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
+			await mint(users[i], submitAmountWei);
+			await submit(users[i], submitAmountWei);
+		}
+
+		const validatorsAddress = [];
+		validatorsAddress[0] = await stakeManagerMock.getValidatorContract(
+			BigNumber.from(1)
+		);
+		validatorsAddress[1] = await stakeManagerMock.getValidatorContract(
+			BigNumber.from(2)
+		);
+		await mintAndTransferMatic(
+			deployer,
+			ethers.utils.parseEther("15"),
+			validatorsAddress[0]
+		);
+		await mintAndTransferMatic(
+			deployer,
+			ethers.utils.parseEther("17"),
+			validatorsAddress[1]
+		);
+
+		const oldBalance = await polygonMock.balanceOf(maticX.address);
+		const tx = maticX.withdrawValidatorsReward([
+			BigNumber.from(1),
+			BigNumber.from(4),
+		]);
+		await expect(tx).to.be.revertedWith(
+			"function call to a non-contract account"
+		);
+		const newBalance = await polygonMock.balanceOf(maticX.address);
+		expect(newBalance.sub(oldBalance)).to.eql(BigNumber.from(0));
 	});
 });
