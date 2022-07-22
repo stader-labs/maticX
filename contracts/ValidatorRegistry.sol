@@ -29,7 +29,7 @@ contract ValidatorRegistry is
 
 	uint256[] private validators;
 
-	bytes32 public constant BOT = keccak256("VR_BOT");
+	bytes32 public constant BOT = keccak256("BOT");
 
 	/// -------------------------- initialize ----------------------------------
 
