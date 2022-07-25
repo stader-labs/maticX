@@ -127,6 +127,12 @@ describe("ValidatorRegistry contract", function () {
 		await maticX.deployed();
 
 		await validatorRegistry.setMaticX(maticX.address);
+
+		// add bot role for deployer
+		await validatorRegistry.grantRole(
+			await validatorRegistry.BOT(),
+			manager.address
+		);
 	});
 
 	it("Should add new validators", async function () {
@@ -213,5 +219,53 @@ describe("ValidatorRegistry contract", function () {
 		await expect(removeValidator(manager, 1)).to.be.revertedWith(
 			"Validator id doesn't exist in our registry"
 		);
+	});
+
+	it("it should add and then remove a bot address", async () => {
+		const botRole = await validatorRegistry.BOT();
+		expect(
+			await validatorRegistry.hasRole(botRole, users[0].address)
+		).to.eql(false);
+		const tx = await validatorRegistry.grantRole(botRole, users[0].address);
+		await expect(tx)
+			.to.emit(validatorRegistry, "RoleGranted")
+			.withArgs(botRole, users[0].address, deployer.address);
+		expect(
+			await validatorRegistry.hasRole(botRole, users[0].address)
+		).to.eql(true);
+
+		const tx2 = await validatorRegistry.revokeRole(
+			botRole,
+			users[0].address
+		);
+		await expect(tx2)
+			.to.emit(validatorRegistry, "RoleRevoked")
+			.withArgs(botRole, users[0].address, deployer.address);
+		expect(
+			await validatorRegistry.hasRole(botRole, users[0].address)
+		).to.eql(false);
+	});
+
+	it("it should setPreferredDepositValidatorId - accesscontrol check", async () => {
+		const validatorId = BigNumber.from(1);
+		await createValidator(manager, validatorId);
+		await addValidator(manager, validatorId);
+
+		const botRole = await validatorRegistry.BOT();
+		await validatorRegistry.grantRole(botRole, users[1].address);
+
+		// fails for non-bot
+		await expect(setPreferredDepositValidatorId(users[0], validatorId)).to
+			.be.reverted;
+		await expect(setPreferredWithdrawalValidatorId(users[0], validatorId))
+			.to.be.reverted;
+
+		// succeeds for bot
+		await expect(setPreferredDepositValidatorId(users[1], validatorId))
+			.emit(validatorRegistry, "SetPreferredDepositValidatorId")
+			.withArgs(validatorId);
+		await expect(setPreferredWithdrawalValidatorId(users[1], validatorId))
+			.emit(validatorRegistry, "SetPreferredWithdrawalValidatorId")
+			.withArgs(validatorId);
 	});
 });

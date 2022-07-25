@@ -8,7 +8,7 @@
   "maticX_proxy": "0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645",
   "maticX_impl": "0x648cf74330da142D4e774B14D6C79072c8Cc8701",
   "validator_registry_proxy": "0xf556442D5B77A4B0252630E15d8BbE2160870d77",
-  "validator_registry_impl": "0x1c81679f49C7f2894f56d57D1355b7AF04690580",
+  "validator_registry_impl": "0x0a7f554AbFBD710D9CDFB7Cf88217a91acA7457D",
   "rate_provider": "0xeE652bbF72689AA59F0B8F981c9c90e2A8Af8d8f",
   "fx_state_child_tunnel": "0x97E58a6950D86d751082D5e1d350e74c19047570",
   "fx_state_root_tunnel": "0x40FB804Cc07302b89EC16a9f8d040506f64dFe29",

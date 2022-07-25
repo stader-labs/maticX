@@ -204,6 +204,10 @@ describe("ChildPool", () => {
 		await validatorRegistry.setMaticX(maticX.address);
 		await stakeManagerMock.createValidator(1);
 		await validatorRegistry.addValidator(1);
+		await validatorRegistry.grantRole(
+			await validatorRegistry.BOT(),
+			manager.address
+		);
 		await validatorRegistry.setPreferredDepositValidatorId(1);
 		await validatorRegistry.setPreferredWithdrawalValidatorId(1);
 		await stakeManagerMock.createValidator(2);
