@@ -54,11 +54,18 @@ WithdrawalRequest[] memory requests = getUserWithdrawalRequests(
 
 // StakeManager is necessary to check the availability of the withdrawal request
 IStakeManager stakeManager = IStakeManager(STAKEMANAGER_ADDRESS);
+// Important: Looping from the beginning doesn't work due to 
+// non-shifting removal from the withdrawal request array.
 for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
     WithdrawalRequest request = requests[idx].amount;
     if (stakeManager.epoch() < request.requestEpoch) continue;
 
     uint256 amountInMaticBefore = matic.balanceOf(msg.sender);
+    // Swaps the given index with the latest item and reduces the size.
+    // . V . . 
+    // 6 1 4 9 Original array
+    // 6 9 4 9 Swapping with the latest item
+    // 6 9 4   Final array
     maticX.claimWithdrawal(idx);
     uint256 amountInMaticAfter = matic.balanceOf(msg.sender);
 
@@ -124,11 +131,18 @@ contract Example {
 
         // StakeManager is necessary to check the availability of the withdrawal request
         IStakeManager stakeManager = IStakeManager(STAKEMANAGER_ADDRESS);
+        // Important: Looping from the beginning doesn't work due to 
+        // non-shifting removal from the withdrawal request array.
         for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
             WithdrawalRequest request = requests[idx].amount;
             if (stakeManager.epoch() < request.requestEpoch) continue;
 
             uint256 amountInMaticBefore = matic.balanceOf(msg.sender);
+            // Swaps the given index with the latest item and reduces the size.
+            // . V . . 
+            // 6 1 4 9 Original array
+            // 6 9 4 9 Swapping with the latest item
+            // 6 9 4   Final array
             maticX.claimWithdrawal(idx);
             uint256 amountInMaticAfter = matic.balanceOf(msg.sender);
 
@@ -210,11 +224,18 @@ IChildPool childPool = IChildPool(CHILDPOOL_ADDRESS);
 WithdrawalRequest[] memory requests = getUserMaticXSwapRequests(
     msg.sender
 );
+// Important: Looping from the beginning doesn't work due to 
+// non-shifting removal from the withdrawal request array.
 for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
     WithdrawalRequest request = requests[idx].amount;
     if (block.timestamp < request.withdrawalTime) continue;
 
     uint256 amountInMatic = request.amount;
+    // Swaps the given index with the latest item and reduces the size.
+    // . V . . 
+    // 6 1 4 9 Original array
+    // 6 9 4 9 Swapping with the latest item
+    // 6 9 4   Final array
     childPool.claimMaticXSwap(idx);
 
     emit ClaimEvent(msg.sender, amountInMatic);
@@ -293,11 +314,18 @@ contract Example {
         WithdrawalRequest[] memory requests = getUserMaticXSwapRequests(
             msg.sender
         );
+        // Important: Looping from the beginning doesn't work due to 
+        // non-shifting removal from the withdrawal request array.
         for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
             WithdrawalRequest request = requests[idx].amount;
             if (block.timestamp < request.withdrawalTime) continue;
 
             uint256 amountInMatic = request.amount;
+            // Swaps the given index with the latest item and reduces the size.
+            // . V . . 
+            // 6 1 4 9 Original array
+            // 6 9 4 9 Swapping with the latest item
+            // 6 9 4   Final array
             childPool.claimMaticXSwap(idx);
 
             emit ClaimEvent(msg.sender, amountInMatic);
