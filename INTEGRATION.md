@@ -1,12 +1,17 @@
 # Integration guide
 
+Deployment addresses can be found at:
+
+- Mainnet: [mainnet-deployment-info.json](mainnet-deployment-info.json)
+- Testnet: [testnet-deployment-info.json](testnet-deployment-info.json)
+
 ## Ethereum
 
 Liquid staking is achieved through `MaticX` contract and the yield-bearing ERC-20 token `MaticX` is given to the user.
 
 ### 1. Stake Matic on Ethereum
 
-Send Matic and receive liquid staking MaticX token.
+Send Matic and receive liquid staking MaticX token.  
 _MaticX approval should be given prior._
 
 ```SOLIDITY
@@ -41,10 +46,27 @@ After 3-4 days (80 checkpoints), Matic can be withdrawn.
 ```SOLIDITY
 IMatic matic = IMatic(MATIC_ADDRESS);
 IMaticX maticX = IMaticX(MATICX_ADDRESS);
-maticX.claimWithdrawal(_idx);
-uint256 amountInMatic = matic.balanceOf(msg.sender);
 
-emit ClaimEvent(msg.sender, amountInMatic);
+// Claim all available withdrawal requests
+WithdrawalRequest[] memory requests = getUserWithdrawalRequests(
+    msg.sender
+);
+
+// StakeManager is necessary to check the availability of the withdrawal request
+IStakeManager stakeManager = IStakeManager(STAKEMANAGER_ADDRESS);
+for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
+    WithdrawalRequest request = requests[idx].amount;
+    if (stakeManager.epoch() < request.requestEpoch) continue;
+
+    uint256 amountInMaticBefore = matic.balanceOf(msg.sender);
+    maticX.claimWithdrawal(idx);
+    uint256 amountInMaticAfter = matic.balanceOf(msg.sender);
+
+    emit ClaimEvent(
+        msg.sender,
+        amountInMaticAfter - amountInMaticBefore
+    );
+}
 ```
 
 ### Full example on Ethereum
@@ -68,6 +90,8 @@ contract Example {
         "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0"; //mainnet address
     address private MATICX_ADDRESS =
         "0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645"; //mainnet address
+    address private STAKEMANAGER_ADDRESS =
+        "0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908"; //mainnet address
 
     function stake(uint256 _amountInMatic) external {
         IMatic matic = IMatic(MATIC_ADDRESS);
@@ -89,13 +113,30 @@ contract Example {
         emit UnstakeEvent(msg.sender, _amountInMaticX);
     }
 
-    function claim(uint256 _idx) external {
+    function claim() external {
         IMatic matic = IMatic(MATIC_ADDRESS);
         IMaticX maticX = IMaticX(MATICX_ADDRESS);
-        maticX.claimWithdrawal(_idx);
-        uint256 amountInMatic = matic.balanceOf(msg.sender);
 
-        emit ClaimEvent(msg.sender, amountInMatic);
+        // Claim all available withdrawal requests
+        WithdrawalRequest[] memory requests = getUserWithdrawalRequests(
+            msg.sender
+        );
+
+        // StakeManager is necessary to check the availability of the withdrawal request
+        IStakeManager stakeManager = IStakeManager(STAKEMANAGER_ADDRESS);
+        for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
+            WithdrawalRequest request = requests[idx].amount;
+            if (stakeManager.epoch() < request.requestEpoch) continue;
+
+            uint256 amountInMaticBefore = matic.balanceOf(msg.sender);
+            maticX.claimWithdrawal(idx);
+            uint256 amountInMaticAfter = matic.balanceOf(msg.sender);
+
+            emit ClaimEvent(
+                msg.sender,
+                amountInMaticAfter - amountInMaticBefore
+            );
+        }
     }
 }
 ```
@@ -112,6 +153,17 @@ _There should be enough MaticX token in the pool_
 ```SOLIDITY
 IMaticX maticX = IMaticX(MATICX_ADDRESS);
 IChildPool childPool = IChildPool(CHILDPOOL_ADDRESS);
+
+// Check the liquidity of the pool
+uint256 availableMaticXAmount = childPool.instantPoolMaticX();
+uint256 expectedMaticXAmount = childPool.convertMaticToMaticX(
+    msg.value
+);
+require(
+    availableMaticXAmount >= expectedMaticXAmount,
+    "Not enough MaticX"
+);
+
 childPool.swapMaticForMaticXViaInstantPool{value: msg.value}();
 uint256 amountInMaticX = maticX.balanceOf(msg.sender);
 
@@ -131,6 +183,17 @@ require(
     maticX.approve(CHILDPOOL_ADDRESS, _amountInMaticX),
     "Not approved"
 );
+
+// Check the liquidity of the pool
+uint256 availableMaticAmount = childPool.instantPoolMatic();
+uint256 expectedMaticAmount = childPool.convertMaticXToMatic(
+    _amountInMaticX
+);
+require(
+    availableMaticAmount >= expectedMaticAmount,
+    "Not enough Matic"
+);
+
 childPool.requestMaticXSwap(_amountInMaticX);
 
 emit UnstakeEvent(msg.sender, _amountInMaticX);
@@ -142,10 +205,20 @@ After 3-4 days (80 checkpoints), Matic can be withdrawn.
 
 ```SOLIDITY
 IChildPool childPool = IChildPool(CHILDPOOL_ADDRESS);
-childPool.claimMaticXSwap(_idx);
-uint256 amountInMatic = address(msg.sender).balance;
 
-emit ClaimEvent(msg.sender, amountInMatic);
+// Claim all available withdrawal requests
+WithdrawalRequest[] memory requests = getUserMaticXSwapRequests(
+    msg.sender
+);
+for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
+    WithdrawalRequest request = requests[idx].amount;
+    if (block.timestamp < request.withdrawalTime) continue;
+
+    uint256 amountInMatic = request.amount;
+    childPool.claimMaticXSwap(idx);
+
+    emit ClaimEvent(msg.sender, amountInMatic);
+}
 ```
 
 ### Full example on Polygon
@@ -171,8 +244,19 @@ contract Example {
         "0xfa68fb4628dff1028cfec22b4162fccd0d45efb6"; //mainnet address
 
     function stake(uint256 _amountInMatic) external {
-        IChildPool childPool = IChildPool(CHILDPOOL_ADDRESS);
         IMaticX maticX = IMaticX(MATICX_ADDRESS);
+        IChildPool childPool = IChildPool(CHILDPOOL_ADDRESS);
+
+        // Check the liquidity of the pool
+        uint256 availableMaticXAmount = childPool.instantPoolMaticX();
+        uint256 expectedMaticXAmount = childPool.convertMaticToMaticX(
+            msg.value
+        );
+        require(
+            availableMaticXAmount >= expectedMaticXAmount,
+            "Not enough MaticX"
+        );
+
         childPool.swapMaticForMaticXViaInstantPool{value: msg.value}();
         uint256 amountInMaticX = maticX.balanceOf(msg.sender);
 
@@ -180,23 +264,44 @@ contract Example {
     }
 
     function unstake(uint256 _amountInMaticX) external {
-        IChildPool childPool = IChildPool(CHILDPOOL_ADDRESS);
         IMaticX maticX = IMaticX(MATICX_ADDRESS);
+        IChildPool childPool = IChildPool(CHILDPOOL_ADDRESS);
         require(
             maticX.approve(CHILDPOOL_ADDRESS, _amountInMaticX),
             "Not approved"
         );
+
+        // Check the liquidity of the pool
+        uint256 availableMaticAmount = childPool.instantPoolMatic();
+        uint256 expectedMaticAmount = childPool.convertMaticXToMatic(
+            _amountInMaticX
+        );
+        require(
+            availableMaticAmount >= expectedMaticAmount,
+            "Not enough Matic"
+        );
+
         childPool.requestMaticXSwap(_amountInMaticX);
 
         emit UnstakeEvent(msg.sender, _amountInMaticX);
     }
 
-    function claim(uint256 _idx) external {
+    function claim() external {
         IChildPool childPool = IChildPool(CHILDPOOL_ADDRESS);
-        childPool.claimMaticXSwap(_idx);
-        uint256 amountInMatic = address(msg.sender).balance;
 
-        emit ClaimEvent(msg.sender, amountInMatic);
+        // Claim all available withdrawal requests
+        WithdrawalRequest[] memory requests = getUserMaticXSwapRequests(
+            msg.sender
+        );
+        for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
+            WithdrawalRequest request = requests[idx].amount;
+            if (block.timestamp < request.withdrawalTime) continue;
+
+            uint256 amountInMatic = request.amount;
+            childPool.claimMaticXSwap(idx);
+
+            emit ClaimEvent(msg.sender, amountInMatic);
+        }
     }
 }
 ```
