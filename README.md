@@ -64,3 +64,7 @@ npx hardhat verify <address> <...args> --network <network>
 ```bash
 npx hardhat test
 ```
+
+## Integration
+
+Smart contract integration guide is at [link](INTEGRATION.md)
