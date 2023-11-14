@@ -10,8 +10,7 @@ import "./interfaces/IMaticX.sol";
 import "./interfaces/IStakeManager.sol";
 
 /// @title ValidatorRegistry
-/// @notice ValidatorRegistry is the main contract that manage validators
-/// @dev ValidatorRegistry is the main contract that manage validators.
+/// @notice ValidatorRegistry is the main contract that manages validators
 contract ValidatorRegistry is
 	IValidatorRegistry,
 	PausableUpgradeable,
@@ -34,6 +33,10 @@ contract ValidatorRegistry is
 	/// -------------------------- initialize ----------------------------------
 
 	/// @notice Initialize the ValidatorRegistry contract.
+	/// @param _stakeManager address of the polygon stake manager.
+	/// @param _polygonERC20 address of the polygon ERC20 contract.
+	/// @param _maticX address of the MaticX contract.
+	/// @param _manager address of the manager.
 	function initialize(
 		address _stakeManager,
 		address _polygonERC20,
@@ -181,6 +184,9 @@ contract ValidatorRegistry is
 	/// -------------------------------Getters-----------------------------------
 
 	/// @notice Get the maticX contract addresses
+	/// @return _stakeManager address of the polygon stake manager.
+	/// @return _polygonERC20 address of the polygon ERC20 contract.
+	/// @return _maticX address of the MaticX contract.
 	function getContracts()
 		external
 		view
@@ -198,6 +204,7 @@ contract ValidatorRegistry is
 
 	/// @notice Get validator id by its index.
 	/// @param _index validator index
+	/// @return _validatorId the validator id.
 	function getValidatorId(uint256 _index)
 		external
 		view
@@ -208,6 +215,7 @@ contract ValidatorRegistry is
 	}
 
 	/// @notice Get validators.
+	/// @return _validators the validators.
 	function getValidators() external view override returns (uint256[] memory) {
 		return validators;
 	}
@@ -216,7 +224,7 @@ contract ValidatorRegistry is
 
 	/**
 	 * @dev Modifier to make a function callable only when the validator id exists in our registry.
-	 *
+	 * @param _validatorId the validator id.
 	 * Requirements:
 	 *
 	 * - The validator id must exist in our registry.
@@ -231,6 +239,7 @@ contract ValidatorRegistry is
 
 	/**
 	 * @dev Modifier to make a function callable only when the validator id doesn't exist in our registry.
+	 * @param _validatorId the validator id.
 	 *
 	 * Requirements:
 	 *

@@ -13,6 +13,8 @@ import "./interfaces/IStakeManager.sol";
 import "./interfaces/IMaticX.sol";
 import "./interfaces/IFxStateRootTunnel.sol";
 
+/// @title MaticX
+/// @notice MaticX is the main contract that manages staking and unstaking of MATIC
 contract MaticX is
 	IMaticX,
 	ERC20Upgradeable,
@@ -44,14 +46,13 @@ contract MaticX is
 
 	bytes32 public constant BOT = keccak256("BOT");
 
-	/**
-	 * @param _validatorRegistry - Address of the validator registry
-	 * @param _stakeManager - Address of the stake manager
-	 * @param _polygonERC20 - Address of matic token on Ethereum
-	 * @param _manager - Address of the manager
-	 * @param _instantPoolOwner - Address of the instant pool owner
-	 * @param _treasury - Address of the treasury
-	 */
+	/// @notice Initialize the MaticX contract.
+	/// @param _validatorRegistry - Address of the validator registry
+	/// @param _stakeManager - Address of the stake manager
+	/// @param _polygonERC20 - Address of matic token on Ethereum
+	/// @param _manager - Address of the manager
+	/// @param _instantPoolOwner - Address of the instant pool owner
+	/// @param _treasury - Address of the treasury
 	function initialize(
 		address _validatorRegistry,
 		address _stakeManager,
@@ -81,6 +82,7 @@ contract MaticX is
 		);
 	}
 
+	/// @dev setup BOT as admin of INSTANT_POOL_OWNER
 	function setupBotAdmin()
 		external
 		override
@@ -96,7 +98,8 @@ contract MaticX is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
-	// Uses instantPoolOwner funds.
+	/// @dev provider MATIC from instantPoolOwner to this contract.
+	/// @param _amount - Amount of MATIC to be provided
 	function provideInstantPoolMatic(uint256 _amount)
 		external
 		override
@@ -113,6 +116,8 @@ contract MaticX is
 		instantPoolMatic += _amount;
 	}
 
+	/// @dev provide MATICX from instantPoolOwner to this contract.
+	/// @param _amount - Amount of MATICX to be provided
 	function provideInstantPoolMaticX(uint256 _amount)
 		external
 		override
@@ -129,6 +134,8 @@ contract MaticX is
 		instantPoolMaticX += _amount;
 	}
 
+	/// @dev withdraw MATICX from this contract to instantPoolOwner
+	/// @param _amount - Amount of MATICX to be withdrawn
 	function withdrawInstantPoolMaticX(uint256 _amount)
 		external
 		override
@@ -147,6 +154,8 @@ contract MaticX is
 		);
 	}
 
+	/// @dev withdraw MATIC from this contract to instantPoolOwner
+	/// @param _amount - Amount of MATIC to be withdrawn
 	function withdrawInstantPoolMatic(uint256 _amount)
 		external
 		override
@@ -162,7 +171,7 @@ contract MaticX is
 		IERC20Upgradeable(polygonERC20).safeTransfer(instantPoolOwner, _amount);
 	}
 
-	// Uses instantPoolMatic funds
+	/// @dev mints MaticX to instantPoolMatic. It uses instantPoolMatic funds
 	function mintMaticXToInstantPool()
 		external
 		override
@@ -179,6 +188,8 @@ contract MaticX is
 		instantPoolMatic = 0;
 	}
 
+	/// @dev swap MATIC for MATICX via instant pool
+	/// @param _amount - Amount of MATIC to be swapped
 	function swapMaticForMaticXViaInstantPool(uint256 _amount)
 		external
 		override
@@ -315,6 +326,10 @@ contract MaticX is
 		_claimWithdrawal(msg.sender, _idx);
 	}
 
+	/**
+	 * @dev withdraw rewards from validator
+	 * @param _validatorId - Validator id to withdraw rewards for
+	 */
 	function _withdrawRewards(uint256 _validatorId) internal returns (uint256) {
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
@@ -332,6 +347,7 @@ contract MaticX is
 
 	/**
 	 * @dev This function is deprecated. Please use withdrawValidatorsReward instead.
+	 * @param _validatorId - Validator id to withdraw rewards
 	 */
 	function withdrawRewards(uint256 _validatorId)
 		public
@@ -355,6 +371,10 @@ contract MaticX is
 		return rewards;
 	}
 
+	/**
+	 * @dev stake rewards and distribute fees to treasury. Only callable by BOT
+	 * @param _validatorId - Validator id to stake rewards
+	 */
 	function stakeRewardsAndDistributeFees(uint256 _validatorId)
 		external
 		override
@@ -457,6 +477,12 @@ contract MaticX is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
+	/**
+	 * @dev Helper function for submit function
+	 * @param deposit_sender - Address of the user that is depositing
+	 * @param _amount - Amount of MATIC sent from msg.sender to this contract
+	 * @return Amount of MaticX shares generated
+	 */
 	function helper_delegate_to_mint(address deposit_sender, uint256 _amount)
 		internal
 		whenNotPaused
@@ -609,6 +635,8 @@ contract MaticX is
 		emit SetFeePercent(_feePercent);
 	}
 
+	/// @notice Allows to set the address of the instant pool owner. Only callable by the admin.
+	/// @param _address Address of the instant pool owner.
 	function setInstantPoolOwner(address _address)
 		external
 		override
@@ -623,6 +651,8 @@ contract MaticX is
 		emit SetInstantPoolOwner(_address);
 	}
 
+	/// @notice Allows to set the address of the treasury. Only callable by the admin.
+	/// @param _address Address of the treasury.
 	function setTreasury(address _address)
 		external
 		override
@@ -633,6 +663,8 @@ contract MaticX is
 		emit SetTreasury(_address);
 	}
 
+	/// @notice Allows to set the address of the stake manager. Only callable by the admin.
+	/// @param _address Address of the stake manager.
 	function setValidatorRegistry(address _address)
 		external
 		override
@@ -643,6 +675,8 @@ contract MaticX is
 		emit SetValidatorRegistry(_address);
 	}
 
+	/// @notice Allows to set the address of the stake manager. Only callable by the admin.
+	/// @param _address Address of the stake manager.
 	function setFxStateRootTunnel(address _address)
 		external
 		override
@@ -743,6 +777,7 @@ contract MaticX is
 		return unbond.shares;
 	}
 
+	/// @notice Returns the contracts used by the MaticX contract.
 	function getContracts()
 		external
 		view
