@@ -11,6 +11,8 @@ import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "./interfaces/IChildPool.sol";
 import "./interfaces/IFxStateChildTunnel.sol";
 
+/// @title ChildPool contract
+/// @notice Polygon chain pool of funds. Used to facilitate instant swaps.
 contract ChildPool is
 	IChildPool,
 	Initializable,
@@ -39,6 +41,7 @@ contract ChildPool is
 	uint256 public override maticXSwapLockPeriod;
 
 	/**
+	 * @dev initializes the contract
 	 * @param _fxStateChildTunnel - Address of the fxStateChildTunnel contract
 	 * @param _maticX - Address of maticX token on Polygon
 	 * @param _manager - Address of the manager
@@ -73,6 +76,9 @@ contract ChildPool is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
+	/**
+	 * @dev Function that allows instant pool owner to provide matic to the instant pool
+	 */
 	function provideInstantPoolMatic()
 		external
 		payable
@@ -85,6 +91,9 @@ contract ChildPool is
 		instantPoolMatic += msg.value;
 	}
 
+	/**
+	 * @dev Function that allows instant pool owner to provide maticX to the instant pool
+	 */
 	function provideInstantPoolMaticX(uint256 _amount)
 		external
 		override
@@ -101,21 +110,10 @@ contract ChildPool is
 		);
 	}
 
-	function withdrawInstantPoolMaticX(uint256 _amount)
-		external
-		override
-		whenNotPaused
-		onlyRole(INSTANT_POOL_OWNER)
-	{
-		require(
-			instantPoolMaticX >= _amount,
-			"Withdraw amount cannot exceed maticX in instant pool"
-		);
-
-		instantPoolMaticX -= _amount;
-		IERC20Upgradeable(maticX).safeTransfer(instantPoolOwner, _amount);
-	}
-
+	/**
+	 * @dev Function that allows instant pool owner to withdraw matic from the instant pool
+	 * @param _amount - Amount of matic to withdraw
+	 */
 	function withdrawInstantPoolMatic(uint256 _amount)
 		external
 		override
@@ -131,6 +129,29 @@ contract ChildPool is
 		AddressUpgradeable.sendValue(instantPoolOwner, _amount);
 	}
 
+	/**
+	 * @dev Function that allows instant pool owner to withdraw maticX from the instant pool
+	 * @param _amount - Amount of maticX to withdraw
+	 */
+	function withdrawInstantPoolMaticX(uint256 _amount)
+		external
+		override
+		whenNotPaused
+		onlyRole(INSTANT_POOL_OWNER)
+	{
+		require(
+			instantPoolMaticX >= _amount,
+			"Withdraw amount cannot exceed maticX in instant pool"
+		);
+
+		instantPoolMaticX -= _amount;
+		IERC20Upgradeable(maticX).safeTransfer(instantPoolOwner, _amount);
+	}
+
+	/**
+	 * @dev Function to withdraw instant withdrawal fees to treasury
+	 * @param _amount - Amount of matic to withdraw
+	 */
 	function withdrawInstantWithdrawalFees(uint256 _amount)
 		external
 		override
@@ -145,6 +166,9 @@ contract ChildPool is
 		AddressUpgradeable.sendValue(treasury, _amount);
 	}
 
+	/**
+	 * @dev Function to swap matic for maticX via instant pool
+	 */
 	function swapMaticForMaticXViaInstantPool()
 		external
 		payable
@@ -164,6 +188,10 @@ contract ChildPool is
 		IERC20Upgradeable(maticX).safeTransfer(_msgSender(), amountInMaticX);
 	}
 
+	/**
+	 * @dev set maticX swap locking period
+	 * @param _hours - locking period in hours
+	 */
 	function setMaticXSwapLockPeriod(uint256 _hours)
 		external
 		override
@@ -176,12 +204,19 @@ contract ChildPool is
 		emit SetMaticXSwapLockPeriodEvent(_hours);
 	}
 
-	///@dev returns maticXSwapLockPeriod or 24 hours (default value) in seconds
+	/**
+	 * @dev returns maticXSwapLockPeriod or 24 hours (default value) in seconds
+	 * @return maticXSwapLockPeriod or 24 hours (default value) in seconds
+	 */
 	function getMaticXSwapLockPeriod() public view override returns (uint256) {
 		return (maticXSwapLockPeriod > 0) ? maticXSwapLockPeriod : 24 hours;
 	}
 
-	///@dev request maticX->matic swap from instant pool
+	/**
+	 * @dev request maticX->matic swap from instant pool
+	 * @param _amount - amount of maticX to swap
+	 * @return index of the swap request
+	 */
 	function requestMaticXSwap(uint256 _amount)
 		external
 		override
@@ -218,6 +253,11 @@ contract ChildPool is
 		return idx;
 	}
 
+	/**
+	 * @dev returns user's maticX swap requests
+	 * @param _address - user's address
+	 * @return user's maticX swap requests
+	 */
 	function getUserMaticXSwapRequests(address _address)
 		external
 		view
@@ -227,11 +267,19 @@ contract ChildPool is
 		return userMaticXSwapRequests[_address];
 	}
 
-	///@dev claim earlier requested maticX->matic swap from instant pool
+	/**
+	 * @dev claim earlier requested maticX->matic swap from instant pool
+	 * @param _idx - index of the swap request
+	 */
 	function claimMaticXSwap(uint256 _idx) external override whenNotPaused {
 		_claimMaticXSwap(_msgSender(), _idx);
 	}
 
+	/**
+	 * @dev  internal function to claim earlier requested maticX->matic swap from instant pool on behalf of the user
+	 * @param _to - user's address
+	 * @param _idx - index of the swap request
+	 */
 	function _claimMaticXSwap(address _to, uint256 _idx) internal {
 		MaticXSwapRequest[] storage userRequests = userMaticXSwapRequests[_to];
 		require(_idx < userRequests.length, "Invalid Index");
@@ -250,6 +298,9 @@ contract ChildPool is
 		emit ClaimMaticXSwap(_to, _idx, userRequest.amount);
 	}
 
+	/**
+	 * @dev swapMaticXForMaticViaInstantPool disabled for now!
+	 */
 	function swapMaticXForMaticViaInstantPool(uint256 _amount)
 		external
 		override
@@ -299,6 +350,11 @@ contract ChildPool is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
+	/**
+	 * @dev Function that sets the new treasury address
+	 * @notice Callable only by admin
+	 * @param _address - New treasury address that will be set
+	 */
 	function setTreasury(address payable _address)
 		external
 		override
@@ -309,6 +365,11 @@ contract ChildPool is
 		emit SetTreasury(_address);
 	}
 
+	/**
+	 * @dev Function that sets the new instant pool owner address
+	 * @notice Callable only by admin
+	 * @param _address - New instant pool owner address that will be set
+	 */
 	function setInstantPoolOwner(address payable _address)
 		external
 		override
@@ -323,6 +384,11 @@ contract ChildPool is
 		emit SetInstantPoolOwner(_address);
 	}
 
+	/**
+	 * @dev Function that sets the new fxStateChildTunnel address
+	 * @notice Callable only by admin
+	 * @param _address - New fxStateChildTunnel address that will be set
+	 */
 	function setFxStateChildTunnel(address _address)
 		external
 		override
@@ -370,6 +436,11 @@ contract ChildPool is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
+	/**
+	 * @dev values from the conversion of maticX to matic
+	 * @param _balance - balance to convert
+	 * @return amount in matic, amount in maticX, fees
+	 */
 	function convertMaticXToMatic(uint256 _balance)
 		public
 		view
@@ -386,6 +457,11 @@ contract ChildPool is
 			);
 	}
 
+	/**
+	 * @dev values from the conversion of matic to maticX
+	 * @param _balance - balance to convert
+	 * @return amount in maticX, amount in matic, fees
+	 */
 	function convertMaticToMaticX(uint256 _balance)
 		public
 		view
@@ -402,6 +478,11 @@ contract ChildPool is
 			);
 	}
 
+	/**
+	 * @dev get amount after instant withdrawal fees
+	 * @param _amount - amount to calculate fees for
+	 * @return amount after fees and fees
+	 */
 	function getAmountAfterInstantWithdrawalFees(uint256 _amount)
 		public
 		view
@@ -413,6 +494,10 @@ contract ChildPool is
 		return (_amount - fees, fees);
 	}
 
+	/**
+	 * @dev returns fxStateChildTunnel, maticX and trustedForwarder addresses
+	 * @return fxStateChildTunnel, maticX and trustedForwarder addresses
+	 */
 	function getContracts()
 		external
 		view
@@ -434,6 +519,10 @@ contract ChildPool is
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
+	/**
+	 * @dev sets trustedForwarder address
+	 * @param _address - address to set
+	 */
 	function setTrustedForwarder(address _address)
 		external
 		override
@@ -444,6 +533,10 @@ contract ChildPool is
 		emit SetTrustedForwarder(_address);
 	}
 
+	/**
+	 * @dev checks whether an address is a trustedForwarder
+	 * @return true if _address is a trustedForwarder
+	 */
 	function isTrustedForwarder(address _address)
 		public
 		view
@@ -452,6 +545,10 @@ contract ChildPool is
 	{
 		return _address == trustedForwarder;
 	}
+
+	/**
+	 * @dev returns the message sender in the context of a meta transaction
+	 */
 
 	function _msgSender()
 		internal
@@ -470,6 +567,9 @@ contract ChildPool is
 		}
 	}
 
+	/**
+	 * @dev returns the message data in the context of a meta transaction
+	 */
 	function _msgData()
 		internal
 		view
