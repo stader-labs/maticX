@@ -350,7 +350,7 @@ describe("MaticX contract", function () {
 
 		await provideInstantPoolMatic(deployer, amount);
 
-		var deployerMaticXBalance = await maticX.balanceOf(maticX.address);
+		let deployerMaticXBalance = await maticX.balanceOf(maticX.address);
 		expect(deployerMaticXBalance).to.equal(0);
 		expect(await polygonMock.balanceOf(deployer.address)).to.equal(0);
 		expect(await polygonMock.balanceOf(maticX.address)).to.equal(
@@ -358,7 +358,7 @@ describe("MaticX contract", function () {
 		);
 
 		await withdrawInstantPoolMatic(deployer, amount);
-		var deployerMaticXBalance = await maticX.balanceOf(maticX.address);
+		deployerMaticXBalance = await maticX.balanceOf(maticX.address);
 		expect(deployerMaticXBalance).to.equal(0);
 		expect(await polygonMock.balanceOf(deployer.address)).to.equal(amount);
 		expect(await polygonMock.balanceOf(maticX.address)).to.equal(
