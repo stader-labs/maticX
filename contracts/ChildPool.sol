@@ -496,7 +496,9 @@ contract ChildPool is
 
 	/**
 	 * @dev returns fxStateChildTunnel, maticX and trustedForwarder addresses
-	 * @return fxStateChildTunnel, maticX and trustedForwarder addresses
+	 * @return _fxStateChildTunnel
+	 * @return _maticX
+	 * @return _trustedForwarder
 	 */
 	function getContracts()
 		external

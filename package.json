@@ -8,7 +8,8 @@
     "deploy:test": "cross-env NODE_ENV=test npx hardhat run ./scripts/deploy.ts --network testnet",
     "upgrade:main": "cross-env NODE_ENV=main npx hardhat run ./scripts/upgradeMaticX.ts --network mainnet",
     "verify:main": "cross-env NODE_ENV=main npx hardhat verifyMaticX --network mainnet",
-    "test": "npx hardhat test",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
     "prettier-sol": "prettier --write 'contracts/**/*.sol'",
     "prettier-ts": "prettier --write 'scripts/**/*.ts' 'test/**/*.ts'",
     "lint": "eslint --ext .js,.ts ."
