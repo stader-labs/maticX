@@ -29,7 +29,7 @@ export const verify = async (hre: HardhatRuntimeEnvironment) => {
 export async function deployDirect(
 	hre: HardhatRuntimeEnvironment,
 	contractName: string,
-	...args: any
+	...args: unknown[]
 ) {
 	const Contract = await hre.ethers.getContractFactory(contractName);
 
@@ -46,7 +46,7 @@ export async function deployDirect(
 export async function deployProxy(
 	hre: HardhatRuntimeEnvironment,
 	contractName: string,
-	...args: any
+	...args: unknown[]
 ) {
 	const Contract = await hre.ethers.getContractFactory(contractName);
 
