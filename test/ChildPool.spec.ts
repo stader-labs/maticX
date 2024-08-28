@@ -63,7 +63,8 @@ describe("ChildPool", () => {
 	let claimMaticXSwap: (
 		signer: SignerWithAddress,
 		index: BigNumber
-	) => Promise<unknown>;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	) => Promise<any>;
 
 	before(() => {
 		mintAndApproveMatic = async (signer, amount) => {

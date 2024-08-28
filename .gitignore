@@ -1,16 +1,17 @@
-node_modules
+.idea/
+.openzeppelin/
+.vscode/
+artifacts/
+cache/
+coverage/
+crytic-corpus/
+crytic-export/
+node_modules/
+typechain/
+.DS_Store
 .env
 .env.test
-
-#Hardhat files
-cache
-artifacts
-typechain
-
-.openzeppelin
-
-.idea
-
-#test coverage logs
+.solcx-lock-*
 coverage.json
-coverage/
+mochaOutput.json
+testMatrix.json
