@@ -1,0 +1,14 @@
+.idea
+.openzeppelin
+.vscode
+artifacts/
+cache/
+coverage/
+contracts/lib
+contracts/mocks
+contracts/state-transfer
+contracts/tunnel
+crytic-corpus/
+crytic-export/
+node_modules/
+typechain-types/

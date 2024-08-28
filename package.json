@@ -8,6 +8,7 @@
 		"prettier-ts": "prettier --write 'scripts/**/*.ts' 'test/**/*.ts'",
 		"lint": "eslint --ext .js,.ts .",
 		"compile": "hardhat compile",
+		"check": "hardhat check",
 		"test": "hardhat test --bail",
 		"node": "hardat node",
 		"deploy:main": "cross-env NODE_ENV=main hardhat run ./scripts/deploy.ts --network mainnet",
@@ -33,6 +34,7 @@
 	"devDependencies": {
 		"@nomiclabs/hardhat-ethers": "^2.0.2",
 		"@nomiclabs/hardhat-etherscan": "^2.1.6",
+		"@nomiclabs/hardhat-solhint": "^4.0.0",
 		"@nomiclabs/hardhat-waffle": "^2.0.1",
 		"@openzeppelin/contracts": "^4.3.1",
 		"@openzeppelin/contracts-upgradeable": "^4.3.2",
@@ -64,6 +66,7 @@
 		"prettier": "^2.6.2",
 		"prettier-plugin-solidity": "^1.0.0-beta.19",
 		"solc": "^0.8.2",
+		"solhint": "^5.0.3",
 		"ts-node": "^10.2.1",
 		"typechain": "^5.1.2",
 		"typescript": "^4.4.3"
