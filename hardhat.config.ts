@@ -1,4 +1,7 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+import {
+	HardhatNetworkMiningConfig,
+	HardhatRuntimeEnvironment,
+} from "hardhat/types";
 import { HardhatUserConfig, task } from "hardhat/config";
 import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
@@ -124,12 +127,22 @@ function isRootNetwork(selected: string) {
 }
 
 function _isCorrectNetwork(expected: string, selected: string) {
-	if (selected === expected) return true;
+	if (selected === expected) {
+		return true;
+	}
 
 	console.log(
 		`Wrong network configuration! Expected: ${expected} Selected: ${selected}`
 	);
 }
+
+const mining: HardhatNetworkMiningConfig = {
+	auto: true,
+	interval: 1_000,
+	mempool: {
+		order: "fifo",
+	},
+};
 
 const config: HardhatUserConfig = {
 	defaultNetwork: "hardhat",
@@ -143,8 +156,15 @@ const config: HardhatUserConfig = {
 		},
 	},
 	networks: {
+		hardhat: {
+			initialBaseFeePerGas: 0, // See https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
+			blockGasLimit: 30_000_000,
+			mining,
+		},
 		localhost: {
 			url: "http://127.0.0.1:8545",
+			blockGasLimit: 30_000_000,
+			mining,
 		},
 		testnet: {
 			url: ROOT_CHAIN_RPC,
@@ -167,7 +187,8 @@ const config: HardhatUserConfig = {
 		target: "ethers-v5",
 	},
 	mocha: {
-		timeout: 99999999,
+		reporter: "spec",
+		timeout: "1h",
 	},
 	etherscan: {
 		apiKey: ETHERSCAN_API_KEY,
@@ -177,14 +198,29 @@ const config: HardhatUserConfig = {
 		apiSecret: DEFENDER_TEAM_API_SECRET_KEY,
 	},
 	contractSizer: {
-		alphaSort: true,
+		alphaSort: false,
 		disambiguatePaths: false,
 		runOnCompile: true,
 		strict: true,
+		except: [
+			"@openzeppelin/",
+			"interfaces/",
+			"lib/",
+			"mocks/",
+			"state-transfer",
+			"tunnel",
+		],
 	},
 	gasReporter: {
+		excludeContracts: [
+			"@openzeppelin/",
+			"interfaces/",
+			"lib/",
+			"mocks/",
+			"state-transfer",
+			"tunnel",
+		],
 		currency: "USD",
-		gasPrice: 50,
 	},
 };
 
