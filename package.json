@@ -8,7 +8,8 @@
 		"prettier-ts": "prettier --write 'scripts/**/*.ts' 'test/**/*.ts'",
 		"lint": "eslint --ext .js,.ts .",
 		"compile": "hardhat compile",
-		"test": "hardhat test",
+		"test": "hardhat test --bail",
+		"node": "hardat node",
 		"deploy:main": "cross-env NODE_ENV=main hardhat run ./scripts/deploy.ts --network mainnet",
 		"deploy:test": "cross-env NODE_ENV=test hardhat run ./scripts/deploy.ts --network testnet",
 		"upgrade:main": "cross-env NODE_ENV=main hardhat run ./scripts/upgradeMaticX.ts --network mainnet",
@@ -28,7 +29,7 @@
 	"engines": {
 		"node": "16"
 	},
-  "type": "commonjs",
+	"type": "commonjs",
 	"devDependencies": {
 		"@nomiclabs/hardhat-ethers": "^2.0.2",
 		"@nomiclabs/hardhat-etherscan": "^2.1.6",
