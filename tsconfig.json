@@ -13,6 +13,6 @@
     "target": "es6"
   },
   "exclude": ["node_modules"],
-  "include": ["./scripts", "./test"],
-  "files": ["./hardhat.config.ts"]
+  "include": ["./scripts", "./test", ".eslintrc.js"],
+  "files": ["hardhat.config.ts"]
 }

@@ -39,7 +39,7 @@ const deploymentOrder: DeploymentOrder = {
 };
 
 interface Exportable {
-	data: Record<any, string>;
+	data: Record<string, string>;
 	export(): void;
 }
 
@@ -58,7 +58,7 @@ class BlockchainDeployer {
 
 	deployContract = async <T extends Contract>(
 		contractName: keyof DeploymentData,
-		...args: any[]
+		...args: unknown[]
 	) => {
 		console.log(`Deploying ${contractName}: ${args}, ${args.length}`);
 		const Contract = await ethers.getContractFactory(
@@ -76,7 +76,7 @@ class BlockchainDeployer {
 
 	deployProxy = async <T extends Contract>(
 		contractName: keyof DeploymentData,
-		...args: any[]
+		...args: unknown[]
 	) => {
 		console.log(`Deploying ${contractName}: ${args}, ${args.length}`);
 		const Contract = await ethers.getContractFactory(

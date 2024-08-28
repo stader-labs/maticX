@@ -786,7 +786,8 @@ describe("MaticX contract", function () {
 			ethers.utils.parseEther("17"),
 			validatorsAddress[1]
 		);
-		/*const iFace = new ethers.utils.Interface([
+		/*
+		const iFace = new ethers.utils.Interface([
 			"event WithdrawRewards(uint256 indexed _validatorId, uint256 _rewards)",
 		]);
 		const tx1 = await maticX.withdrawRewards(BigNumber.from(1));

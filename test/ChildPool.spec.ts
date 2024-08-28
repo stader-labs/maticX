@@ -59,11 +59,11 @@ describe("ChildPool", () => {
 	let requestMaticXSwap: (
 		signer: SignerWithAddress,
 		amount: BigNumber
-	) => Promise<any>;
+	) => Promise<unknown>;
 	let claimMaticXSwap: (
 		signer: SignerWithAddress,
 		index: BigNumber
-	) => Promise<any>;
+	) => Promise<unknown>;
 
 	before(() => {
 		mintAndApproveMatic = async (signer, amount) => {
@@ -99,11 +99,10 @@ describe("ChildPool", () => {
 			signer: SignerWithAddress,
 			amount: BigNumberish
 		) => {
-			const signerChildPool = await childPool.connect(signer);
-			const result =
-				await signerChildPool.swapMaticForMaticXViaInstantPool({
-					value: amount,
-				});
+			const signerChildPool = childPool.connect(signer);
+			await signerChildPool.swapMaticForMaticXViaInstantPool({
+				value: amount,
+			});
 		};
 
 		requestMaticXSwap = async (
@@ -112,7 +111,7 @@ describe("ChildPool", () => {
 		) => {
 			await mintMaticX(signer, amount);
 			await maticXApproveForChildPool(signer, amount);
-			const signerChildPool = await childPool.connect(signer);
+			const signerChildPool = childPool.connect(signer);
 			return await signerChildPool.requestMaticXSwap(amount);
 		};
 
@@ -120,7 +119,7 @@ describe("ChildPool", () => {
 			signer: SignerWithAddress,
 			index: BigNumber
 		) => {
-			const signerChildPool = await childPool.connect(signer);
+			const signerChildPool = childPool.connect(signer);
 			return await signerChildPool.claimMaticXSwap(index);
 		};
 	});
@@ -269,7 +268,7 @@ describe("ChildPool", () => {
 		expect(await maticX.balanceOf(users[0].address)).to.eql(
 			BigNumber.from("0").mul(wei)
 		);
-		const result = await swapMaticForMaticXViaInstantPool(
+		await swapMaticForMaticXViaInstantPool(
 			users[0],
 			ethers.utils.parseEther("2")
 		);
