@@ -35,7 +35,7 @@ interface IMaticX is IERC20Upgradeable {
 		address _stakeManager,
 		address _token,
 		address _manager,
-		address _instant_pool_manager,
+		address _instantPoolManager,
 		address _treasury
 	) external;
 

@@ -180,7 +180,7 @@ contract MaticX is
 	{
 		require(instantPoolMatic > 0, "Matic amount cannot be 0");
 
-		uint256 maticxMinted = helper_delegate_to_mint(
+		uint256 maticxMinted = delegateToMint(
 			address(this),
 			instantPoolMatic
 		);
@@ -238,7 +238,7 @@ contract MaticX is
 			_amount
 		);
 
-		return helper_delegate_to_mint(msg.sender, _amount);
+		return delegateToMint(msg.sender, _amount);
 	}
 
 	/**
@@ -479,11 +479,11 @@ contract MaticX is
 
 	/**
 	 * @dev Helper function for submit function
-	 * @param deposit_sender - Address of the user that is depositing
+	 * @param depositSender - Address of the user that is depositing
 	 * @param _amount - Amount of MATIC sent from msg.sender to this contract
 	 * @return Amount of MaticX shares generated
 	 */
-	function helper_delegate_to_mint(address deposit_sender, uint256 _amount)
+	function delegateToMint(address depositSender, uint256 _amount)
 		internal
 		whenNotPaused
 		returns (uint256)
@@ -494,8 +494,8 @@ contract MaticX is
 			uint256 totalPooledMatic
 		) = convertMaticToMaticX(_amount);
 
-		_mint(deposit_sender, amountToMint);
-		emit Submit(deposit_sender, _amount);
+		_mint(depositSender, amountToMint);
+		emit Submit(depositSender, _amount);
 
 		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
 			.preferredDepositValidatorId();
