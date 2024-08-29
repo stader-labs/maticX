@@ -1,0 +1,75 @@
+name: CI
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["20.15.x"]
+        python-version: ["3.12"]
+        solidity-version: ["0.8.7"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Setup python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          check-latest: true
+          cache: pip
+
+      - name: Install node dependencies
+        run: npm ci
+
+      - name: Install python dependencies
+        run: |
+          pip install -U pip setuptools
+          pip install -q -r requirements.txt
+
+      - name: Configure solidity compiler
+        run: |
+          solc-select install ${{ matrix.solidity-version }}
+          solc-select use ${{ matrix.solidity-version }}
+
+      - name: Clean artifacts
+        run: npm run clean
+
+      - name: Compile contracts
+        run: npm run compile
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Check contracts with linter
+        run: npm run check
+
+      # - name: Analyze contracts with static analyzer
+      #   run: npm run analyze:ci
+
+      - name: Run unit tests
+        run: npm run test:ci
+
+      - name: Save contract artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: contracts
+          path: |
+            artifacts/contracts/
+            !artifacts/contracts/**/*.dbg.json
+            !artifacts/contracts/interfaces/
+            !artifacts/contracts/lib/
+            !artifacts/contracts/mocks/
+            !artifacts/contracts/state-transfer/
+            !artifacts/contracts/tunnel/
+          retention-days: 30
