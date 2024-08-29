@@ -3,6 +3,7 @@
 	"version": "0.1.0",
 	"description": "MaticX contracts",
 	"scripts": {
+		"prepare": "husky",
 		"format": "npm run prettier-sol && npm run prettier-ts",
 		"prettier-sol": "prettier --write 'contracts/**/*.sol'",
 		"prettier-ts": "prettier --write 'scripts/**/*.ts' 'test/**/*.ts'",
@@ -28,7 +29,8 @@
 	},
 	"homepage": "https://github.com/stader-labs/maticX#readme",
 	"engines": {
-		"node": "16"
+		"node": "^20.9.0",
+		"npm": ">=10.2.0"
 	},
 	"type": "commonjs",
 	"devDependencies": {
@@ -63,6 +65,7 @@
 		"hardhat": "^2.6.4",
 		"hardhat-contract-sizer": "^2.5.1",
 		"hardhat-gas-reporter": "^1.0.8",
+		"husky": "^9.1.5",
 		"prettier": "^2.6.2",
 		"prettier-plugin-solidity": "^1.0.0-beta.19",
 		"solc": "^0.8.2",
