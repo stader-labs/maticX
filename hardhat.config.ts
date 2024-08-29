@@ -188,7 +188,7 @@ const config: HardhatUserConfig = {
 		target: "ethers-v5",
 	},
 	mocha: {
-		reporter: "spec",
+		reporter: process.env.CI ? "dot" : "spec",
 		timeout: "1h",
 	},
 	etherscan: {
