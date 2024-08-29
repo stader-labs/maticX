@@ -1,0 +1,5 @@
+{
+    "compile_force_framework": "hardhat",
+    "detectors_to_exclude": "pragma,solc-version",
+    "filter_paths": "(@openzeppelin/|lib/|mocks/|state-transfer/|tunnel/)"
+}
