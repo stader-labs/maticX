@@ -23,15 +23,17 @@ contract MaticX is
 {
 	using SafeERC20Upgradeable for IERC20Upgradeable;
 
+	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
+	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
+	bytes32 public constant BOT = keccak256("BOT");
+
 	address private validatorRegistry;
 	address private stakeManager;
-	address private polygonERC20;
+	address private maticToken;
 
 	address public override treasury;
 	string public override version;
 	uint8 public override feePercent;
-
-	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
 
 	address public override instantPoolOwner;
 	uint256 public override instantPoolMatic;
@@ -40,23 +42,20 @@ contract MaticX is
 	/// @notice Mapping of all user ids with withdraw requests.
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 
-	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
-
 	address public override fxStateRootTunnel;
-
-	bytes32 public constant BOT = keccak256("BOT");
+	address private polToken;
 
 	/// @notice Initialize the MaticX contract.
 	/// @param _validatorRegistry - Address of the validator registry
 	/// @param _stakeManager - Address of the stake manager
-	/// @param _polygonERC20 - Address of matic token on Ethereum
+	/// @param _maticToken - Address of matic token on Ethereum
 	/// @param _manager - Address of the manager
 	/// @param _instantPoolOwner - Address of the instant pool owner
 	/// @param _treasury - Address of the treasury
 	function initialize(
 		address _validatorRegistry,
 		address _stakeManager,
-		address _polygonERC20,
+		address _maticToken,
 		address _manager,
 		address _instantPoolOwner,
 		address _treasury
@@ -72,11 +71,11 @@ contract MaticX is
 		validatorRegistry = _validatorRegistry;
 		stakeManager = _stakeManager;
 		treasury = _treasury;
-		polygonERC20 = _polygonERC20;
+		maticToken = _maticToken;
 
 		feePercent = 5;
 
-		IERC20Upgradeable(polygonERC20).safeApprove(
+		IERC20Upgradeable(maticToken).safeApprove(
 			stakeManager,
 			type(uint256).max
 		);
@@ -107,7 +106,7 @@ contract MaticX is
 		onlyRole(INSTANT_POOL_OWNER)
 	{
 		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(polygonERC20).safeTransferFrom(
+		IERC20Upgradeable(maticToken).safeTransferFrom(
 			msg.sender,
 			address(this),
 			_amount
@@ -168,7 +167,7 @@ contract MaticX is
 		);
 
 		instantPoolMatic -= _amount;
-		IERC20Upgradeable(polygonERC20).safeTransfer(instantPoolOwner, _amount);
+		IERC20Upgradeable(maticToken).safeTransfer(instantPoolOwner, _amount);
 	}
 
 	/// @dev mints MaticX to instantPoolMatic. It uses instantPoolMatic funds
@@ -196,7 +195,7 @@ contract MaticX is
 		whenNotPaused
 	{
 		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(polygonERC20).safeTransferFrom(
+		IERC20Upgradeable(maticToken).safeTransferFrom(
 			msg.sender,
 			address(this),
 			_amount
@@ -232,7 +231,8 @@ contract MaticX is
 		returns (uint256)
 	{
 		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(polygonERC20).safeTransferFrom(
+
+		IERC20Upgradeable(maticToken).safeTransferFrom(
 			msg.sender,
 			address(this),
 			_amount
@@ -334,10 +334,10 @@ contract MaticX is
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
-		uint256 balanceBeforeRewards = IERC20Upgradeable(polygonERC20)
+		uint256 balanceBeforeRewards = IERC20Upgradeable(maticToken)
 			.balanceOf(address(this));
 		IValidatorShare(validatorShare).withdrawRewards();
-		uint256 rewards = IERC20Upgradeable(polygonERC20).balanceOf(
+		uint256 rewards = IERC20Upgradeable(maticToken).balanceOf(
 			address(this)
 		) - balanceBeforeRewards;
 
@@ -391,7 +391,7 @@ contract MaticX is
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
-		uint256 rewards = IERC20Upgradeable(polygonERC20).balanceOf(
+		uint256 rewards = IERC20Upgradeable(maticToken).balanceOf(
 			address(this)
 		) - instantPoolMatic;
 
@@ -400,7 +400,7 @@ contract MaticX is
 		uint256 treasuryFees = (rewards * feePercent) / 100;
 
 		if (treasuryFees > 0) {
-			IERC20Upgradeable(polygonERC20).safeTransfer(
+			IERC20Upgradeable(maticToken).safeTransfer(
 				treasury,
 				treasuryFees
 			);
@@ -522,7 +522,7 @@ contract MaticX is
 		returns (uint256)
 	{
 		uint256 amountToClaim = 0;
-		uint256 balanceBeforeClaim = IERC20Upgradeable(polygonERC20).balanceOf(
+		uint256 balanceBeforeClaim = IERC20Upgradeable(maticToken).balanceOf(
 			address(this)
 		);
 		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[_to];
@@ -541,10 +541,10 @@ contract MaticX is
 		userRequests.pop();
 
 		amountToClaim =
-			IERC20Upgradeable(polygonERC20).balanceOf(address(this)) -
+			IERC20Upgradeable(maticToken).balanceOf(address(this)) -
 			balanceBeforeClaim;
 
-		IERC20Upgradeable(polygonERC20).safeTransfer(_to, amountToClaim);
+		IERC20Upgradeable(maticToken).safeTransfer(_to, amountToClaim);
 
 		emit ClaimWithdrawal(_to, _idx, amountToClaim);
 		return amountToClaim;
@@ -701,6 +701,18 @@ contract MaticX is
 		emit SetVersion(_version);
 	}
 
+	/// @dev Set the address of the POL token
+	/// @param _address - Address of the POL token
+	function setPOLToken(address _address)
+		external
+		override
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
+		polToken = _address;
+
+		emit SetPOLToken(_address);
+	}
+
 	////////////////////////////////////////////////////////////
 	/////                                                    ///
 	/////                 ***Getters***                      ///
@@ -784,12 +796,14 @@ contract MaticX is
 		override
 		returns (
 			address _stakeManager,
-			address _polygonERC20,
-			address _validatorRegistry
+			address _maticToken,
+			address _validatorRegistry,
+			address _polToken
 		)
 	{
 		_stakeManager = stakeManager;
-		_polygonERC20 = polygonERC20;
+		_maticToken = maticToken;
 		_validatorRegistry = validatorRegistry;
+		_polToken = polToken;
 	}
 }
