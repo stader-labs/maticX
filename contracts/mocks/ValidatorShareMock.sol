@@ -44,19 +44,16 @@ contract ValidatorShareMock is IValidatorShare {
 		override
 		returns (uint256)
 	{
-		uint256 totalAmount = IERC20(token).balanceOf(address(this));
+		_buyVoucher(_amount);
+		return 1;
+	}
 
-		uint256 shares = totalAmount != 0
-			? (_amount * totalShares) / totalAmount
-			: _amount;
-
-		totalShares += shares;
-		totalStaked += _amount;
-		require(
-			stakeManager.delegationDeposit(validatorId, _amount, msg.sender),
-			"deposit failed"
-		);
-
+	function buyVoucherPOL(uint256 _amount, uint256)
+		external
+		override
+		returns (uint256)
+	{
+		_buyVoucher(_amount);
 		return 1;
 	}
 
@@ -138,5 +135,20 @@ contract ValidatorShareMock is IValidatorShare {
 			2
 		);
 		return unbond;
+	}
+
+	function _buyVoucher(uint256 _amount) private {
+		uint256 totalAmount = IERC20(token).balanceOf(address(this));
+
+		uint256 shares = totalAmount != 0
+			? (_amount * totalShares) / totalAmount
+			: _amount;
+
+		totalShares += shares;
+		totalStaked += _amount;
+		require(
+			stakeManager.delegationDeposit(validatorId, _amount, msg.sender),
+			"deposit failed"
+		);
 	}
 }

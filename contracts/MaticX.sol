@@ -181,7 +181,8 @@ contract MaticX is
 
 		uint256 maticxMinted = delegateToMint(
 			address(this),
-			instantPoolMatic
+			instantPoolMatic,
+			false
 		);
 		instantPoolMaticX += maticxMinted;
 		instantPoolMatic = 0;
@@ -219,7 +220,7 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Send funds to MaticX contract and mints MaticX to msg.sender
+	 * @dev Send MATIC token to MaticX contract and mints MaticX to msg.sender
 	 * @notice Requires that msg.sender has approved _amount of MATIC to this contract
 	 * @param _amount - Amount of MATIC sent from msg.sender to this contract
 	 * @return Amount of MaticX shares generated
@@ -238,7 +239,30 @@ contract MaticX is
 			_amount
 		);
 
-		return delegateToMint(msg.sender, _amount);
+		return delegateToMint(msg.sender, _amount, false);
+	}
+
+	/**
+	 * @dev Send POL token to MaticX contract and mints MaticX to msg.sender
+	 * @notice Requires that msg.sender has approved _amount of POL to this contract
+	 * @param _amount - Amount of POL sent from msg.sender to this contract
+	 * @return Amount of MaticX shares generated
+	 */
+	function submitPOL(uint256 _amount)
+		external
+		override
+		whenNotPaused
+		returns (uint256)
+	{
+		require(_amount > 0, "Invalid amount");
+
+		IERC20Upgradeable(polToken).safeTransferFrom(
+			msg.sender,
+			address(this),
+			_amount
+		);
+
+		return delegateToMint(msg.sender, _amount, true);
 	}
 
 	/**
@@ -483,9 +507,8 @@ contract MaticX is
 	 * @param _amount - Amount of MATIC sent from msg.sender to this contract
 	 * @return Amount of MaticX shares generated
 	 */
-	function delegateToMint(address depositSender, uint256 _amount)
+	function delegateToMint(address depositSender, uint256 _amount, bool pol)
 		internal
-		whenNotPaused
 		returns (uint256)
 	{
 		(
@@ -501,7 +524,10 @@ contract MaticX is
 			.preferredDepositValidatorId();
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(preferredValidatorId);
-		IValidatorShare(validatorShare).buyVoucher(_amount, 0);
+
+		pol
+			? IValidatorShare(validatorShare).buyVoucherPOL(_amount, 0)
+			: IValidatorShare(validatorShare).buyVoucher(_amount, 0);
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
 			abi.encode(totalShares + amountToMint, totalPooledMatic + _amount)

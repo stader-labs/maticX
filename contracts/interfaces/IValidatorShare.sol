@@ -19,6 +19,10 @@ interface IValidatorShare {
 		external
 		returns (uint256);
 
+	function buyVoucherPOL(uint256 _amount, uint256 _minSharesToMint)
+		external
+		returns (uint256);
+
 	// solhint-disable-next-line func-name-mixedcase
 	function sellVoucher_new(uint256 claimAmount, uint256 maximumSharesToBurn)
 		external;
