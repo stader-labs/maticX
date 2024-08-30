@@ -13,7 +13,7 @@ import {
 describe("ValidatorRegistry contract", function () {
 	let deployer: SignerWithAddress;
 	let manager: SignerWithAddress;
-	let instant_pool_owner: SignerWithAddress;
+	let instantPoolOwner: SignerWithAddress;
 	let treasury: SignerWithAddress;
 	let users: SignerWithAddress[] = [];
 	let maticX: MaticX;
@@ -90,7 +90,7 @@ describe("ValidatorRegistry contract", function () {
 		[deployer, ...users] = await ethers.getSigners();
 		manager = deployer;
 		treasury = deployer;
-		instant_pool_owner = deployer;
+		instantPoolOwner = deployer;
 
 		polygonMock = (await (
 			await ethers.getContractFactory("PolygonMock")
@@ -119,7 +119,7 @@ describe("ValidatorRegistry contract", function () {
 				validatorRegistry.address,
 				stakeManagerMock.address,
 				polygonMock.address,
-				instant_pool_owner.address,
+				instantPoolOwner.address,
 				manager.address,
 				treasury.address,
 			]
