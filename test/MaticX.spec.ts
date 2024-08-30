@@ -17,7 +17,7 @@ import {
 describe("MaticX contract", function () {
 	let deployer: SignerWithAddress;
 	let manager: SignerWithAddress;
-	let instant_pool_owner: SignerWithAddress;
+	let instantPoolOwner: SignerWithAddress;
 	let treasury: SignerWithAddress;
 	let users: SignerWithAddress[] = [];
 	let maticX: MaticX;
@@ -197,7 +197,7 @@ describe("MaticX contract", function () {
 		[deployer, ...users] = await ethers.getSigners();
 		manager = deployer;
 		treasury = users[1];
-		instant_pool_owner = deployer;
+		instantPoolOwner = deployer;
 		polygonMock = (await (
 			await ethers.getContractFactory("PolygonMock")
 		).deploy()) as PolygonMock;
@@ -250,7 +250,7 @@ describe("MaticX contract", function () {
 				stakeManagerMock.address,
 				polygonMock.address,
 				manager.address,
-				instant_pool_owner.address,
+				instantPoolOwner.address,
 				treasury.address,
 			]
 		)) as MaticX;
@@ -272,35 +272,35 @@ describe("MaticX contract", function () {
 		await fxStateRootTunnel.setFxChildTunnel(fxStateChildTunnel.address);
 		await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
 		await maticX.setupBotAdmin();
-		await maticX.grantRole(await maticX.BOT(), instant_pool_owner.address);
+		await maticX.grantRole(await maticX.BOT(), instantPoolOwner.address);
 	});
 
 	it("Should submit successfully", async () => {
-		const total_amount = ethers.utils.parseEther("1");
+		const totalAmount = ethers.utils.parseEther("1");
 		const user = users[0];
 
-		await mint(user, total_amount);
+		await mint(user, totalAmount);
 
-		const approve_amount1 = ethers.utils.parseEther("0.4");
+		const approveAmount = ethers.utils.parseEther("0.4");
 		// Approve & Submit individually 0.4
-		await maticApprove(user, approve_amount1);
-		await submitWithoutApprove(user, approve_amount1);
+		await maticApprove(user, approveAmount);
+		await submitWithoutApprove(user, approveAmount);
 
 		let userBalance = await maticX.balanceOf(user.address);
-		expect(userBalance).to.equal(approve_amount1);
+		expect(userBalance).to.equal(approveAmount);
 
 		// Approve & Submit individually 0.6
-		const remaining_amount = ethers.utils.parseEther("0.6");
-		const submitTx = await submit(user, remaining_amount);
+		const remainingAmount = ethers.utils.parseEther("0.6");
+		const submitTx = await submit(user, remainingAmount);
 		await expect(submitTx)
 			.emit(maticX, "Submit")
-			.withArgs(user.address, remaining_amount);
+			.withArgs(user.address, remainingAmount);
 		await expect(submitTx)
 			.emit(maticX, "Delegate")
-			.withArgs(1, remaining_amount);
+			.withArgs(1, remainingAmount);
 
 		userBalance = await maticX.balanceOf(user.address);
-		expect(userBalance).to.equal(total_amount);
+		expect(userBalance).to.equal(totalAmount);
 	});
 
 	it("fails when non instant pool owner interacts with instant pool provision & withdrawal", async () => {
@@ -327,17 +327,17 @@ describe("MaticX contract", function () {
 
 	it("Should provide and withdraw matic to instant pool successfully", async () => {
 		const amount = ethers.utils.parseEther("1");
-		const random_deposit_amount = ethers.utils.parseEther("0.4");
+		const randomDepositAmount = ethers.utils.parseEther("0.4");
 		const user = users[0];
 
-		const user_sign = polygonMock.connect(user);
-		await user_sign.mint(amount);
-		await user_sign.transfer(maticX.address, random_deposit_amount);
+		const userSign = polygonMock.connect(user);
+		await userSign.mint(amount);
+		await userSign.transfer(maticX.address, randomDepositAmount);
 		expect(await polygonMock.balanceOf(user.address)).to.equal(
 			ethers.utils.parseEther("0.6")
 		);
 		expect(await polygonMock.balanceOf(maticX.address)).to.equal(
-			random_deposit_amount
+			randomDepositAmount
 		);
 
 		// Run with deployer - the owner of instant pool
@@ -345,7 +345,7 @@ describe("MaticX contract", function () {
 		await maticApprove(deployer, amount);
 		expect(await polygonMock.balanceOf(deployer.address)).to.equal(amount);
 		expect(await polygonMock.balanceOf(maticX.address)).to.equal(
-			random_deposit_amount
+			randomDepositAmount
 		);
 
 		await provideInstantPoolMatic(deployer, amount);
@@ -362,25 +362,25 @@ describe("MaticX contract", function () {
 		expect(deployerMaticXBalance).to.equal(0);
 		expect(await polygonMock.balanceOf(deployer.address)).to.equal(amount);
 		expect(await polygonMock.balanceOf(maticX.address)).to.equal(
-			random_deposit_amount
+			randomDepositAmount
 		);
 	});
 
 	it("Should provide and withdraw MaticX to instant pool successfully", async () => {
 		const amount = ethers.utils.parseEther("1");
 		const user = users[0];
-		const random_deposit_amount = ethers.utils.parseEther("0.4");
+		const randomDepositAmount = ethers.utils.parseEther("0.4");
 
 		// Get 1 Matic and convert some to 0.4 MaticX
 		await mint(user, amount);
-		await submit(user, random_deposit_amount);
+		await submit(user, randomDepositAmount);
 
 		// Raw transfer to the contract
-		const user_sign = maticX.connect(user);
-		await user_sign.transfer(maticX.address, random_deposit_amount);
+		const userSign = maticX.connect(user);
+		await userSign.transfer(maticX.address, randomDepositAmount);
 		expect(await maticX.balanceOf(user.address)).to.equal(0);
 		expect(await maticX.balanceOf(maticX.address)).to.equal(
-			random_deposit_amount
+			randomDepositAmount
 		);
 
 		// Run with deployer - the owner of instant pool
@@ -389,7 +389,7 @@ describe("MaticX contract", function () {
 		await maticXApprove(deployer, amount);
 		expect(await maticX.balanceOf(deployer.address)).to.equal(amount);
 		expect(await maticX.balanceOf(maticX.address)).to.equal(
-			random_deposit_amount
+			randomDepositAmount
 		);
 
 		await provideInstantPoolMaticX(deployer, amount);
@@ -401,17 +401,17 @@ describe("MaticX contract", function () {
 		await withdrawInstantPoolMaticX(deployer, amount);
 		expect(await maticX.balanceOf(deployer.address)).to.equal(amount);
 		expect(await maticX.balanceOf(maticX.address)).to.equal(
-			random_deposit_amount
+			randomDepositAmount
 		);
 	});
 
 	it("allows users to interact with instant pool swap", async () => {
 		const amount = ethers.utils.parseEther("1");
-		const total_amount = ethers.utils.parseEther("2");
+		const totalAmount = ethers.utils.parseEther("2");
 
 		// Run with deployer - the owner of instant pool
-		await mint(deployer, total_amount);
-		await maticApprove(deployer, total_amount);
+		await mint(deployer, totalAmount);
+		await maticApprove(deployer, totalAmount);
 		await provideInstantPoolMatic(deployer, amount);
 
 		await submit(deployer, amount);
@@ -422,10 +422,10 @@ describe("MaticX contract", function () {
 		expect(await maticX.balanceOf(maticX.address)).to.equal(amount);
 
 		const user = users[0];
-		const swap_amount = ethers.utils.parseEther("0.4");
-		await mint(user, swap_amount);
-		await maticApprove(user, swap_amount);
-		await swapMaticToMaticXViaInstantPool(user, swap_amount);
+		const swapAmount = ethers.utils.parseEther("0.4");
+		await mint(user, swapAmount);
+		await maticApprove(user, swapAmount);
+		await swapMaticToMaticXViaInstantPool(user, swapAmount);
 
 		expect(await polygonMock.balanceOf(user.address)).to.equal(0);
 		expect(await polygonMock.balanceOf(maticX.address)).to.equal(
@@ -586,12 +586,12 @@ describe("MaticX contract", function () {
 			await submit(users[i], submitAmountWei);
 		}
 
-		const instant_pool_matic = ethers.utils.parseEther("10");
-		await mint(deployer, instant_pool_matic);
-		await maticApprove(deployer, instant_pool_matic);
-		await provideInstantPoolMatic(deployer, instant_pool_matic);
+		const instantPoolMatic = ethers.utils.parseEther("10");
+		await mint(deployer, instantPoolMatic);
+		await maticApprove(deployer, instantPoolMatic);
+		await provideInstantPoolMatic(deployer, instantPoolMatic);
 		expect(await polygonMock.balanceOf(maticX.address)).to.equal(
-			instant_pool_matic
+			instantPoolMatic
 		);
 
 		await expect(await setFeePercent(manager, 10))
@@ -613,7 +613,7 @@ describe("MaticX contract", function () {
 			.withArgs(treasury.address, treasuryFee);
 
 		expect(await polygonMock.balanceOf(maticX.address)).to.equal(
-			instant_pool_matic
+			instantPoolMatic
 		);
 	});
 
@@ -705,13 +705,13 @@ describe("MaticX contract", function () {
 		const tx = await maticX.grantRole(botRole, users[0].address);
 		await expect(tx)
 			.to.emit(maticX, "RoleGranted")
-			.withArgs(botRole, users[0].address, instant_pool_owner.address);
+			.withArgs(botRole, users[0].address, instantPoolOwner.address);
 		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(true);
 
 		const tx2 = await maticX.revokeRole(botRole, users[0].address);
 		await expect(tx2)
 			.to.emit(maticX, "RoleRevoked")
-			.withArgs(botRole, users[0].address, instant_pool_owner.address);
+			.withArgs(botRole, users[0].address, instantPoolOwner.address);
 		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(false);
 	});
 
@@ -730,10 +730,10 @@ describe("MaticX contract", function () {
 			await mint(users[i], submitAmountWei);
 			await submit(users[i], submitAmountWei);
 		}
-		const instant_pool_matic = ethers.utils.parseEther("10");
-		await mint(deployer, instant_pool_matic);
-		await maticApprove(deployer, instant_pool_matic);
-		await provideInstantPoolMatic(deployer, instant_pool_matic);
+		const instantPoolMatic = ethers.utils.parseEther("10");
+		await mint(deployer, instantPoolMatic);
+		await maticApprove(deployer, instantPoolMatic);
+		await provideInstantPoolMatic(deployer, instantPoolMatic);
 		const rewards = 1000000;
 		const feePercent = await maticX.feePercent();
 		const treasuryFee = (rewards * feePercent) / 100;
