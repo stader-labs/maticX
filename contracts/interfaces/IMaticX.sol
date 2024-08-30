@@ -105,6 +105,8 @@ interface IMaticX is IERC20Upgradeable {
 
 	function setVersion(string calldata _version) external;
 
+	function setPOLToken(address _address) external;
+
 	function getUserWithdrawalRequests(address _address)
 		external
 		view
@@ -129,8 +131,9 @@ interface IMaticX is IERC20Upgradeable {
 		view
 		returns (
 			address _stakeManager,
-			address _polygonERC20,
-			address _validatorRegistry
+			address _maticToken,
+			address _validatorRegistry,
+			address _polToken
 		);
 
 	event Submit(address indexed _from, uint256 _amount);
@@ -160,4 +163,5 @@ interface IMaticX is IERC20Upgradeable {
 	event SetValidatorRegistry(address _address);
 	event SetFxStateRootTunnel(address _address);
 	event SetVersion(string _version);
+	event SetPOLToken(address _address);
 }
