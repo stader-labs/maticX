@@ -11,6 +11,7 @@
 		"check": "hardhat check",
 		"test": "hardhat test --bail",
 		"test:ci": "hardhat test --parallel",
+		"gas": "cross-env REPORT_GAS=1 npm run test",
 		"analyze": "slitherin . --slither",
 		"analyze:ci": "slitherin --separated . --skip-clean --ignore-compile",
 		"clean": "hardhat clean",

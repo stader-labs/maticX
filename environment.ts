@@ -26,6 +26,7 @@ const DEFENDER_TEAM_API_SECRET_KEY =
 const FX_ROOT = process.env.FX_ROOT || "";
 const FX_CHILD = process.env.FX_CHILD || "";
 const CHECKPOINT_MANAGER = process.env.CHECKPOINT_MANAGER || "";
+const REPORT_GAS = !!process.env.REPORT_GAS || false;
 
 export {
 	DEPLOYER_PRIVATE_KEY,
@@ -44,4 +45,5 @@ export {
 	FX_ROOT,
 	FX_CHILD,
 	CHECKPOINT_MANAGER,
+	REPORT_GAS,
 };

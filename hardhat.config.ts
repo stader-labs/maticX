@@ -25,6 +25,7 @@ import {
 	FX_ROOT,
 	FX_CHILD,
 	CHECKPOINT_MANAGER,
+	REPORT_GAS,
 } from "./environment";
 
 task("verifyMaticX", "MaticX contracts verification").setAction(
@@ -222,6 +223,7 @@ const config: HardhatUserConfig = {
 			"tunnel",
 		],
 		currency: "USD",
+		enabled: REPORT_GAS,
 	},
 };
 
