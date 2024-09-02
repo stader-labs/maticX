@@ -44,8 +44,7 @@ contract ValidatorShareMock is IValidatorShare {
 		override
 		returns (uint256)
 	{
-		_buyVoucher(_amount);
-		return 1;
+		return _buyVoucher(_amount);
 	}
 
 	function buyVoucherPOL(uint256 _amount, uint256)
@@ -53,19 +52,15 @@ contract ValidatorShareMock is IValidatorShare {
 		override
 		returns (uint256)
 	{
-		_buyVoucher(_amount);
-		return 1;
+		return _buyVoucher(_amount);
 	}
 
 	function sellVoucher_new(uint256 _claimAmount, uint256) external override {
-		uint256 unbondNonce = unbondNonces[msg.sender] + 1;
+		_sellVoucher_new(_claimAmount);
+	}
 
-		withdrawPool += _claimAmount;
-		totalWithdrawPoolShares += _claimAmount;
-		totalStaked -= _claimAmount;
-
-		unbondNonces[msg.sender] = unbondNonce;
-		user2WithdrawPoolShare[msg.sender][unbondNonce] = _claimAmount;
+	function sellVoucher_newPOL(uint256 _claimAmount, uint256) external override {
+		_sellVoucher_new(_claimAmount);
 	}
 
 	function unstakeClaimTokens_new(uint256 _unbondNonce) external override {
@@ -137,7 +132,7 @@ contract ValidatorShareMock is IValidatorShare {
 		return unbond;
 	}
 
-	function _buyVoucher(uint256 _amount) private {
+	function _buyVoucher(uint256 _amount) private returns (uint256) {
 		uint256 totalAmount = IERC20(token).balanceOf(address(this));
 
 		uint256 shares = totalAmount != 0
@@ -150,5 +145,18 @@ contract ValidatorShareMock is IValidatorShare {
 			stakeManager.delegationDeposit(validatorId, _amount, msg.sender),
 			"deposit failed"
 		);
+
+		return 1;
+	}
+
+	function _sellVoucher_new(uint256 _claimAmount) private {
+		uint256 unbondNonce = unbondNonces[msg.sender] + 1;
+
+		withdrawPool += _claimAmount;
+		totalWithdrawPoolShares += _claimAmount;
+		totalStaked -= _claimAmount;
+
+		unbondNonces[msg.sender] = unbondNonce;
+		user2WithdrawPoolShare[msg.sender][unbondNonce] = _claimAmount;
 	}
 }

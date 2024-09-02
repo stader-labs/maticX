@@ -266,10 +266,22 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Stores user's request to withdraw into WithdrawalRequest struct
-	 * @param _amount - Amount of maticX that is requested to withdraw
+	 * @dev Stores user's request to withdraw MATIC into WithdrawalRequest struct
+	 * @param _amount - Amount of Matic that is requested to withdraw
 	 */
 	function requestWithdraw(uint256 _amount) external override whenNotPaused {
+		_requestWithdraw(_amount, false);
+	}
+
+	/**
+	 * @dev Stores user's request to withdraw POL into WithdrawalRequest struct
+	 * @param _amount - Amount of POL that is requested to withdraw
+	 */
+	function requestWithdrawPOL(uint256 _amount) external override whenNotPaused {
+		_requestWithdraw(_amount, true);
+	}
+
+	function _requestWithdraw(uint256 _amount, bool pol) private {
 		require(_amount > 0, "Invalid amount");
 
 		(
@@ -311,10 +323,15 @@ contract MaticX is
 				? validatorBalance
 				: leftAmount2WithdrawInMatic;
 
-			IValidatorShare(validatorShare).sellVoucher_new(
-				amount2WithdrawFromValidator,
-				type(uint256).max
-			);
+			pol
+				? IValidatorShare(validatorShare).sellVoucher_newPOL(
+					amount2WithdrawFromValidator,
+					type(uint256).max
+				)
+				: IValidatorShare(validatorShare).sellVoucher_new(
+					amount2WithdrawFromValidator,
+					type(uint256).max
+				);
 
 			userWithdrawalRequests[msg.sender].push(
 				WithdrawalRequest(

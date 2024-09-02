@@ -28,6 +28,10 @@ interface IValidatorShare {
 		external;
 
 	// solhint-disable-next-line func-name-mixedcase
+	function sellVoucher_newPOL(uint256 claimAmount, uint256 maximumSharesToBurn)
+		external;
+
+	// solhint-disable-next-line func-name-mixedcase
 	function unstakeClaimTokens_new(uint256 unbondNonce) external;
 
 	function restake() external returns (uint256, uint256);
