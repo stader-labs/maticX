@@ -75,6 +75,8 @@ interface IMaticX is IERC20Upgradeable {
 
 	function stakeRewardsAndDistributeFees(uint256 _validatorId) external;
 
+	function stakeRewardsAndDistributeFeesPOL(uint256 _validatorId) external;
+
 	function migrateDelegation(
 		uint256 _fromValidatorId,
 		uint256 _toValidatorId,
@@ -135,6 +137,8 @@ interface IMaticX is IERC20Upgradeable {
 	function getTotalStakeAcrossAllValidators() external view returns (uint256);
 
 	function getTotalPooledMatic() external view returns (uint256);
+
+	function getTotalPooledStakeTokens() external view returns (uint256);
 
 	function getContracts()
 		external
