@@ -295,7 +295,7 @@ contract MaticX is
 		(
 			uint256 totalAmount2WithdrawInMatic,
 			uint256 totalShares,
-			uint256 totalPooledMatic
+			uint256 totalPooledStakeTokens
 		) = convertMaticXToMatic(_amount);
 
 		_burn(msg.sender, _amount);
@@ -359,7 +359,7 @@ contract MaticX is
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
 			abi.encode(
 				totalShares - _amount,
-				totalPooledMatic - totalAmount2WithdrawInMatic
+				totalPooledStakeTokens - totalAmount2WithdrawInMatic
 			)
 		);
 
@@ -500,8 +500,9 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Stake rewards and distribute fees to a treasury. Only callable by BOT.
-	 * @param _validatorId - Validator id to stake rewards
+	 * @dev Stake MATIC rewards and distribute fees to a treasury. Only callable
+	 * by BOT.
+	 * @param _validatorId - Validator id to stake rewards and distribute fees
 	 */
 	function stakeRewardsAndDistributeFees(uint256 _validatorId)
 		external
@@ -509,6 +510,29 @@ contract MaticX is
 		whenNotPaused
 		onlyRole(BOT)
 	{
+		_stakeRewardsAndDistributeFees(_validatorId, false);
+	}
+
+	/**
+	 * @dev Stake POL rewards and distribute fees to a treasury. Only callable
+	 * by BOT.
+	 * @param _validatorId - Validator id to stake rewards and distribute fees
+	 */
+	function stakeRewardsAndDistributeFeesPOL(uint256 _validatorId)
+		external
+		override
+		whenNotPaused
+		onlyRole(BOT)
+	{
+		_stakeRewardsAndDistributeFees(_validatorId, true);
+	}
+
+	/**
+	 * @dev Stake rewards and distribute fees to a treasury.
+	 * @param _validatorId - Validator id to stake rewards and distribute fees
+	 * @param _pol - If the POL related flow should be applied
+	 */
+	function _stakeRewardsAndDistributeFees(uint256 _validatorId, bool _pol) internal {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_validatorId
@@ -516,19 +540,19 @@ contract MaticX is
 			"Doesn't exist in validator registry"
 		);
 
+		address token = _getToken(_pol);
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
-		uint256 rewards = IERC20Upgradeable(maticToken).balanceOf(
+		uint256 rewards = IERC20Upgradeable(token).balanceOf(
 			address(this)
 		) - instantPoolMatic;
-
 		require(rewards > 0, "Reward is zero");
 
 		uint256 treasuryFees = (rewards * feePercent) / 100;
 
 		if (treasuryFees > 0) {
-			IERC20Upgradeable(maticToken).safeTransfer(
+			IERC20Upgradeable(token).safeTransfer(
 				treasury,
 				treasuryFees
 			);
@@ -536,13 +560,15 @@ contract MaticX is
 		}
 
 		uint256 amountStaked = rewards - treasuryFees;
-		IValidatorShare(validatorShare).buyVoucher(amountStaked, 0);
+		_pol
+			? IValidatorShare(validatorShare).buyVoucherPOL(amountStaked, 0)
+			: IValidatorShare(validatorShare).buyVoucher(amountStaked, 0);
 
 		uint256 totalShares = totalSupply();
-		uint256 totalPooledMatic = getTotalPooledMatic();
+		uint256 totalPooledStakeTokens = getTotalPooledStakeTokens();
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
-			abi.encode(totalShares, totalPooledMatic)
+			abi.encode(totalShares, totalPooledStakeTokens)
 		);
 
 		emit StakeRewards(_validatorId, amountStaked);
@@ -619,7 +645,7 @@ contract MaticX is
 		(
 			uint256 amountToMint,
 			uint256 totalShares,
-			uint256 totalPooledMatic
+			uint256 totalPooledStakeTokens
 		) = convertMaticToMaticX(_amount);
 
 		_mint(depositSender, amountToMint);
@@ -635,7 +661,7 @@ contract MaticX is
 			: IValidatorShare(validatorShare).buyVoucher(_amount, 0);
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
-			abi.encode(totalShares + amountToMint, totalPooledMatic + _amount)
+			abi.encode(totalShares + amountToMint, totalPooledStakeTokens + _amount)
 		);
 
 		emit Delegate(preferredValidatorId, _amount);
@@ -643,9 +669,9 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Function that converts arbitrary maticX to Matic
+	 * @dev Function that converts arbitrary maticX to stake tokens
 	 * @param _balance - Balance in maticX
-	 * @return Balance in Matic, totalShares and totalPooledMATIC
+	 * @return Balance in stake tokens, total shares and total pooled stake tokens
 	 */
 	function convertMaticXToMatic(uint256 _balance)
 		public
@@ -660,18 +686,18 @@ contract MaticX is
 		uint256 totalShares = totalSupply();
 		totalShares = totalShares == 0 ? 1 : totalShares;
 
-		uint256 totalPooledMATIC = getTotalPooledMatic();
-		totalPooledMATIC = totalPooledMATIC == 0 ? 1 : totalPooledMATIC;
+		uint256 totalPooledStakeTokens = getTotalPooledStakeTokens();
+		totalPooledStakeTokens = totalPooledStakeTokens == 0 ? 1 : totalPooledStakeTokens;
 
-		uint256 balanceInMATIC = (_balance * (totalPooledMATIC)) / totalShares;
+		uint256 balanceInStakeTokens = (_balance * (totalPooledStakeTokens)) / totalShares;
 
-		return (balanceInMATIC, totalShares, totalPooledMATIC);
+		return (balanceInStakeTokens, totalShares, totalPooledStakeTokens);
 	}
 
 	/**
 	 * @dev Function that converts arbitrary Matic to maticX
 	 * @param _balance - Balance in Matic
-	 * @return Balance in maticX, totalShares and totalPooledMATIC
+	 * @return Balance in maticX, totalShares and totalPooledStakeTokens
 	 */
 	function convertMaticToMaticX(uint256 _balance)
 		public
@@ -686,12 +712,12 @@ contract MaticX is
 		uint256 totalShares = totalSupply();
 		totalShares = totalShares == 0 ? 1 : totalShares;
 
-		uint256 totalPooledMatic = getTotalPooledMatic();
-		totalPooledMatic = totalPooledMatic == 0 ? 1 : totalPooledMatic;
+		uint256 totalPooledStakeTokens = getTotalPooledStakeTokens();
+		totalPooledStakeTokens = totalPooledStakeTokens == 0 ? 1 : totalPooledStakeTokens;
 
-		uint256 balanceInMaticX = (_balance * totalShares) / totalPooledMatic;
+		uint256 balanceInStakeTokensX = (_balance * totalShares) / totalPooledStakeTokens;
 
-		return (balanceInMaticX, totalShares, totalPooledMatic);
+		return (balanceInStakeTokensX, totalShares, totalPooledStakeTokens);
 	}
 
 	// TODO: Add logic and enable it in V2
@@ -812,8 +838,9 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Helper function for that returns total pooled MATIC
-	 * @return Total pooled MATIC
+	 * @dev Helper function that returns total pooled stake tokens from all
+	 * registered validators.
+	 * @return Total pooled stake tokens
 	 */
 	function getTotalStakeAcrossAllValidators()
 		public
@@ -838,12 +865,19 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Function that calculates total pooled Matic
-	 * @return Total pooled Matic
+	 * @dev Return total pooled stake tokens. This function is deprecated.
+	 * @return Total pooled stake tokens
 	 */
 	function getTotalPooledMatic() public view override returns (uint256) {
-		uint256 totalStaked = getTotalStakeAcrossAllValidators();
-		return totalStaked;
+		return getTotalStakeAcrossAllValidators();
+	}
+
+	/**
+	 * @dev Return total pooled stake tokens.
+	 * @return Total pooled stake tokens
+	 */
+	function getTotalPooledStakeTokens() public view override returns (uint256) {
+		return getTotalStakeAcrossAllValidators();
 	}
 
 	/**
