@@ -266,7 +266,8 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Stores user's request to withdraw MATIC into WithdrawalRequest struct
+	 * @dev Stores user's request to withdraw MATIC tokens in the WithdrawalRequest
+	 * struct.
 	 * @param _amount - Amount of Matic that is requested to withdraw
 	 */
 	function requestWithdraw(uint256 _amount) external override whenNotPaused {
@@ -274,14 +275,21 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Stores user's request to withdraw POL into WithdrawalRequest struct
+	 * @dev Stores user's request to withdraw POL tokens in the WithdrawalRequest
+	 * struct.
 	 * @param _amount - Amount of POL that is requested to withdraw
 	 */
 	function requestWithdrawPOL(uint256 _amount) external override whenNotPaused {
 		_requestWithdraw(_amount, true);
 	}
 
-	function _requestWithdraw(uint256 _amount, bool pol) private {
+	/**
+	 * @dev Stores user's request to withdraw tokens in the WithdrawalRequest
+	 * struct.
+	 * @param _amount - Amount of POL that is requested to withdraw
+	 * @param _pol - If the POL related flow should be applied
+	 */
+	function _requestWithdraw(uint256 _amount, bool _pol) internal {
 		require(_amount > 0, "Invalid amount");
 
 		(
@@ -323,7 +331,7 @@ contract MaticX is
 				? validatorBalance
 				: leftAmount2WithdrawInMatic;
 
-			pol
+			_pol
 				? IValidatorShare(validatorShare).sellVoucher_newPOL(
 					amount2WithdrawFromValidator,
 					type(uint256).max
@@ -360,7 +368,7 @@ contract MaticX is
 
 	/**
 	 * @dev Claims MATIC tokens from a validator share and sends them to the
-	 * address if the request is in the userWithdrawalRequests
+	 * address if the request is in the withdrawalRequest struct for a user.
 	 * @param _idx - User withdrawal request array index
 	 */
 	function claimWithdrawal(uint256 _idx) external override whenNotPaused {
@@ -369,7 +377,7 @@ contract MaticX is
 
 	/**
 	 * @dev Claims POL tokens from a validator share and sends them to the
-	 * address if the request is in the userWithdrawalRequests
+	 * address if the request is in the withdrawalRequest struct for a user.
 	 * @param _idx - User withdrawal request array index
 	 */
 	function claimWithdrawalPOL(uint256 _idx) external override whenNotPaused {
@@ -377,16 +385,17 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Claims tokens from validator share and sends them to the
-	 * address if the request is in the userWithdrawalRequests
+	 * @dev Claims tokens from validator share and sends them to the address if
+	 * the request is in the withdrawalRequest struct for a user.
 	 * @param _to - Address of the withdrawal request owner
 	 * @param _idx - User withdrawal request array index
+	 * @param _pol - If the POL related flow should be applied
 	 */
-	function _claimWithdrawal(address _to, uint256 _idx, bool pol)
+	function _claimWithdrawal(address _to, uint256 _idx, bool _pol)
 		internal
 		returns (uint256)
 	{
-		address token = _getToken(pol);
+		address token = _getToken(_pol);
 		uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(
 			address(this)
 		);
@@ -398,7 +407,7 @@ contract MaticX is
 			"Not able to claim yet"
 		);
 
-		pol
+		_pol
 			? IValidatorShare(userRequest.validatorAddress)
 				.unstakeClaimTokens_newPOL(userRequest.validatorNonce)
 			: IValidatorShare(userRequest.validatorAddress)
@@ -419,25 +428,6 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev withdraw rewards from validator
-	 * @param _validatorId - Validator id to withdraw rewards for
-	 */
-	function _withdrawRewards(uint256 _validatorId) internal returns (uint256) {
-		address validatorShare = IStakeManager(stakeManager)
-			.getValidatorContract(_validatorId);
-
-		uint256 balanceBeforeRewards = IERC20Upgradeable(maticToken)
-			.balanceOf(address(this));
-		IValidatorShare(validatorShare).withdrawRewards();
-		uint256 rewards = IERC20Upgradeable(maticToken).balanceOf(
-			address(this)
-		) - balanceBeforeRewards;
-
-		emit WithdrawRewards(_validatorId, rewards);
-		return rewards;
-	}
-
-	/**
 	 * @dev This function is deprecated. Please use withdrawValidatorsReward instead.
 	 * @param _validatorId - Validator id to withdraw rewards
 	 */
@@ -447,9 +437,13 @@ contract MaticX is
 		whenNotPaused
 		returns (uint256)
 	{
-		return _withdrawRewards(_validatorId);
+		return _withdrawRewards(_validatorId, false);
 	}
 
+	/**
+	 * @dev Withdraw MATIC rewards for given validators.
+	 * @param _validatorIds - Array of validator ids to withdraw MATIC rewards for
+	 */
 	function withdrawValidatorsReward(uint256[] calldata _validatorIds)
 		public
 		override
@@ -458,13 +452,55 @@ contract MaticX is
 	{
 		uint256[] memory rewards = new uint256[](_validatorIds.length);
 		for (uint256 i = 0; i < _validatorIds.length; i++) {
-			rewards[i] = _withdrawRewards(_validatorIds[i]);
+			rewards[i] = _withdrawRewards(_validatorIds[i], false);
 		}
 		return rewards;
 	}
 
 	/**
-	 * @dev stake rewards and distribute fees to treasury. Only callable by BOT
+	 * @dev Withdraw POL rewards for given validators.
+	 * @param _validatorIds - Array of validator ids to withdraw POL rewards for
+	 */
+	function withdrawValidatorsRewardPOL(uint256[] calldata _validatorIds)
+		public
+		override
+		whenNotPaused
+		returns (uint256[] memory)
+	{
+		uint256[] memory rewards = new uint256[](_validatorIds.length);
+		for (uint256 i = 0; i < _validatorIds.length; i++) {
+			rewards[i] = _withdrawRewards(_validatorIds[i], true);
+		}
+		return rewards;
+	}
+
+	/**
+	 * @dev Withdraw rewards for a given validator.
+	 * @param _validatorId - Validator id to withdraw rewards for
+	 * @param _pol - If the POL related flow should be applied
+	 */
+	function _withdrawRewards(uint256 _validatorId, bool _pol) internal returns (uint256) {
+		address validatorShare = IStakeManager(stakeManager)
+			.getValidatorContract(_validatorId);
+
+		address token = _getToken(_pol);
+		uint256 balanceBeforeRewards = IERC20Upgradeable(token)
+			.balanceOf(address(this));
+
+		_pol
+			? IValidatorShare(validatorShare).withdrawRewardsPOL()
+			: IValidatorShare(validatorShare).withdrawRewards();
+
+		uint256 rewards = IERC20Upgradeable(token).balanceOf(
+			address(this)
+		) - balanceBeforeRewards;
+
+		emit WithdrawRewards(_validatorId, rewards);
+		return rewards;
+	}
+
+	/**
+	 * @dev Stake rewards and distribute fees to a treasury. Only callable by BOT.
 	 * @param _validatorId - Validator id to stake rewards
 	 */
 	function stakeRewardsAndDistributeFees(uint256 _validatorId)
@@ -573,9 +609,10 @@ contract MaticX is
 	 * @dev Helper function for submit function
 	 * @param depositSender - Address of the user that is depositing
 	 * @param _amount - Amount of MATIC sent from msg.sender to this contract
+	 * @param _pol - If the POL related flow should be applied
 	 * @return Amount of MaticX shares generated
 	 */
-	function delegateToMint(address depositSender, uint256 _amount, bool pol)
+	function delegateToMint(address depositSender, uint256 _amount, bool _pol)
 		internal
 		returns (uint256)
 	{
@@ -593,7 +630,7 @@ contract MaticX is
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(preferredValidatorId);
 
-		pol
+		_pol
 			? IValidatorShare(validatorShare).buyVoucherPOL(_amount, 0)
 			: IValidatorShare(validatorShare).buyVoucher(_amount, 0);
 
