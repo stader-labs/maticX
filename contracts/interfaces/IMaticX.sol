@@ -61,6 +61,8 @@ interface IMaticX is IERC20Upgradeable {
 
 	function claimWithdrawal(uint256 _idx) external;
 
+	function claimWithdrawalPOL(uint256 _idx) external;
+
 	function withdrawRewards(uint256 _validatorId) external returns (uint256);
 
 	function withdrawValidatorsReward(uint256[] calldata _validatorIds)

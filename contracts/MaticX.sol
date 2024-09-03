@@ -359,12 +359,63 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Claims tokens from validator share and sends them to the
+	 * @dev Claims MATIC tokens from a validator share and sends them to the
 	 * address if the request is in the userWithdrawalRequests
 	 * @param _idx - User withdrawal request array index
 	 */
 	function claimWithdrawal(uint256 _idx) external override whenNotPaused {
-		_claimWithdrawal(msg.sender, _idx);
+		_claimWithdrawal(msg.sender, _idx, false);
+	}
+
+	/**
+	 * @dev Claims POL tokens from a validator share and sends them to the
+	 * address if the request is in the userWithdrawalRequests
+	 * @param _idx - User withdrawal request array index
+	 */
+	function claimWithdrawalPOL(uint256 _idx) external override whenNotPaused {
+		_claimWithdrawal(msg.sender, _idx, true);
+	}
+
+	/**
+	 * @dev Claims tokens from validator share and sends them to the
+	 * address if the request is in the userWithdrawalRequests
+	 * @param _to - Address of the withdrawal request owner
+	 * @param _idx - User withdrawal request array index
+	 */
+	function _claimWithdrawal(address _to, uint256 _idx, bool pol)
+		internal
+		returns (uint256)
+	{
+		address token = _getToken(pol);
+		uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(
+			address(this)
+		);
+
+		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[_to];
+		WithdrawalRequest memory userRequest = userRequests[_idx];
+		require(
+			IStakeManager(stakeManager).epoch() >= userRequest.requestEpoch,
+			"Not able to claim yet"
+		);
+
+		pol
+			? IValidatorShare(userRequest.validatorAddress)
+				.unstakeClaimTokens_newPOL(userRequest.validatorNonce)
+			: IValidatorShare(userRequest.validatorAddress)
+				.unstakeClaimTokens_new(userRequest.validatorNonce);
+
+		// swap with the last item and pop it.
+		userRequests[_idx] = userRequests[userRequests.length - 1];
+		userRequests.pop();
+
+		uint256 amountToClaim =
+			IERC20Upgradeable(token).balanceOf(address(this)) -
+			balanceBeforeClaim;
+
+		IERC20Upgradeable(token).safeTransfer(_to, amountToClaim);
+
+		emit ClaimWithdrawal(_to, _idx, amountToClaim);
+		return amountToClaim;
 	}
 
 	/**
@@ -552,45 +603,6 @@ contract MaticX is
 
 		emit Delegate(preferredValidatorId, _amount);
 		return amountToMint;
-	}
-
-	/**
-	 * @dev Claims tokens from validator share and sends them to the
-	 * address if the request is in the userWithdrawalRequests
-	 * @param _to - Address of the withdrawal request owner
-	 * @param _idx - User withdrawal request array index
-	 */
-	function _claimWithdrawal(address _to, uint256 _idx)
-		internal
-		returns (uint256)
-	{
-		uint256 amountToClaim = 0;
-		uint256 balanceBeforeClaim = IERC20Upgradeable(maticToken).balanceOf(
-			address(this)
-		);
-		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[_to];
-		WithdrawalRequest memory userRequest = userRequests[_idx];
-		require(
-			IStakeManager(stakeManager).epoch() >= userRequest.requestEpoch,
-			"Not able to claim yet"
-		);
-
-		IValidatorShare(userRequest.validatorAddress).unstakeClaimTokens_new(
-			userRequest.validatorNonce
-		);
-
-		// swap with the last item and pop it.
-		userRequests[_idx] = userRequests[userRequests.length - 1];
-		userRequests.pop();
-
-		amountToClaim =
-			IERC20Upgradeable(maticToken).balanceOf(address(this)) -
-			balanceBeforeClaim;
-
-		IERC20Upgradeable(maticToken).safeTransfer(_to, amountToClaim);
-
-		emit ClaimWithdrawal(_to, _idx, amountToClaim);
-		return amountToClaim;
 	}
 
 	/**
@@ -848,5 +860,10 @@ contract MaticX is
 		_maticToken = maticToken;
 		_validatorRegistry = validatorRegistry;
 		_polToken = polToken;
+	}
+
+	/// @notice Returns the POL or MATIC token depending on the used flow.
+	function _getToken(bool pol) private view returns (address) {
+		return pol ? polToken : maticToken;
 	}
 }
