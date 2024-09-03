@@ -31,6 +31,8 @@ interface IValidatorShare {
 
 	function unstakeClaimTokens_new(uint256 _unbondNonce) external;
 
+	function unstakeClaimTokens_newPOL(uint256 _unbondNonce) external;
+
 	function restake() external returns (uint256, uint256);
 
 	function withdrawRewards() external;

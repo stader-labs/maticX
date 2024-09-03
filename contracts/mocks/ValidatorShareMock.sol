@@ -64,16 +64,11 @@ contract ValidatorShareMock is IValidatorShare {
 	}
 
 	function unstakeClaimTokens_new(uint256 _unbondNonce) external override {
-		uint256 withdrawPoolShare = user2WithdrawPoolShare[msg.sender][
-			_unbondNonce
-		];
-		uint256 amount2Transfer = (withdrawPoolShare * withdrawPool) /
-			totalWithdrawPoolShares;
+		_unstakeClaimTokens_new(_unbondNonce);
+	}
 
-		withdrawPool -= amount2Transfer;
-		totalShares -= withdrawPoolShare;
-		totalWithdrawPoolShares -= withdrawPoolShare;
-		IERC20(token).transfer(msg.sender, amount2Transfer);
+	function unstakeClaimTokens_newPOL(uint256 _unbondNonce) external override {
+		_unstakeClaimTokens_new(_unbondNonce);
 	}
 
 	function restake() external override returns (uint256, uint256) {
@@ -158,5 +153,18 @@ contract ValidatorShareMock is IValidatorShare {
 
 		unbondNonces[msg.sender] = unbondNonce;
 		user2WithdrawPoolShare[msg.sender][unbondNonce] = _claimAmount;
+	}
+
+	function _unstakeClaimTokens_new(uint256 _unbondNonce) private {
+		uint256 withdrawPoolShare = user2WithdrawPoolShare[msg.sender][
+			_unbondNonce
+		];
+		uint256 amount2Transfer = (withdrawPoolShare * withdrawPool) /
+			totalWithdrawPoolShares;
+
+		withdrawPool -= amount2Transfer;
+		totalShares -= withdrawPoolShare;
+		totalWithdrawPoolShares -= withdrawPoolShare;
+		IERC20(token).transfer(msg.sender, amount2Transfer);
 	}
 }
