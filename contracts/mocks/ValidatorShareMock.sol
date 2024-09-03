@@ -88,6 +88,10 @@ contract ValidatorShareMock is IValidatorShare {
 		_withdrawReward(msg.sender);
 	}
 
+	function withdrawRewardsPOL() external override {
+		_withdrawReward(msg.sender);
+	}
+
 	function getTotalStake(address)
 		external
 		view
@@ -106,10 +110,10 @@ contract ValidatorShareMock is IValidatorShare {
 		return mAmount;
 	}
 
-	function _withdrawReward(address user) private returns (uint256) {
+	function _withdrawReward(address _user) private returns (uint256) {
 		uint256 reward = calculateRewards();
 		require(reward >= minAmount(), "Reward < minAmount");
-		IERC20(token).transfer(user, reward);
+		IERC20(token).transfer(_user, reward);
 
 		return reward;
 	}

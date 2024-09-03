@@ -37,6 +37,8 @@ interface IValidatorShare {
 
 	function withdrawRewards() external;
 
+	function withdrawRewardsPOL() external;
+
 	function getTotalStake(address _user)
 		external
 		view
