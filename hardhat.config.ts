@@ -3,8 +3,6 @@ import {
 	HardhatRuntimeEnvironment,
 } from "hardhat/types";
 import { HardhatUserConfig, task } from "hardhat/config";
-import "hardhat-contract-sizer";
-import "hardhat-gas-reporter";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
@@ -12,6 +10,9 @@ import "@nomiclabs/hardhat-solhint";
 import "@openzeppelin/hardhat-upgrades";
 import "@nomiclabs/hardhat-etherscan";
 import "@openzeppelin/hardhat-defender";
+import "hardhat-contract-sizer";
+import "hardhat-gas-reporter";
+import "solidity-coverage";
 import { deployDirect, deployProxy, verify } from "./scripts/tasks";
 import {
 	DEPLOYER_PRIVATE_KEY,
