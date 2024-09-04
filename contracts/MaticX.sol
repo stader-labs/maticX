@@ -45,12 +45,14 @@ contract MaticX is
 	address public override fxStateRootTunnel;
 	address private polToken;
 
-	/// @notice Initialize the MaticX contract.
-	/// @param _validatorRegistry - Address of the validator registry
-	/// @param _stakeManager - Address of the stake manager
-	/// @param _maticToken - Address of the MATIC token
-	/// @param _admin - Address of the admin
-	/// @param _treasury - Address of the treasury
+	/**
+	 * @dev Initializes the current contract.
+	 * @param _validatorRegistry - Address of the validator registry
+	 * @param _stakeManager - Address of the stake manager
+	 * @param _maticToken - Address of the MATIC token
+	 * @param _admin - Address of the admin
+	 * @param _treasury - Address of the treasury
+	*/
 	function initialize(
 		address _validatorRegistry,
 		address _stakeManager,
@@ -68,7 +70,6 @@ contract MaticX is
 		stakeManager = _stakeManager;
 		treasury = _treasury;
 		maticToken = _maticToken;
-
 		feePercent = 5;
 
 		IERC20Upgradeable(maticToken).safeApprove(
@@ -97,9 +98,11 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Sends MATIC token to MaticX contract and mints MaticX to msg.sender
-	 * @notice Requires that msg.sender has approved _amount of MATIC to this contract
-	 * @param _amount - Amount of MATIC sent from msg.sender to this contract
+	 * @dev Sends MATIC tokens to the current contract and mints MaticX to the
+	 * sender.
+	 * @notice Requires that the sender has approved _amount of MATIC to this
+	 * contract.
+	 * @param _amount - Amount of MATIC sent from the sender to this contract
 	 * @return Amount of MaticX shares generated
 	 */
 	function submit(uint256 _amount)
@@ -108,21 +111,15 @@ contract MaticX is
 		whenNotPaused
 		returns (uint256)
 	{
-		require(_amount > 0, "Invalid amount");
-
-		IERC20Upgradeable(maticToken).safeTransferFrom(
-			msg.sender,
-			address(this),
-			_amount
-		);
-
-		return delegateToMint(msg.sender, _amount, false);
+		return _submit(msg.sender, _amount, false);
 	}
 
 	/**
-	 * @dev Sends POL token to MaticX contract and mints MaticX to msg.sender
-	 * @notice Requires that msg.sender has approved _amount of POL to this contract
-	 * @param _amount - Amount of POL sent from msg.sender to this contract
+	 * @dev Sends POL tokens to the current contract and mints MaticX to the
+	 * sender.
+	 * @notice Requires that the sender has approved _amount of POL to this
+	 * contract.
+	 * @param _amount - Amount of POL sent from the sender to this contract
 	 * @return Amount of MaticX shares generated
 	 */
 	function submitPOL(uint256 _amount)
@@ -131,15 +128,53 @@ contract MaticX is
 		whenNotPaused
 		returns (uint256)
 	{
+		return _submit(msg.sender, _amount, true);
+	}
+
+	/**
+	 * @dev Sends tokens to the current contract and mints MaticX to the sender.
+	 * @param depositSender - Address of the user that is depositing
+	 * @param _amount - Amount of tokens sent from msg.sender to this contract
+	 * @param _pol - If the POL related flow should be applied
+	 * @return Amount of MaticX shares generated
+	 */
+	function _submit(address depositSender, uint256 _amount, bool _pol)
+		internal
+		returns (uint256)
+	{
 		require(_amount > 0, "Invalid amount");
 
-		IERC20Upgradeable(polToken).safeTransferFrom(
+		address token = _getToken(_pol);
+		IERC20Upgradeable(token).safeTransferFrom(
 			msg.sender,
 			address(this),
 			_amount
 		);
 
-		return delegateToMint(msg.sender, _amount, true);
+		(
+			uint256 mintedAmount,
+			uint256 totalShares,
+			uint256 totalPooledStakeTokens
+		) = convertMaticToMaticX(_amount);
+
+		_mint(depositSender, mintedAmount);
+		emit Submit(depositSender, _amount);
+
+		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
+			.preferredDepositValidatorId();
+		address validatorShare = IStakeManager(stakeManager)
+			.getValidatorContract(preferredValidatorId);
+
+		_pol
+			? IValidatorShare(validatorShare).buyVoucherPOL(_amount, 0)
+			: IValidatorShare(validatorShare).buyVoucher(_amount, 0);
+
+		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
+			abi.encode(totalShares + mintedAmount, totalPooledStakeTokens + _amount)
+		);
+
+		emit Delegate(preferredValidatorId, _amount);
+		return mintedAmount;
 	}
 
 	/**
@@ -508,43 +543,6 @@ contract MaticX is
 	/////            ***Helpers & Utilities***               ///
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
-
-	/**
-	 * @dev Helper function for submit function
-	 * @param depositSender - Address of the user that is depositing
-	 * @param _amount - Amount of MATIC sent from msg.sender to this contract
-	 * @param _pol - If the POL related flow should be applied
-	 * @return Amount of MaticX shares generated
-	 */
-	function delegateToMint(address depositSender, uint256 _amount, bool _pol)
-		internal
-		returns (uint256)
-	{
-		(
-			uint256 amountToMint,
-			uint256 totalShares,
-			uint256 totalPooledStakeTokens
-		) = convertMaticToMaticX(_amount);
-
-		_mint(depositSender, amountToMint);
-		emit Submit(depositSender, _amount);
-
-		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
-			.preferredDepositValidatorId();
-		address validatorShare = IStakeManager(stakeManager)
-			.getValidatorContract(preferredValidatorId);
-
-		_pol
-			? IValidatorShare(validatorShare).buyVoucherPOL(_amount, 0)
-			: IValidatorShare(validatorShare).buyVoucher(_amount, 0);
-
-		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
-			abi.encode(totalShares + amountToMint, totalPooledStakeTokens + _amount)
-		);
-
-		emit Delegate(preferredValidatorId, _amount);
-		return amountToMint;
-	}
 
 	/**
 	 * @dev Function that converts arbitrary maticX to stake tokens
