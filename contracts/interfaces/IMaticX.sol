@@ -22,34 +22,7 @@ interface IMaticX is IERC20Upgradeable {
 
 	function feePercent() external view returns (uint8);
 
-	function instantPoolOwner() external view returns (address);
-
-	function instantPoolMatic() external view returns (uint256);
-
-	function instantPoolMaticX() external view returns (uint256);
-
 	function fxStateRootTunnel() external view returns (address);
-
-	function initialize(
-		address _validatorRegistry,
-		address _stakeManager,
-		address _token,
-		address _manager,
-		address _instantPoolManager,
-		address _treasury
-	) external;
-
-	function provideInstantPoolMatic(uint256 _amount) external;
-
-	function provideInstantPoolMaticX(uint256 _amount) external;
-
-	function withdrawInstantPoolMaticX(uint256 _amount) external;
-
-	function withdrawInstantPoolMatic(uint256 _amount) external;
-
-	function mintMaticXToInstantPool() external;
-
-	function swapMaticForMaticXViaInstantPool(uint256 _amount) external;
 
 	function submit(uint256 _amount) external returns (uint256);
 
@@ -106,8 +79,6 @@ interface IMaticX is IERC20Upgradeable {
 	function mint(address _user, uint256 _amount) external;
 
 	function setFeePercent(uint8 _feePercent) external;
-
-	function setInstantPoolOwner(address _address) external;
 
 	function setValidatorRegistry(address _address) external;
 

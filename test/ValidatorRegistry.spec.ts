@@ -12,8 +12,7 @@ import {
 
 describe("ValidatorRegistry contract", function () {
 	let deployer: SignerWithAddress;
-	let manager: SignerWithAddress;
-	let instantPoolOwner: SignerWithAddress;
+	let admin: SignerWithAddress;
 	let treasury: SignerWithAddress;
 	let users: SignerWithAddress[] = [];
 	let maticX: MaticX;
@@ -88,9 +87,8 @@ describe("ValidatorRegistry contract", function () {
 
 	beforeEach(async () => {
 		[deployer, ...users] = await ethers.getSigners();
-		manager = deployer;
+		admin = deployer;
 		treasury = deployer;
-		instantPoolOwner = deployer;
 
 		polygonMock = (await (
 			await ethers.getContractFactory("PolygonMock")
@@ -108,7 +106,7 @@ describe("ValidatorRegistry contract", function () {
 				stakeManagerMock.address,
 				polygonMock.address,
 				ethers.constants.AddressZero,
-				manager.address,
+				admin.address,
 			]
 		)) as ValidatorRegistry;
 		await validatorRegistry.deployed();
@@ -119,8 +117,7 @@ describe("ValidatorRegistry contract", function () {
 				validatorRegistry.address,
 				stakeManagerMock.address,
 				polygonMock.address,
-				instantPoolOwner.address,
-				manager.address,
+				admin.address,
 				treasury.address,
 			]
 		)) as MaticX;
@@ -131,7 +128,7 @@ describe("ValidatorRegistry contract", function () {
 		// add bot role for deployer
 		await validatorRegistry.grantRole(
 			await validatorRegistry.BOT(),
-			manager.address
+			admin.address
 		);
 	});
 
@@ -139,7 +136,7 @@ describe("ValidatorRegistry contract", function () {
 		const validatorIds = [3, 6];
 
 		for (const id of validatorIds) {
-			await createValidator(manager, id);
+			await createValidator(admin, id);
 			const constractAddress = await getValidatorContract(id);
 			expect(constractAddress).to.be.properAddress;
 		}
@@ -148,7 +145,7 @@ describe("ValidatorRegistry contract", function () {
 		const validators = await getValidators();
 		expect(validators).to.be.empty;
 		for (const id of validatorIds) {
-			await expect(await addValidator(manager, id))
+			await expect(await addValidator(admin, id))
 				.emit(validatorRegistry, "AddValidator")
 				.withArgs(id);
 			expectedValidators.push(BigNumber.from(id));
@@ -158,12 +155,12 @@ describe("ValidatorRegistry contract", function () {
 	});
 
 	it("Should not add existing validator", async function () {
-		await createValidator(manager, 1);
-		await expect(await addValidator(manager, 1))
+		await createValidator(admin, 1);
+		await expect(await addValidator(admin, 1))
 			.emit(validatorRegistry, "AddValidator")
 			.withArgs(1);
 
-		await expect(addValidator(manager, 1)).to.be.revertedWith(
+		await expect(addValidator(admin, 1)).to.be.revertedWith(
 			"Validator id already exists in our registry"
 		);
 	});
@@ -172,8 +169,8 @@ describe("ValidatorRegistry contract", function () {
 		const validatorIds = [3, 6];
 		const expectedValidators = [];
 		for (const id of validatorIds) {
-			await createValidator(manager, id);
-			await expect(await addValidator(manager, id))
+			await createValidator(admin, id);
+			await expect(await addValidator(admin, id))
 				.emit(validatorRegistry, "AddValidator")
 				.withArgs(id);
 			expectedValidators.push(BigNumber.from(id));
@@ -182,7 +179,7 @@ describe("ValidatorRegistry contract", function () {
 		const validators = await getValidators();
 		expect(validators).to.eql(expectedValidators);
 		for (const id of validatorIds) {
-			await expect(await removeValidator(manager, id))
+			await expect(await removeValidator(admin, id))
 				.emit(validatorRegistry, "RemoveValidator")
 				.withArgs(id);
 			expectedValidators.splice(0, 1);
@@ -192,31 +189,31 @@ describe("ValidatorRegistry contract", function () {
 	});
 
 	it("Should not remove an validator when it is preferred for deposits", async function () {
-		await createValidator(manager, 1);
-		await addValidator(manager, 1);
-		await expect(await setPreferredDepositValidatorId(manager, 1))
+		await createValidator(admin, 1);
+		await addValidator(admin, 1);
+		await expect(await setPreferredDepositValidatorId(admin, 1))
 			.emit(validatorRegistry, "SetPreferredDepositValidatorId")
 			.withArgs(1);
 
-		await expect(removeValidator(manager, 1)).to.be.revertedWith(
+		await expect(removeValidator(admin, 1)).to.be.revertedWith(
 			"Can't remove a preferred validator for deposits"
 		);
 	});
 
 	it("Should not remove an validator when it is preferred for withdrawals", async function () {
-		await createValidator(manager, 1);
-		await addValidator(manager, 1);
-		await expect(await setPreferredWithdrawalValidatorId(manager, 1))
+		await createValidator(admin, 1);
+		await addValidator(admin, 1);
+		await expect(await setPreferredWithdrawalValidatorId(admin, 1))
 			.emit(validatorRegistry, "SetPreferredWithdrawalValidatorId")
 			.withArgs(1);
 
-		await expect(removeValidator(manager, 1)).to.be.revertedWith(
+		await expect(removeValidator(admin, 1)).to.be.revertedWith(
 			"Can't remove a preferred validator for withdrawals"
 		);
 	});
 
 	it("Should not remove non existing validator", async function () {
-		await expect(removeValidator(manager, 1)).to.be.revertedWith(
+		await expect(removeValidator(admin, 1)).to.be.revertedWith(
 			"Validator id doesn't exist in our registry"
 		);
 	});
@@ -248,8 +245,8 @@ describe("ValidatorRegistry contract", function () {
 
 	it("it should setPreferredDepositValidatorId - accesscontrol check", async () => {
 		const validatorId = BigNumber.from(1);
-		await createValidator(manager, validatorId);
-		await addValidator(manager, validatorId);
+		await createValidator(admin, validatorId);
+		await addValidator(admin, validatorId);
 
 		const botRole = await validatorRegistry.BOT();
 		await validatorRegistry.grantRole(botRole, users[1].address);
