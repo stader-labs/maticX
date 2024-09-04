@@ -35,9 +35,9 @@ contract MaticX is
 	string public override version;
 	uint8 public override feePercent;
 
-	address public override instantPoolOwner;
-	uint256 public override instantPoolMatic;
-	uint256 public override instantPoolMaticX;
+	address public instantPoolOwner_deprecated;
+	uint256 public instantPoolMatic_deprecated;
+	uint256 public instantPoolMaticX_deprecated;
 
 	/// @notice Mapping of all user ids with withdraw requests.
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
@@ -48,25 +48,21 @@ contract MaticX is
 	/// @notice Initialize the MaticX contract.
 	/// @param _validatorRegistry - Address of the validator registry
 	/// @param _stakeManager - Address of the stake manager
-	/// @param _maticToken - Address of matic token on Ethereum
-	/// @param _manager - Address of the manager
-	/// @param _instantPoolOwner - Address of the instant pool owner
+	/// @param _maticToken - Address of the MATIC token
+	/// @param _admin - Address of the admin
 	/// @param _treasury - Address of the treasury
 	function initialize(
 		address _validatorRegistry,
 		address _stakeManager,
 		address _maticToken,
-		address _manager,
-		address _instantPoolOwner,
+		address _admin,
 		address _treasury
-	) external override initializer {
+	) external initializer {
 		__AccessControl_init();
 		__Pausable_init();
 		__ERC20_init("Liquid Staking Matic", "MaticX");
 
-		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
-		_setupRole(INSTANT_POOL_OWNER, _instantPoolOwner);
-		instantPoolOwner = _instantPoolOwner;
+		_setupRole(DEFAULT_ADMIN_ROLE, _admin);
 
 		validatorRegistry = _validatorRegistry;
 		stakeManager = _stakeManager;
@@ -81,136 +77,17 @@ contract MaticX is
 		);
 	}
 
-	/// @dev setup BOT as admin of INSTANT_POOL_OWNER
+	/**
+	 * @dev Sets the BOT's admin role.
+	 * @notice Callable by the admin only.
+	 */
 	function setupBotAdmin()
 		external
 		override
 		whenNotPaused
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
-		_setRoleAdmin(BOT, INSTANT_POOL_OWNER);
-	}
-
-	////////////////////////////////////////////////////////////
-	/////                                                    ///
-	/////             ***Instant Pool Interactions***        ///
-	/////                                                    ///
-	////////////////////////////////////////////////////////////
-
-	/// @dev provider MATIC from instantPoolOwner to this contract.
-	/// @param _amount - Amount of MATIC to be provided
-	function provideInstantPoolMatic(uint256 _amount)
-		external
-		override
-		whenNotPaused
-		onlyRole(INSTANT_POOL_OWNER)
-	{
-		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(maticToken).safeTransferFrom(
-			msg.sender,
-			address(this),
-			_amount
-		);
-
-		instantPoolMatic += _amount;
-	}
-
-	/// @dev provide MATICX from instantPoolOwner to this contract.
-	/// @param _amount - Amount of MATICX to be provided
-	function provideInstantPoolMaticX(uint256 _amount)
-		external
-		override
-		whenNotPaused
-		onlyRole(INSTANT_POOL_OWNER)
-	{
-		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(address(this)).safeTransferFrom(
-			msg.sender,
-			address(this),
-			_amount
-		);
-
-		instantPoolMaticX += _amount;
-	}
-
-	/// @dev withdraw MATICX from this contract to instantPoolOwner
-	/// @param _amount - Amount of MATICX to be withdrawn
-	function withdrawInstantPoolMaticX(uint256 _amount)
-		external
-		override
-		whenNotPaused
-		onlyRole(INSTANT_POOL_OWNER)
-	{
-		require(
-			instantPoolMaticX >= _amount,
-			"Withdraw amount cannot exceed maticX in instant pool"
-		);
-
-		instantPoolMaticX -= _amount;
-		IERC20Upgradeable(address(this)).safeTransfer(
-			instantPoolOwner,
-			_amount
-		);
-	}
-
-	/// @dev withdraw MATIC from this contract to instantPoolOwner
-	/// @param _amount - Amount of MATIC to be withdrawn
-	function withdrawInstantPoolMatic(uint256 _amount)
-		external
-		override
-		whenNotPaused
-		onlyRole(INSTANT_POOL_OWNER)
-	{
-		require(
-			instantPoolMatic >= _amount,
-			"Withdraw amount cannot exceed matic in instant pool"
-		);
-
-		instantPoolMatic -= _amount;
-		IERC20Upgradeable(maticToken).safeTransfer(instantPoolOwner, _amount);
-	}
-
-	/// @dev mints MaticX to instantPoolMatic. It uses instantPoolMatic funds
-	function mintMaticXToInstantPool()
-		external
-		override
-		whenNotPaused
-		onlyRole(INSTANT_POOL_OWNER)
-	{
-		require(instantPoolMatic > 0, "Matic amount cannot be 0");
-
-		uint256 maticxMinted = delegateToMint(
-			address(this),
-			instantPoolMatic,
-			false
-		);
-		instantPoolMaticX += maticxMinted;
-		instantPoolMatic = 0;
-	}
-
-	/// @dev swap MATIC for MATICX via instant pool
-	/// @param _amount - Amount of MATIC to be swapped
-	function swapMaticForMaticXViaInstantPool(uint256 _amount)
-		external
-		override
-		whenNotPaused
-	{
-		require(_amount > 0, "Invalid amount");
-		IERC20Upgradeable(maticToken).safeTransferFrom(
-			msg.sender,
-			address(this),
-			_amount
-		);
-
-		(uint256 amountToMint, , ) = convertMaticToMaticX(_amount);
-		require(
-			instantPoolMaticX >= amountToMint,
-			"Not enough maticX to instant swap"
-		);
-
-		IERC20Upgradeable(address(this)).safeTransfer(msg.sender, amountToMint);
-		instantPoolMatic += _amount;
-		instantPoolMaticX -= amountToMint;
+		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
 	}
 
 	////////////////////////////////////////////////////////////
@@ -220,7 +97,7 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Send MATIC token to MaticX contract and mints MaticX to msg.sender
+	 * @dev Sends MATIC token to MaticX contract and mints MaticX to msg.sender
 	 * @notice Requires that msg.sender has approved _amount of MATIC to this contract
 	 * @param _amount - Amount of MATIC sent from msg.sender to this contract
 	 * @return Amount of MaticX shares generated
@@ -243,7 +120,7 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Send POL token to MaticX contract and mints MaticX to msg.sender
+	 * @dev Sends POL token to MaticX contract and mints MaticX to msg.sender
 	 * @notice Requires that msg.sender has approved _amount of POL to this contract
 	 * @param _amount - Amount of POL sent from msg.sender to this contract
 	 * @return Amount of MaticX shares generated
@@ -546,7 +423,7 @@ contract MaticX is
 
 		uint256 rewards = IERC20Upgradeable(token).balanceOf(
 			address(this)
-		) - instantPoolMatic;
+		); // TODO Consider this case: `- instantPoolMatic_deprecated`;
 		require(rewards > 0, "Reward is zero");
 
 		uint256 treasuryFees = (rewards * feePercent) / 100;
@@ -575,13 +452,14 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Migrate the staked tokens to another validaor
+	 * @dev Migrate all staked tokens to another validator.
+	 * @notice Callable by the admin only.
 	 */
 	function migrateDelegation(
 		uint256 _fromValidatorId,
 		uint256 _toValidatorId,
 		uint256 _amount
-	) external override whenNotPaused onlyRole(INSTANT_POOL_OWNER) {
+	) external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_fromValidatorId
@@ -737,8 +615,8 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Function that sets fee percent
-	 * @notice Callable only by manager
+	 * @dev Sets a fee percent.
+	 * @notice Callable by the admin only.
 	 * @param _feePercent - Fee percent (10 = 10%)
 	 */
 	function setFeePercent(uint8 _feePercent)
@@ -753,36 +631,26 @@ contract MaticX is
 		emit SetFeePercent(_feePercent);
 	}
 
-	/// @notice Allows to set the address of the instant pool owner. Only callable by the admin.
-	/// @param _address Address of the instant pool owner.
-	function setInstantPoolOwner(address _address)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
-		require(instantPoolOwner != _address, "Old address == new address");
-
-		_revokeRole(INSTANT_POOL_OWNER, instantPoolOwner);
-		instantPoolOwner = _address;
-		_setupRole(INSTANT_POOL_OWNER, _address);
-
-		emit SetInstantPoolOwner(_address);
-	}
-
-	/// @notice Allows to set the address of the treasury. Only callable by the admin.
-	/// @param _address Address of the treasury.
+	/**
+	 * @dev Sets the address of the treasury.
+	 * @notice Callable by the admin only.
+	 * @param _address Address of the treasury
+	 */
 	function setTreasury(address _address)
 		external
 		override
-		onlyRole(INSTANT_POOL_OWNER)
+		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		treasury = _address;
 
 		emit SetTreasury(_address);
 	}
 
-	/// @notice Allows to set the address of the stake manager. Only callable by the admin.
-	/// @param _address Address of the stake manager.
+	/**
+	 * @dev Sets the address of the stake manager.
+	 * @notice Callable by the admin only.
+	 * @param _address Address of the stake manager
+	 */
 	function setValidatorRegistry(address _address)
 		external
 		override
@@ -793,8 +661,11 @@ contract MaticX is
 		emit SetValidatorRegistry(_address);
 	}
 
-	/// @notice Allows to set the address of the stake manager. Only callable by the admin.
-	/// @param _address Address of the stake manager.
+	/**
+	 * @dev Sets the address of the stake manager.
+	 * @notice Callable by the admin only.
+	 * @param _address Address of the stake manager.
+	 */
 	function setFxStateRootTunnel(address _address)
 		external
 		override
@@ -806,7 +677,8 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Function that sets the new version
+	 * @dev Sets a new version.
+	 * @notice Callable by the admin only.
 	 * @param _version - New version that will be set
 	 */
 	function setVersion(string calldata _version)
@@ -819,8 +691,11 @@ contract MaticX is
 		emit SetVersion(_version);
 	}
 
-	/// @dev Set the address of the POL token
-	/// @param _address - Address of the POL token
+	/**
+	 * @dev Sets the address of the POL token.
+	 * @notice Callable by the admin only.
+	 * @param _address - Address of the POL token
+	 */
 	function setPOLToken(address _address)
 		external
 		override
@@ -915,7 +790,13 @@ contract MaticX is
 		return unbond.shares;
 	}
 
-	/// @notice Returns the contracts used by the MaticX contract.
+	/**
+	 * @dev Returns the contract addresses used on the current contract.
+	 * @return _stakeManager - Address of the stake manager
+	 * @return _maticToken - Address of the MATIC token
+	 * @return _validatorRegistry - Address of the validator registry
+	 * @return _polToken - Address of the POL token
+	 */
 	function getContracts()
 		external
 		view
@@ -933,7 +814,10 @@ contract MaticX is
 		_polToken = polToken;
 	}
 
-	/// @notice Returns the POL or MATIC token depending on the used flow.
+	/**
+	 * @dev Returns the POL or MATIC token depending on a used flow.
+	 * @return _token - Address of the token
+	 */
 	function _getToken(bool pol) private view returns (address) {
 		return pol ? polToken : maticToken;
 	}

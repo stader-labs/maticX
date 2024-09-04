@@ -18,7 +18,7 @@ import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
 describe("ChildPool", () => {
 	let childPool: ChildPool;
 	let deployer: SignerWithAddress;
-	let manager: SignerWithAddress;
+	let admin: SignerWithAddress;
 	let instantPoolOwner: SignerWithAddress;
 	let treasury: SignerWithAddress;
 	let users: SignerWithAddress[] = [];
@@ -127,7 +127,7 @@ describe("ChildPool", () => {
 
 	beforeEach(async () => {
 		[deployer, ...users] = await ethers.getSigners();
-		manager = deployer;
+		admin = deployer;
 		treasury = users[1];
 		instantPoolOwner = deployer;
 		polygonMock = (await (
@@ -148,9 +148,9 @@ describe("ChildPool", () => {
 		fxStateRootTunnel = (await (
 			await ethers.getContractFactory("FxStateRootTunnel")
 		).deploy(
-			manager.address,
+			admin.address,
 			fxRootMock.address,
-			manager.address
+			admin.address
 		)) as FxStateRootTunnel;
 		await fxStateRootTunnel.deployed();
 
@@ -170,7 +170,7 @@ describe("ChildPool", () => {
 				stakeManagerMock.address,
 				polygonMock.address,
 				ethers.constants.AddressZero,
-				manager.address,
+				admin.address,
 			]
 		)) as ValidatorRegistry;
 		await validatorRegistry.deployed();
@@ -181,8 +181,7 @@ describe("ChildPool", () => {
 				validatorRegistry.address,
 				stakeManagerMock.address,
 				polygonMock.address,
-				manager.address,
-				instantPoolOwner.address,
+				admin.address,
 				treasury.address,
 			]
 		)) as MaticX;
@@ -193,7 +192,7 @@ describe("ChildPool", () => {
 			[
 				fxStateChildTunnel.address,
 				maticX.address,
-				manager.address,
+				admin.address,
 				instantPoolOwner.address,
 				treasury.address,
 				10,
@@ -206,7 +205,7 @@ describe("ChildPool", () => {
 		await validatorRegistry.addValidator(1);
 		await validatorRegistry.grantRole(
 			await validatorRegistry.BOT(),
-			manager.address
+			admin.address
 		);
 		await validatorRegistry.setPreferredDepositValidatorId(1);
 		await validatorRegistry.setPreferredWithdrawalValidatorId(1);
