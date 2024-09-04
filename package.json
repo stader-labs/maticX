@@ -13,6 +13,7 @@
 		"test:ci": "hardhat test --parallel",
 		"cover": "rimraf coverage && hardhat coverage",
 		"gas": "cross-env REPORT_GAS=1 npm run test",
+		"size": "hardhat size-contracts",
 		"analyze": "slitherin . --slither",
 		"analyze:ci": "slitherin --separated . --skip-clean --ignore-compile",
 		"clean": "hardhat clean && rimraf coverage cache crytic-{corpus,export} mochaOutput.json testMatrix.json",

@@ -203,7 +203,7 @@ const config: HardhatUserConfig = {
 	contractSizer: {
 		alphaSort: false,
 		disambiguatePaths: false,
-		runOnCompile: true,
+		runOnCompile: false,
 		strict: true,
 		except: [
 			"@openzeppelin/",
@@ -215,6 +215,8 @@ const config: HardhatUserConfig = {
 		],
 	},
 	gasReporter: {
+		currency: "USD",
+		enabled: REPORT_GAS,
 		excludeContracts: [
 			"@openzeppelin/",
 			"interfaces/",
@@ -223,8 +225,6 @@ const config: HardhatUserConfig = {
 			"state-transfer",
 			"tunnel",
 		],
-		currency: "USD",
-		enabled: REPORT_GAS,
 	},
 };
 
