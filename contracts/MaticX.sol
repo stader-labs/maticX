@@ -23,7 +23,6 @@ contract MaticX is
 {
 	using SafeERC20Upgradeable for IERC20Upgradeable;
 
-	bytes32 public constant INSTANT_POOL_OWNER = keccak256("IPO");
 	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
 	bytes32 public constant BOT = keccak256("BOT");
 

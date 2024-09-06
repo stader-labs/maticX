@@ -136,7 +136,6 @@ export class MaticXDeployer
 			envVars.STAKE_MANAGER,
 			envVars.MATIC_TOKEN,
 			envVars.MANAGER,
-			envVars.INSTANT_POOL_OWNER,
 			envVars.TREASURY
 		);
 	};
