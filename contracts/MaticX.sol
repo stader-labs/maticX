@@ -50,21 +50,21 @@ contract MaticX is
 	 * @param _validatorRegistry - Address of the validator registry
 	 * @param _stakeManager - Address of the stake manager
 	 * @param _maticToken - Address of the MATIC token
-	 * @param _admin - Address of the admin
+	 * @param _manager - Address of the manager
 	 * @param _treasury - Address of the treasury
 	*/
 	function initialize(
 		address _validatorRegistry,
 		address _stakeManager,
 		address _maticToken,
-		address _admin,
+		address _manager,
 		address _treasury
 	) external initializer {
 		__AccessControl_init();
 		__Pausable_init();
 		__ERC20_init("Liquid Staking Matic", "MaticX");
 
-		_setupRole(DEFAULT_ADMIN_ROLE, _admin);
+		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
 
 		validatorRegistry = _validatorRegistry;
 		stakeManager = _stakeManager;
