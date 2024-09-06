@@ -1,5 +1,4 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-
 import * as GOERLI_DEPLOYMENT_DETAILS from "../testnet-deployment-info.json";
 
 const verifyContract = async (

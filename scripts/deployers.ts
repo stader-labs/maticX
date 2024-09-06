@@ -1,18 +1,11 @@
-import * as fs from "fs";
+import * as fs from "node:fs";
+import path from "node:path";
 import { Contract, Wallet } from "ethers";
 import { ethers, network, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-
 import { predictContractAddress } from "./utils";
 import { ValidatorRegistry, MaticX } from "../typechain";
-import {
-	STAKE_MANAGER,
-	MATIC_TOKEN,
-	MANAGER,
-	INSTANT_POOL_OWNER,
-	TREASURY,
-} from "../environment";
-import path from "path";
+import { extractEnvironmentVariables } from "../utils/environment";
 
 type DeploymentData = {
 	Network: string;
@@ -29,6 +22,8 @@ type ContractNames =
 	| "MaticX";
 
 type DeploymentOrder = Record<ContractNames, number>;
+
+const envVars = extractEnvironmentVariables();
 
 const deploymentOrder: DeploymentOrder = {
 	ProxyAdmin: 0,
@@ -127,10 +122,10 @@ export class MaticXDeployer
 	private deployValidatorRegistry = async () => {
 		return this.rootDeployer.deployProxy<ValidatorRegistry>(
 			"ValidatorRegistry",
-			STAKE_MANAGER,
-			MATIC_TOKEN,
+			envVars.STAKE_MANAGER,
+			envVars.MATIC_TOKEN,
 			this.data.MaticX,
-			MANAGER
+			envVars.MANAGER
 		);
 	};
 
@@ -138,11 +133,11 @@ export class MaticXDeployer
 		return this.rootDeployer.deployProxy<MaticX>(
 			"MaticX",
 			this.data.ValidatorRegistry,
-			STAKE_MANAGER,
-			MATIC_TOKEN,
-			MANAGER,
-			INSTANT_POOL_OWNER,
-			TREASURY
+			envVars.STAKE_MANAGER,
+			envVars.MATIC_TOKEN,
+			envVars.MANAGER,
+			envVars.INSTANT_POOL_OWNER,
+			envVars.TREASURY
 		);
 	};
 
@@ -157,10 +152,10 @@ export class MaticXDeployer
 			network: chainId,
 			multisig_upgrader: { address: "0x", owners: [] },
 			root_deployer: this.rootDeployer.signer.address,
-			manager: MANAGER,
-			treasury: TREASURY,
-			matic_erc20_address: MATIC_TOKEN,
-			matic_stake_manager_proxy: STAKE_MANAGER,
+			manager: envVars.MANAGER,
+			treasury: envVars.TREASURY,
+			matic_erc20_address: envVars.MATIC_TOKEN,
+			matic_stake_manager_proxy: envVars.STAKE_MANAGER,
 			proxy_admin: this.data.ProxyAdmin,
 			maticX_proxy: this.data.MaticX,
 			maticX_impl: this.data.MaticXImplementation,

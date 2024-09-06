@@ -1,3 +1,4 @@
+import * as dotenv from "dotenv";
 import {
 	HardhatNetworkMiningConfig,
 	HardhatRuntimeEnvironment,
@@ -14,20 +15,16 @@ import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import { deployDirect, deployProxy, verify } from "./scripts/tasks";
-import {
-	DEPLOYER_PRIVATE_KEY,
-	ETHERSCAN_API_KEY,
-	ROOT_CHAIN_RPC,
-	ROOT_GAS_PRICE,
-	DEFENDER_TEAM_API_KEY,
-	DEFENDER_TEAM_API_SECRET_KEY,
-	CHILD_CHAIN_RPC,
-	CHILD_GAS_PRICE,
-	FX_ROOT,
-	FX_CHILD,
-	CHECKPOINT_MANAGER,
-	REPORT_GAS,
-} from "./environment";
+import { extractEnvironmentVariables } from "./utils/environment";
+
+const envSuffix = process.env.NODE_ENV === "main" ? "" : ".test";
+const exampleSuffix = process.env.CI ? ".example" : "";
+
+dotenv.config({
+	path: `.env${envSuffix}${exampleSuffix}`,
+});
+
+const envVars = extractEnvironmentVariables();
 
 task("verifyMaticX", "MaticX contracts verification").setAction(
 	async (args, hre: HardhatRuntimeEnvironment) => {
@@ -37,20 +34,24 @@ task("verifyMaticX", "MaticX contracts verification").setAction(
 
 task("deployFxStateChildTunnel", "Deploy FxStateChildTunnel").setAction(
 	async (args, hre: HardhatRuntimeEnvironment) => {
-		if (!isChildNetwork(hre.network.name)) return;
-		await deployDirect(hre, "FxStateChildTunnel", FX_CHILD);
+		if (!isChildNetwork(hre.network.name)) {
+			return;
+		}
+		await deployDirect(hre, "FxStateChildTunnel", envVars.FX_CHILD);
 	}
 );
 
 task("deployFxStateRootTunnel", "Deploy FxStateRootTunnel")
 	.addPositionalParam("maticX")
 	.setAction(async ({ maticX }, hre: HardhatRuntimeEnvironment) => {
-		if (!isRootNetwork(hre.network.name)) return;
+		if (!isRootNetwork(hre.network.name)) {
+			return;
+		}
 		await deployDirect(
 			hre,
 			"FxStateRootTunnel",
-			CHECKPOINT_MANAGER,
-			FX_ROOT,
+			envVars.CHECKPOINT_MANAGER,
+			envVars.FX_ROOT,
 			maticX
 		);
 	});
@@ -59,14 +60,18 @@ task("deployRateProvider", "Deploy RateProvider")
 	.addPositionalParam("fxStateChildTunnel")
 	.setAction(
 		async ({ fxStateChildTunnel }, hre: HardhatRuntimeEnvironment) => {
-			if (!isChildNetwork(hre.network.name)) return;
+			if (!isChildNetwork(hre.network.name)) {
+				return;
+			}
 			await deployDirect(hre, "RateProvider", fxStateChildTunnel);
 		}
 	);
 
 task("deployMaticXImpl", "Deploy MaticX Implementation only").setAction(
 	async (args, hre: HardhatRuntimeEnvironment) => {
-		if (!isRootNetwork(hre.network.name)) return;
+		if (!isRootNetwork(hre.network.name)) {
+			return;
+		}
 		await deployDirect(hre, "MaticX");
 	}
 );
@@ -114,7 +119,9 @@ task("deployChildPoolProxy", "Deploy ChildPool Proxy only")
 
 task("deployChildPoolImpl", "Deploy ChildPool Implementation only").setAction(
 	async (args, hre: HardhatRuntimeEnvironment) => {
-		if (!isChildNetwork(hre.network.name)) return;
+		if (!isChildNetwork(hre.network.name)) {
+			return;
+		}
 		await deployDirect(hre, "ChildPool");
 	}
 );
@@ -170,19 +177,19 @@ const config: HardhatUserConfig = {
 			mining,
 		},
 		testnet: {
-			url: ROOT_CHAIN_RPC,
-			accounts: [DEPLOYER_PRIVATE_KEY],
-			gasPrice: Number(ROOT_GAS_PRICE),
+			url: envVars.ROOT_CHAIN_RPC,
+			accounts: [envVars.DEPLOYER_PRIVATE_KEY],
+			gasPrice: envVars.ROOT_GAS_PRICE,
 		},
 		mainnet: {
-			url: ROOT_CHAIN_RPC,
-			accounts: [DEPLOYER_PRIVATE_KEY],
-			gasPrice: Number(ROOT_GAS_PRICE),
+			url: envVars.ROOT_CHAIN_RPC,
+			accounts: [envVars.DEPLOYER_PRIVATE_KEY],
+			gasPrice: envVars.ROOT_GAS_PRICE,
 		},
 		matic: {
-			url: CHILD_CHAIN_RPC,
-			accounts: [DEPLOYER_PRIVATE_KEY],
-			gasPrice: Number(CHILD_GAS_PRICE),
+			url: envVars.CHILD_CHAIN_RPC,
+			accounts: [envVars.DEPLOYER_PRIVATE_KEY],
+			gasPrice: envVars.CHILD_GAS_PRICE,
 		},
 	},
 	typechain: {
@@ -194,11 +201,11 @@ const config: HardhatUserConfig = {
 		timeout: "1h",
 	},
 	etherscan: {
-		apiKey: ETHERSCAN_API_KEY,
+		apiKey: envVars.ETHERSCAN_API_KEY,
 	},
 	defender: {
-		apiKey: DEFENDER_TEAM_API_KEY,
-		apiSecret: DEFENDER_TEAM_API_SECRET_KEY,
+		apiKey: envVars.DEFENDER_TEAM_API_KEY,
+		apiSecret: envVars.DEFENDER_TEAM_API_SECRET_KEY,
 	},
 	contractSizer: {
 		alphaSort: false,
@@ -216,7 +223,7 @@ const config: HardhatUserConfig = {
 	},
 	gasReporter: {
 		currency: "USD",
-		enabled: REPORT_GAS,
+		enabled: envVars.REPORT_GAS,
 		excludeContracts: [
 			"@openzeppelin/",
 			"interfaces/",
