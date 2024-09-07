@@ -170,6 +170,11 @@ const config: HardhatUserConfig = {
 			initialBaseFeePerGas: 0, // See https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
 			blockGasLimit: 30_000_000,
 			mining,
+			forking: {
+				url: envVars.ROOT_CHAIN_RPC,
+				blockNumber: 20_700_204,
+				enabled: true,
+			},
 		},
 		localhost: {
 			url: "http://127.0.0.1:8545",
