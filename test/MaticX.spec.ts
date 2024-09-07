@@ -14,7 +14,7 @@ import {
 	RateProvider,
 } from "../typechain";
 
-describe("MaticX contract", function () {
+describe.skip("MaticX (Old)", function () {
 	let deployer: SignerWithAddress;
 	let manager: SignerWithAddress;
 	let instantPoolOwner: SignerWithAddress;

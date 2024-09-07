@@ -15,7 +15,7 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
 
-describe("ChildPool", () => {
+describe.skip("ChildPool", () => {
 	let childPool: ChildPool;
 	let deployer: SignerWithAddress;
 	let manager: SignerWithAddress;

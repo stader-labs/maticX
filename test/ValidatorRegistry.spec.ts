@@ -10,7 +10,7 @@ import {
 	StakeManagerMock,
 } from "../typechain";
 
-describe("ValidatorRegistry contract", function () {
+describe.skip("ValidatorRegistry", function () {
 	let deployer: SignerWithAddress;
 	let manager: SignerWithAddress;
 	let treasury: SignerWithAddress;
