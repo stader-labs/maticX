@@ -7,6 +7,8 @@ import "../interfaces/IValidatorShare.sol";
 import "../interfaces/IStakeManager.sol";
 
 contract ValidatorShareMock is IValidatorShare {
+	uint256 constant REWARD_PRECISION = 10**25;
+
 	address public token;
 
 	bool public override delegation;
@@ -25,8 +27,7 @@ contract ValidatorShareMock is IValidatorShare {
 	mapping(address => uint256) public initalRewardPerShare;
 
 	IStakeManager stakeManager;
-
-	uint256 constant REWARD_PRECISION = 10**25;
+	address public override stakingLogger;
 
 	constructor(
 		address _token,

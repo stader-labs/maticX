@@ -7,6 +7,8 @@ interface IValidatorShare {
 		uint256 withdrawEpoch;
 	}
 
+	function stakingLogger() external view returns (address);
+
 	function minAmount() external view returns (uint256);
 
 	function unbondNonces(address _address) external view returns (uint256);
