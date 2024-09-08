@@ -78,17 +78,6 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Initializes the POL related flow.
-	*/
-	function initializePOL() external onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(polToken != address(0), "Zero POL token address");
-		IERC20Upgradeable(polToken).safeApprove(
-			stakeManager,
-			type(uint256).max
-		);
-	}
-
-	/**
 	 * @dev Sets the BOT's admin role.
 	 * @notice Callable by the admin only.
 	 */
@@ -709,9 +698,15 @@ contract MaticX is
 		override
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
-		polToken = _address;
+		require(_address != address(0), "Zero POL token address");
 
+		polToken = _address;
 		emit SetPOLToken(_address);
+
+		IERC20Upgradeable(polToken).safeApprove(
+			stakeManager,
+			type(uint256).max
+		);
 	}
 
 	////////////////////////////////////////////////////////////
