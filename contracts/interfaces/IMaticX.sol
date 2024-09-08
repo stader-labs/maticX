@@ -51,7 +51,7 @@ interface IMaticX is IERC20Upgradeable {
 	event SetTreasury(address _address);
 
 	event SetValidatorRegistry(address _address);
-	
+
 	event SetFxStateRootTunnel(address _address);
 
 	event SetVersion(string _version);
@@ -59,14 +59,6 @@ interface IMaticX is IERC20Upgradeable {
 	event SetPOLToken(address _address);
 
 	function setupBotAdmin() external;
-
-	function version() external view returns (string memory);
-
-	function treasury() external view returns (address);
-
-	function feePercent() external view returns (uint8);
-
-	function fxStateRootTunnel() external view returns (address);
 
 	function submit(uint256 _amount) external returns (uint256);
 
@@ -82,13 +74,13 @@ interface IMaticX is IERC20Upgradeable {
 
 	function withdrawRewards(uint256 _validatorId) external returns (uint256);
 
-	function withdrawValidatorsReward(uint256[] calldata _validatorIds)
-		external
-		returns (uint256[] memory);
+	function withdrawValidatorsReward(
+		uint256[] calldata _validatorIds
+	) external returns (uint256[] memory);
 
-	function withdrawValidatorsRewardPOL(uint256[] calldata _validatorIds)
-		external
-		returns (uint256[] memory);
+	function withdrawValidatorsRewardPOL(
+		uint256[] calldata _validatorIds
+	) external returns (uint256[] memory);
 
 	function stakeRewardsAndDistributeFees(uint256 _validatorId) external;
 
@@ -102,49 +94,33 @@ interface IMaticX is IERC20Upgradeable {
 
 	function togglePause() external;
 
-	function convertMaticXToStakeToken(uint256 _balance)
-		external
-		view
-		returns (
-			uint256,
-			uint256,
-			uint256
-		);
+	function getTotalStake(
+		IValidatorShare _validatorShare
+	) external view returns (uint256, uint256);
 
-	function convertMaticXToMatic(uint256 _balance)
-		external
-		view
-		returns (
-			uint256,
-			uint256,
-			uint256
-		);
+	function convertMaticXToStakeToken(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
 
-	function convertStakeTokenToMaticX(uint256 _balance)
-		external
-		view
-		returns (
-			uint256,
-			uint256,
-			uint256
-		);
+	function convertMaticXToMatic(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
 
-	function convertMaticToMaticX(uint256 _balance)
-		external
-		view
-		returns (
-			uint256,
-			uint256,
-			uint256
-		);
+	function convertStakeTokenToMaticX(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
+
+	function convertMaticToMaticX(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
 
 	function mint(address _user, uint256 _amount) external;
 
 	function setFeePercent(uint8 _feePercent) external;
 
-	function setValidatorRegistry(address _address) external;
-
 	function setTreasury(address _address) external;
+
+	function setValidatorRegistry(address _address) external;
 
 	function setFxStateRootTunnel(address _address) external;
 
@@ -152,26 +128,20 @@ interface IMaticX is IERC20Upgradeable {
 
 	function setPOLToken(address _address) external;
 
-	function getUserWithdrawalRequests(address _address)
-		external
-		view
-		returns (WithdrawalRequest[] memory);
-
-	function getSharesAmountOfUserWithdrawalRequest(
-		address _address,
-		uint256 _idx
-	) external view returns (uint256);
-
-	function getTotalStake(IValidatorShare _validatorShare)
-		external
-		view
-		returns (uint256, uint256);
-
 	function getTotalStakeAcrossAllValidators() external view returns (uint256);
 
 	function getTotalPooledMatic() external view returns (uint256);
 
 	function getTotalPooledStakeTokens() external view returns (uint256);
+
+	function getUserWithdrawalRequests(
+		address _address
+	) external view returns (WithdrawalRequest[] memory);
+
+	function getSharesAmountOfUserWithdrawalRequest(
+		address _address,
+		uint256 _idx
+	) external view returns (uint256);
 
 	function getContracts()
 		external
@@ -182,4 +152,12 @@ interface IMaticX is IERC20Upgradeable {
 			address _validatorRegistry,
 			address _polToken
 		);
+
+	function treasury() external view returns (address);
+
+	function version() external view returns (string memory);
+
+	function feePercent() external view returns (uint8);
+
+	function fxStateRootTunnel() external view returns (address);
 }

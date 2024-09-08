@@ -13,8 +13,11 @@ import "./interfaces/IStakeManager.sol";
 import "./interfaces/IMaticX.sol";
 import "./interfaces/IFxStateRootTunnel.sol";
 
-/// @title MaticX
-/// @notice MaticX is the main contract that manages staking and unstaking of MATIC
+/**
+ * @title MaticX
+ * @dev MaticX is the main contract that manages staking and unstaking of the
+ * Matic and POL tokens for end users.
+ */
 contract MaticX is
 	IMaticX,
 	ERC20Upgradeable,
@@ -38,9 +41,7 @@ contract MaticX is
 	uint256 public instantPoolMatic_deprecated;
 	uint256 public instantPoolMaticX_deprecated;
 
-	/// @notice Mapping of all user ids with withdraw requests.
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
-
 	address public override fxStateRootTunnel;
 	address private polToken;
 
@@ -48,10 +49,10 @@ contract MaticX is
 	 * @dev Initializes the current contract.
 	 * @param _validatorRegistry - Address of the validator registry
 	 * @param _stakeManager - Address of the stake manager
-	 * @param _maticToken - Address of the MATIC token
+	 * @param _maticToken - Address of the Matic token
 	 * @param _manager - Address of the manager
 	 * @param _treasury - Address of the treasury
-	*/
+	 */
 	function initialize(
 		address _validatorRegistry,
 		address _stakeManager,
@@ -78,8 +79,7 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Sets the BOT's admin role.
-	 * @notice Callable by the admin only.
+	 * @dev Sets the BOT's admin role. Callable by the admin only.
 	 */
 	function setupBotAdmin()
 		external
@@ -97,50 +97,44 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Sends MATIC tokens to the current contract and mints MaticX to the
-	 * sender.
-	 * @notice Requires that the sender has approved _amount of MATIC to this
-	 * contract.
-	 * @param _amount - Amount of MATIC sent from the sender to this contract
+	 * @dev Sends Matic tokens to the current contract and mints MaticX shares
+	 * to the sender. Requires that the sender has a preliminary approved _amount
+	 * of Matic to this contract.
+	 * @param _amount - Amount of Matic tokens sent to this contract
 	 * @return Amount of MaticX shares generated
 	 */
-	function submit(uint256 _amount)
-		external
-		override
-		whenNotPaused
-		returns (uint256)
-	{
+	function submit(
+		uint256 _amount
+	) external override whenNotPaused returns (uint256) {
 		return _submit(msg.sender, _amount, false);
 	}
 
 	/**
-	 * @dev Sends POL tokens to the current contract and mints MaticX to the
-	 * sender.
-	 * @notice Requires that the sender has approved _amount of POL to this
-	 * contract.
-	 * @param _amount - Amount of POL sent from the sender to this contract
+	 * @dev Sends POL tokens to the current contract and mints MaticX shares
+	 * to the sender. Requires that the sender has a preliminary approved
+	 * _amount of POL to this contract.
+	 * @param _amount - Amount of POL tokens sent to this contract
 	 * @return Amount of MaticX shares generated
 	 */
-	function submitPOL(uint256 _amount)
-		external
-		override
-		whenNotPaused
-		returns (uint256)
-	{
+	function submitPOL(
+		uint256 _amount
+	) external override whenNotPaused returns (uint256) {
 		return _submit(msg.sender, _amount, true);
 	}
 
 	/**
-	 * @dev Sends tokens to the current contract and mints MaticX to the sender.
-	 * @param depositSender - Address of the user that is depositing
-	 * @param _amount - Amount of tokens sent from msg.sender to this contract
-	 * @param _pol - If the POL related flow should be applied
+	 * @dev Sends stake tokens to the current contract and mints MaticX shares
+	 * to the sender.
+	 * @param depositSender - Address of the sender who is depositing
+	 * @param _amount - Amount of tokens sent to this contract
+	 * @param _pol - If the POL flow should be used
 	 * @return Amount of MaticX shares generated
 	 */
-	function _submit(address depositSender, uint256 _amount, bool _pol)
-		internal
-		returns (uint256)
-	{
+	function _submit(
+		address depositSender,
+		uint256 _amount,
+		bool _pol
+	) internal returns (uint256) {
 		require(_amount > 0, "Invalid amount");
 
 		address token = _getToken(_pol);
@@ -169,7 +163,10 @@ contract MaticX is
 			: IValidatorShare(validatorShare).buyVoucher(_amount, 0);
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
-			abi.encode(totalShares + mintedAmount, totalPooledStakeTokens + _amount)
+			abi.encode(
+				totalShares + mintedAmount,
+				totalPooledStakeTokens + _amount
+			)
 		);
 
 		emit Delegate(preferredValidatorId, _amount);
@@ -177,28 +174,27 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Stores user's request to withdraw MATIC tokens in the WithdrawalRequest
-	 * struct.
-	 * @param _amount - Amount of Matic that is requested to withdraw
+	 * @dev Registers a user's request to withdraw Matic tokens.
+	 * @param _amount - Amount of Matic tokens that is requested to withdraw
 	 */
 	function requestWithdraw(uint256 _amount) external override whenNotPaused {
 		_requestWithdraw(_amount, false);
 	}
 
 	/**
-	 * @dev Stores user's request to withdraw POL tokens in the WithdrawalRequest
-	 * struct.
-	 * @param _amount - Amount of POL that is requested to withdraw
+	 * @dev Registers a user's request to withdraw POL tokens.
+	 * @param _amount - Amount of POL tokens that is requested to withdraw
 	 */
-	function requestWithdrawPOL(uint256 _amount) external override whenNotPaused {
+	function requestWithdrawPOL(
+		uint256 _amount
+	) external override whenNotPaused {
 		_requestWithdraw(_amount, true);
 	}
 
 	/**
-	 * @dev Stores user's request to withdraw tokens in the WithdrawalRequest
-	 * struct.
+	 * @dev Registers a user's request to withdraw stake tokens.
 	 * @param _amount - Amount of POL that is requested to withdraw
-	 * @param _pol - If the POL related flow should be applied
+	 * @param _pol - If the POL flow should be used
 	 */
 	function _requestWithdraw(uint256 _amount, bool _pol) internal {
 		require(_amount > 0, "Invalid amount");
@@ -278,9 +274,9 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Claims MATIC tokens from a validator share and sends them to the
-	 * address if the request is in the withdrawalRequest struct for a user.
-	 * @param _idx - User withdrawal request array index
+	 * @dev Claims Matic tokens from a validator share and sends them to the
+	 * user.
+	 * @param _idx - Array index of the user's withdrawal request
 	 */
 	function claimWithdrawal(uint256 _idx) external override whenNotPaused {
 		_claimWithdrawal(msg.sender, _idx, false);
@@ -288,24 +284,25 @@ contract MaticX is
 
 	/**
 	 * @dev Claims POL tokens from a validator share and sends them to the
-	 * address if the request is in the withdrawalRequest struct for a user.
-	 * @param _idx - User withdrawal request array index
+	 * user.
+	 * @param _idx - Array index of the user's withdrawal request
 	 */
 	function claimWithdrawalPOL(uint256 _idx) external override whenNotPaused {
 		_claimWithdrawal(msg.sender, _idx, true);
 	}
 
 	/**
-	 * @dev Claims tokens from validator share and sends them to the address if
-	 * the request is in the withdrawalRequest struct for a user.
-	 * @param _to - Address of the withdrawal request owner
-	 * @param _idx - User withdrawal request array index
-	 * @param _pol - If the POL related flow should be applied
+	 * @dev Claims POL tokens from a validator share and sends them to the
+	 * user.
+	 * @param _to - Address of the user
+	 * @param _idx - Array index of the user's withdrawal request
+	 * @param _pol - If the POL flow should be used
 	 */
-	function _claimWithdrawal(address _to, uint256 _idx, bool _pol)
-		internal
-		returns (uint256)
-	{
+	function _claimWithdrawal(
+		address _to,
+		uint256 _idx,
+		bool _pol
+	) internal returns (uint256) {
 		address token = _getToken(_pol);
 		uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(
 			address(this)
@@ -328,9 +325,9 @@ contract MaticX is
 		userRequests[_idx] = userRequests[userRequests.length - 1];
 		userRequests.pop();
 
-		uint256 amountToClaim =
-			IERC20Upgradeable(token).balanceOf(address(this)) -
-			balanceBeforeClaim;
+		uint256 amountToClaim = IERC20Upgradeable(token).balanceOf(
+			address(this)
+		) - balanceBeforeClaim;
 
 		IERC20Upgradeable(token).safeTransfer(_to, amountToClaim);
 
@@ -339,28 +336,23 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev This function is deprecated. Please use withdrawValidatorsReward instead.
-	 * @param _validatorId - Validator id to withdraw rewards
+	 * @dev Withdraw Matic rewards for a given validator. This function is
+	 * deprecated.
+	 * @param _validatorId - Validator id to withdraw Matic rewards
 	 */
-	function withdrawRewards(uint256 _validatorId)
-		public
-		override
-		whenNotPaused
-		returns (uint256)
-	{
+	function withdrawRewards(
+		uint256 _validatorId
+	) public override whenNotPaused returns (uint256) {
 		return _withdrawRewards(_validatorId, false);
 	}
 
 	/**
-	 * @dev Withdraw MATIC rewards for given validators.
-	 * @param _validatorIds - Array of validator ids to withdraw MATIC rewards for
+	 * @dev Withdraw Matic rewards for given validators.
+	 * @param _validatorIds - Array of validator ids to withdraw Matic rewards
 	 */
-	function withdrawValidatorsReward(uint256[] calldata _validatorIds)
-		public
-		override
-		whenNotPaused
-		returns (uint256[] memory)
-	{
+	function withdrawValidatorsReward(
+		uint256[] calldata _validatorIds
+	) public override whenNotPaused returns (uint256[] memory) {
 		uint256[] memory rewards = new uint256[](_validatorIds.length);
 		for (uint256 i = 0; i < _validatorIds.length; i++) {
 			rewards[i] = _withdrawRewards(_validatorIds[i], false);
@@ -370,14 +362,11 @@ contract MaticX is
 
 	/**
 	 * @dev Withdraw POL rewards for given validators.
-	 * @param _validatorIds - Array of validator ids to withdraw POL rewards for
+	 * @param _validatorIds - Array of validator ids to withdraw POL rewards
 	 */
-	function withdrawValidatorsRewardPOL(uint256[] calldata _validatorIds)
-		public
-		override
-		whenNotPaused
-		returns (uint256[] memory)
-	{
+	function withdrawValidatorsRewardPOL(
+		uint256[] calldata _validatorIds
+	) public override whenNotPaused returns (uint256[] memory) {
 		uint256[] memory rewards = new uint256[](_validatorIds.length);
 		for (uint256 i = 0; i < _validatorIds.length; i++) {
 			rewards[i] = _withdrawRewards(_validatorIds[i], true);
@@ -386,64 +375,64 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Withdraw rewards for a given validator.
-	 * @param _validatorId - Validator id to withdraw rewards for
-	 * @param _pol - If the POL related flow should be applied
+	 * @dev Withdraw stake rewards for a given validator.
+	 * @param _validatorId - Validator id to withdraw rewards
+	 * @param _pol - If the POL flow should be used
 	 */
-	function _withdrawRewards(uint256 _validatorId, bool _pol) internal returns (uint256) {
+	function _withdrawRewards(
+		uint256 _validatorId,
+		bool _pol
+	) internal returns (uint256) {
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
 		address token = _getToken(_pol);
-		uint256 balanceBeforeRewards = IERC20Upgradeable(token)
-			.balanceOf(address(this));
+		uint256 balanceBeforeRewards = IERC20Upgradeable(token).balanceOf(
+			address(this)
+		);
 
 		_pol
 			? IValidatorShare(validatorShare).withdrawRewardsPOL()
 			: IValidatorShare(validatorShare).withdrawRewards();
 
-		uint256 rewards = IERC20Upgradeable(token).balanceOf(
-			address(this)
-		) - balanceBeforeRewards;
+		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this)) -
+			balanceBeforeRewards;
 
 		emit WithdrawRewards(_validatorId, rewards);
 		return rewards;
 	}
 
 	/**
-	 * @dev Stake MATIC rewards and distribute fees to a treasury. Only callable
-	 * by BOT.
+	 * @dev Stake Matic rewards and distribute fees to a treasury. Only callable
+	 * by the bot.
 	 * @param _validatorId - Validator id to stake rewards and distribute fees
 	 */
-	function stakeRewardsAndDistributeFees(uint256 _validatorId)
-		external
-		override
-		whenNotPaused
-		onlyRole(BOT)
-	{
+	function stakeRewardsAndDistributeFees(
+		uint256 _validatorId
+	) external override whenNotPaused onlyRole(BOT) {
 		_stakeRewardsAndDistributeFees(_validatorId, false);
 	}
 
 	/**
 	 * @dev Stake POL rewards and distribute fees to a treasury. Only callable
-	 * by BOT.
+	 * by the bot.
 	 * @param _validatorId - Validator id to stake rewards and distribute fees
 	 */
-	function stakeRewardsAndDistributeFeesPOL(uint256 _validatorId)
-		external
-		override
-		whenNotPaused
-		onlyRole(BOT)
-	{
+	function stakeRewardsAndDistributeFeesPOL(
+		uint256 _validatorId
+	) external override whenNotPaused onlyRole(BOT) {
 		_stakeRewardsAndDistributeFees(_validatorId, true);
 	}
 
 	/**
 	 * @dev Stake rewards and distribute fees to a treasury.
 	 * @param _validatorId - Validator id to stake rewards and distribute fees
-	 * @param _pol - If the POL related flow should be applied
+	 * @param _pol - If the POL flow should be used
 	 */
-	function _stakeRewardsAndDistributeFees(uint256 _validatorId, bool _pol) internal {
+	function _stakeRewardsAndDistributeFees(
+		uint256 _validatorId,
+		bool _pol
+	) internal {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_validatorId
@@ -455,18 +444,13 @@ contract MaticX is
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
-		uint256 rewards = IERC20Upgradeable(token).balanceOf(
-			address(this)
-		); // TODO Consider this case: `- instantPoolMatic_deprecated`;
+		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this)); // TODO Consider this case: `- instantPoolMatic_deprecated`;
 		require(rewards > 0, "Reward is zero");
 
 		uint256 treasuryFees = (rewards * feePercent) / 100;
 
 		if (treasuryFees > 0) {
-			IERC20Upgradeable(token).safeTransfer(
-				treasury,
-				treasuryFees
-			);
+			IERC20Upgradeable(token).safeTransfer(treasury, treasuryFees);
 			emit DistributeFees(treasury, treasuryFees);
 		}
 
@@ -486,8 +470,8 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Migrate all staked tokens to another validator.
-	 * @notice Callable by the admin only.
+	 * @dev Migrate all staked tokens to another validator. Callable by the
+	 * admin only.
 	 */
 	function migrateDelegation(
 		uint256 _fromValidatorId,
@@ -517,23 +501,21 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Flips the pause state
+	 * @dev Toggles the contract's paused state. Only callable by the admin.
 	 */
 	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		paused() ? _unpause() : _pause();
 	}
 
 	/**
-	 * @dev API for getting total stake of this contract from validatorShare
-	 * @param _validatorShare - Address of validatorShare contract
-	 * @return Total stake of this contract and MATIC -> share exchange rate
+	 * @dev Returns the total stake of this contract for a given validator
+	 * share.
+	 * @param _validatorShare - Address of a validator share
+	 * @return Total the total stake of this contract
 	 */
-	function getTotalStake(IValidatorShare _validatorShare)
-		public
-		view
-		override
-		returns (uint256, uint256)
-	{
+	function getTotalStake(
+		IValidatorShare _validatorShare
+	) public view override returns (uint256, uint256) {
 		return _validatorShare.getTotalStake(address(this));
 	}
 
@@ -544,130 +526,94 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Converts an arbitrary amount of MaticX to stake tokens.
+	 * @dev Converts an arbitrary amount of MaticX shares to stake tokens.
 	 * @param _balance - Balance in MaticX
-	 * @return Tuple containing a balance in stake tokens, total shares and total
-	 * pooled stake tokens
+	 * @return Tuple containing a balance in stake tokens, total shares and
+	 * total pooled stake tokens
 	 */
-	function convertMaticXToStakeToken(uint256 _balance)
-		external
-		view
-		override
-		returns (
-			uint256,
-			uint256,
-			uint256
-		)
-	{
+	function convertMaticXToStakeToken(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
 		return _convertMaticXToStakeToken(_balance);
 	}
 
 	/**
-	 * @dev Converts an arbitrary amount of MaticX to stake tokens.
-	 * @notice This method is deprecated.
+	 * @dev Converts an arbitrary amount of MaticX shares to stake tokens. This
+	 * method is deprecated.
 	 * @param _balance - Balance in MaticX
-	 * @return Tuple containing a balance in stake tokens, total shares and total
-	 * pooled stake tokens
+	 * @return Tuple containing a balance in stake tokens, total shares and
+	 * total pooled stake tokens
 	 */
-	function convertMaticXToMatic(uint256 _balance)
-		external
-		view
-		override
-		returns (
-			uint256,
-			uint256,
-			uint256
-		)
-	{
+	function convertMaticXToMatic(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
 		return _convertMaticXToStakeToken(_balance);
 	}
 
-	function _convertMaticXToStakeToken(uint256 _balance)
-		private
-		view
-		returns (
-			uint256,
-			uint256,
-			uint256
-			)
-	{
+	function _convertMaticXToStakeToken(
+		uint256 _balance
+	) private view returns (uint256, uint256, uint256) {
 		uint256 totalShares = totalSupply();
 		totalShares = totalShares == 0 ? 1 : totalShares;
 
 		uint256 totalPooledStakeTokens = getTotalPooledStakeTokens();
-		totalPooledStakeTokens = totalPooledStakeTokens == 0 ? 1 : totalPooledStakeTokens;
+		totalPooledStakeTokens = totalPooledStakeTokens == 0
+			? 1
+			: totalPooledStakeTokens;
 
-		uint256 balanceInStakeTokens = (_balance * (totalPooledStakeTokens)) / totalShares;
+		uint256 balanceInStakeTokens = (_balance * (totalPooledStakeTokens)) /
+			totalShares;
 
 		return (balanceInStakeTokens, totalShares, totalPooledStakeTokens);
 	}
 
 	/**
-	 * @dev Converts an arbritrary amount of stake tokens to MaticX.
+	 * @dev Converts an arbritrary amount of stake tokens to MaticX shares.
 	 * @param _balance - Balance in a stake token
 	 * @return Tuple containing balance in MaticX, total shares and total pooled
 	 *  stake tokens
-	*/
-	function convertStakeTokenToMaticX(uint256 _balance)
-		external
-		view
-		override
-		returns (
-			uint256,
-			uint256,
-			uint256
-		)
-	{
+	 */
+	function convertStakeTokenToMaticX(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
 		return _convertStakeTokenToMaticX(_balance);
 	}
 
 	/**
-	 * @dev Converts an arbritrary amount of stake tokens to MaticX.
-	 * @notice This method is deprecated.
+	 * @dev Converts an arbritrary amount of stake tokens to MaticX shares. This
+	 * method is deprecated.
 	 * @param _balance - Balance in a stake token
 	 * @return Tuple containing balance in MaticX, total shares and total pooled
 	 *  stake tokens
-	*/
-	function convertMaticToMaticX(uint256 _balance)
-		external
-		view
-		override
-		returns (
-			uint256,
-			uint256,
-			uint256
-		)
-	{
+	 */
+	function convertMaticToMaticX(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
 		return _convertStakeTokenToMaticX(_balance);
 	}
 
-	function _convertStakeTokenToMaticX(uint256 _balance)
-		private
-		view
-		returns (
-			uint256,
-			uint256,
-			uint256
-		)
-	{
+	function _convertStakeTokenToMaticX(
+		uint256 _balance
+	) private view returns (uint256, uint256, uint256) {
 		uint256 totalShares = totalSupply();
 		totalShares = totalShares == 0 ? 1 : totalShares;
 
 		uint256 totalPooledStakeTokens = getTotalPooledStakeTokens();
-		totalPooledStakeTokens = totalPooledStakeTokens == 0 ? 1 : totalPooledStakeTokens;
+		totalPooledStakeTokens = totalPooledStakeTokens == 0
+			? 1
+			: totalPooledStakeTokens;
 
-		uint256 balanceInMaticX = (_balance * totalShares) / totalPooledStakeTokens;
+		uint256 balanceInMaticX = (_balance * totalShares) /
+			totalPooledStakeTokens;
 
 		return (balanceInMaticX, totalShares, totalPooledStakeTokens);
 	}
 
 	// TODO: Add logic and enable it in V2
-	function mint(address _user, uint256 _amount)
-		external
-		override
-		whenNotPaused
-		onlyRole(PREDICATE_ROLE)
-	{
+	function mint(
+		address _user,
+		uint256 _amount
+	) external override whenNotPaused onlyRole(PREDICATE_ROLE) {
 		emit MintFromPolygon(_user, _amount);
 	}
 
@@ -678,15 +624,12 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Sets a fee percent.
-	 * @notice Callable by the admin only.
+	 * @dev Sets a fee percent. Callable by the admin only.
 	 * @param _feePercent - Fee percent (10 = 10%)
 	 */
-	function setFeePercent(uint8 _feePercent)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setFeePercent(
+		uint8 _feePercent
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		require(_feePercent <= 100, "_feePercent must not exceed 100");
 
 		feePercent = _feePercent;
@@ -695,75 +638,60 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Sets the address of the treasury.
-	 * @notice Callable by the admin only.
+	 * @dev Sets the address of the treasury. Callable by the admin only.
 	 * @param _address Address of the treasury
 	 */
-	function setTreasury(address _address)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setTreasury(
+		address _address
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		treasury = _address;
 
 		emit SetTreasury(_address);
 	}
 
 	/**
-	 * @dev Sets the address of the stake manager.
-	 * @notice Callable by the admin only.
+	 * @dev Sets the address of the stake manager. Callable by the admin only.
 	 * @param _address Address of the stake manager
 	 */
-	function setValidatorRegistry(address _address)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setValidatorRegistry(
+		address _address
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		validatorRegistry = _address;
 
 		emit SetValidatorRegistry(_address);
 	}
 
 	/**
-	 * @dev Sets the address of the stake manager.
-	 * @notice Callable by the admin only.
+	 * @dev Sets the address of the stake manager. Callable by the admin only.
 	 * @param _address Address of the stake manager.
 	 */
-	function setFxStateRootTunnel(address _address)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setFxStateRootTunnel(
+		address _address
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		fxStateRootTunnel = _address;
 
 		emit SetFxStateRootTunnel(_address);
 	}
 
 	/**
-	 * @dev Sets a new version.
-	 * @notice Callable by the admin only.
+	 * @dev Sets a new version. Callable by the admin only.
 	 * @param _version - New version that will be set
 	 */
-	function setVersion(string calldata _version)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setVersion(
+		string calldata _version
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		version = _version;
 
 		emit SetVersion(_version);
 	}
 
 	/**
-	 * @dev Sets the address of the POL token.
-	 * @notice Callable by the admin only.
+	 * @dev Sets the address of the POL token. Callable by the admin only.
 	 * @param _address - Address of the POL token
 	 */
-	function setPOLToken(address _address)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setPOLToken(
+		address _address
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		require(_address != address(0), "Zero POL token address");
 
 		polToken = _address;
@@ -782,8 +710,7 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Helper function that returns total pooled stake tokens from all
-	 * registered validators.
+	 * @dev Returns total pooled stake tokens from all registered validators.
 	 * @return Total pooled stake tokens
 	 */
 	function getTotalStakeAcrossAllValidators()
@@ -809,7 +736,8 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Return total pooled stake tokens. This function is deprecated.
+	 * @dev Returns total pooled stake tokens from all registered validators.
+	 * This function is deprecated.
 	 * @return Total pooled stake tokens
 	 */
 	function getTotalPooledMatic() public view override returns (uint256) {
@@ -817,31 +745,33 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Return total pooled stake tokens.
+	 * @dev Returns total pooled stake tokens from all registered validators.
 	 * @return Total pooled stake tokens
 	 */
-	function getTotalPooledStakeTokens() public view override returns (uint256) {
+	function getTotalPooledStakeTokens()
+		public
+		view
+		override
+		returns (uint256)
+	{
 		return getTotalStakeAcrossAllValidators();
 	}
 
 	/**
-	 * @dev Retrieves all withdrawal requests initiated by the given address
-	 * @param _address - Address of an user
-	 * @return userWithdrawalRequests array of user withdrawal requests
+	 * @dev Returns all withdrawal requests initiated by a given user.
+	 * @param _address - Address of a user
+	 * @return userWithdrawalRequests Array of user's withdrawal requests
 	 */
-	function getUserWithdrawalRequests(address _address)
-		external
-		view
-		override
-		returns (WithdrawalRequest[] memory)
-	{
+	function getUserWithdrawalRequests(
+		address _address
+	) external view override returns (WithdrawalRequest[] memory) {
 		return userWithdrawalRequests[_address];
 	}
 
 	/**
-	 * @dev Retrieves shares amount of a given withdrawal request
-	 * @param _address - Address of an user
-	 * @return _idx index of the withdrawal request
+	 * @dev Returns shares amount of a given withdrawal request.
+	 * @param _address - Address of a user
+	 * @return _idx Index of a withdrawal request
 	 */
 	function getSharesAmountOfUserWithdrawalRequest(
 		address _address,
@@ -862,7 +792,7 @@ contract MaticX is
 	/**
 	 * @dev Returns the contract addresses used on the current contract.
 	 * @return _stakeManager - Address of the stake manager
-	 * @return _maticToken - Address of the MATIC token
+	 * @return _maticToken - Address of the Matic token
 	 * @return _validatorRegistry - Address of the validator registry
 	 * @return _polToken - Address of the POL token
 	 */
@@ -884,7 +814,7 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Returns the POL or MATIC token depending on a used flow.
+	 * @dev Returns the POL or Matic token depending on a used flow.
 	 * @return _token - Address of the token
 	 */
 	function _getToken(bool pol) private view returns (address) {
