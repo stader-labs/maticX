@@ -154,7 +154,7 @@ contract MaticX is
 			uint256 mintedAmount,
 			uint256 totalShares,
 			uint256 totalPooledStakeTokens
-		) = convertMaticToMaticX(_amount);
+		) = _convertStakeTokenToMaticX(_amount);
 
 		_mint(depositSender, mintedAmount);
 		emit Submit(depositSender, _amount);
@@ -207,7 +207,7 @@ contract MaticX is
 			uint256 totalAmount2WithdrawInMatic,
 			uint256 totalShares,
 			uint256 totalPooledStakeTokens
-		) = convertMaticXToMatic(_amount);
+		) = _convertMaticXToStakeToken(_amount);
 
 		_burn(msg.sender, _amount);
 
@@ -544,12 +544,13 @@ contract MaticX is
 	////////////////////////////////////////////////////////////
 
 	/**
-	 * @dev Function that converts arbitrary maticX to stake tokens
-	 * @param _balance - Balance in maticX
-	 * @return Balance in stake tokens, total shares and total pooled stake tokens
+	 * @dev Converts an arbitrary amount of MaticX to stake tokens.
+	 * @param _balance - Balance in MaticX
+	 * @return Tuple containing a balance in stake tokens, total shares and total
+	 * pooled stake tokens
 	 */
-	function convertMaticXToMatic(uint256 _balance)
-		public
+	function convertMaticXToStakeToken(uint256 _balance)
+		external
 		view
 		override
 		returns (
@@ -557,6 +558,38 @@ contract MaticX is
 			uint256,
 			uint256
 		)
+	{
+		return _convertMaticXToStakeToken(_balance);
+	}
+
+	/**
+	 * @dev Converts an arbitrary amount of MaticX to stake tokens.
+	 * @notice This method is deprecated.
+	 * @param _balance - Balance in MaticX
+	 * @return Tuple containing a balance in stake tokens, total shares and total
+	 * pooled stake tokens
+	 */
+	function convertMaticXToMatic(uint256 _balance)
+		external
+		view
+		override
+		returns (
+			uint256,
+			uint256,
+			uint256
+		)
+	{
+		return _convertMaticXToStakeToken(_balance);
+	}
+
+	function _convertMaticXToStakeToken(uint256 _balance)
+		private
+		view
+		returns (
+			uint256,
+			uint256,
+			uint256
+			)
 	{
 		uint256 totalShares = totalSupply();
 		totalShares = totalShares == 0 ? 1 : totalShares;
@@ -570,14 +603,47 @@ contract MaticX is
 	}
 
 	/**
-	 * @dev Function that converts arbitrary Matic to maticX
-	 * @param _balance - Balance in Matic
-	 * @return Balance in maticX, totalShares and totalPooledStakeTokens
-	 */
-	function convertMaticToMaticX(uint256 _balance)
-		public
+	 * @dev Converts an arbritrary amount of stake tokens to MaticX.
+	 * @param _balance - Balance in a stake token
+	 * @return Tuple containing balance in MaticX, total shares and total pooled
+	 *  stake tokens
+	*/
+	function convertStakeTokenToMaticX(uint256 _balance)
+		external
 		view
 		override
+		returns (
+			uint256,
+			uint256,
+			uint256
+		)
+	{
+		return _convertStakeTokenToMaticX(_balance);
+	}
+
+	/**
+	 * @dev Converts an arbritrary amount of stake tokens to MaticX.
+	 * @notice This method is deprecated.
+	 * @param _balance - Balance in a stake token
+	 * @return Tuple containing balance in MaticX, total shares and total pooled
+	 *  stake tokens
+	*/
+	function convertMaticToMaticX(uint256 _balance)
+		external
+		view
+		override
+		returns (
+			uint256,
+			uint256,
+			uint256
+		)
+	{
+		return _convertStakeTokenToMaticX(_balance);
+	}
+
+	function _convertStakeTokenToMaticX(uint256 _balance)
+		private
+		view
 		returns (
 			uint256,
 			uint256,
@@ -590,9 +656,9 @@ contract MaticX is
 		uint256 totalPooledStakeTokens = getTotalPooledStakeTokens();
 		totalPooledStakeTokens = totalPooledStakeTokens == 0 ? 1 : totalPooledStakeTokens;
 
-		uint256 balanceInStakeTokensX = (_balance * totalShares) / totalPooledStakeTokens;
+		uint256 balanceInMaticX = (_balance * totalShares) / totalPooledStakeTokens;
 
-		return (balanceInStakeTokensX, totalShares, totalPooledStakeTokens);
+		return (balanceInMaticX, totalShares, totalPooledStakeTokens);
 	}
 
 	// TODO: Add logic and enable it in V2
