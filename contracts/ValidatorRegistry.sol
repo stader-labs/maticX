@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-
-import "./interfaces/IValidatorRegistry.sol";
-import "./interfaces/IMaticX.sol";
-import "./interfaces/IStakeManager.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { IStakeManager } from "./interfaces/IStakeManager.sol";
+import { IValidatorShare } from "./interfaces/IValidatorShare.sol";
+import { IValidatorRegistry } from "./interfaces/IValidatorRegistry.sol";
 
 /// @title ValidatorRegistry
 /// @notice ValidatorRegistry is the main contract that manages validators
@@ -58,7 +57,9 @@ contract ValidatorRegistry is
 	/// @notice Allows a validator that was already staked on the polygon stake manager
 	/// to join the MaticX protocol.
 	/// @param _validatorId id of the validator.
-	function addValidator(uint256 _validatorId)
+	function addValidator(
+		uint256 _validatorId
+	)
 		external
 		override
 		whenNotPaused
@@ -86,7 +87,9 @@ contract ValidatorRegistry is
 
 	/// @notice Allows to remove an validator from the registry.
 	/// @param _validatorId the validator id.
-	function removeValidator(uint256 _validatorId)
+	function removeValidator(
+		uint256 _validatorId
+	)
 		external
 		override
 		whenNotPaused
@@ -127,7 +130,9 @@ contract ValidatorRegistry is
 
 	/// @notice Allows to set the preffered validator id for deposits
 	/// @param _validatorId the validator id.
-	function setPreferredDepositValidatorId(uint256 _validatorId)
+	function setPreferredDepositValidatorId(
+		uint256 _validatorId
+	)
 		external
 		override
 		whenNotPaused
@@ -141,7 +146,9 @@ contract ValidatorRegistry is
 
 	/// @notice Allows to set the preffered validator id for withdrawals
 	/// @param _validatorId the validator id.
-	function setPreferredWithdrawalValidatorId(uint256 _validatorId)
+	function setPreferredWithdrawalValidatorId(
+		uint256 _validatorId
+	)
 		external
 		override
 		whenNotPaused
@@ -154,11 +161,9 @@ contract ValidatorRegistry is
 	}
 
 	/// @notice Allows to set the MaticX contract address.
-	function setMaticX(address _maticX)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setMaticX(
+		address _maticX
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		maticX = _maticX;
 
 		emit SetMaticX(_maticX);
@@ -166,11 +171,9 @@ contract ValidatorRegistry is
 
 	/// @notice Allows to set the contract version.
 	/// @param _version contract version
-	function setVersion(string memory _version)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setVersion(
+		string memory _version
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		version = _version;
 
 		emit SetVersion(_version);
@@ -191,11 +194,7 @@ contract ValidatorRegistry is
 		external
 		view
 		override
-		returns (
-			address _stakeManager,
-			address _polygonERC20,
-			address _maticX
-		)
+		returns (address _stakeManager, address _polygonERC20, address _maticX)
 	{
 		_stakeManager = stakeManager;
 		_polygonERC20 = polygonERC20;
@@ -205,12 +204,9 @@ contract ValidatorRegistry is
 	/// @notice Get validator id by its index.
 	/// @param _index validator index
 	/// @return _validatorId the validator id.
-	function getValidatorId(uint256 _index)
-		external
-		view
-		override
-		returns (uint256)
-	{
+	function getValidatorId(
+		uint256 _index
+	) external view override returns (uint256) {
 		return validators[_index];
 	}
 

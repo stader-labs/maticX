@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-
-import "./IValidatorShare.sol";
-import "./IValidatorRegistry.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { IValidatorShare } from "./IValidatorShare.sol";
 
 /// @title MaticX interface.
 interface IMaticX is IERC20Upgradeable {
