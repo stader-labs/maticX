@@ -14,6 +14,50 @@ interface IMaticX is IERC20Upgradeable {
 		address validatorAddress;
 	}
 
+	event Submit(address indexed _from, uint256 _amount);
+
+	event Delegate(uint256 indexed _validatorId, uint256 _amountDelegated);
+
+	event RequestWithdraw(
+		address indexed _from,
+		uint256 _amountMaticX,
+		uint256 _amountMatic
+	);
+
+	event ClaimWithdrawal(
+		address indexed _from,
+		uint256 indexed _idx,
+		uint256 _amountClaimed
+	);
+
+	event WithdrawRewards(uint256 indexed _validatorId, uint256 _rewards);
+
+	event StakeRewards(uint256 indexed _validatorId, uint256 _amountStaked);
+
+	event DistributeFees(address indexed _address, uint256 _amount);
+
+	event MigrateDelegation(
+		uint256 indexed _fromValidatorId,
+		uint256 indexed _toValidatorId,
+		uint256 _amount
+	);
+
+	event MintFromPolygon(address indexed _user, uint256 _amount);
+
+	event SetFeePercent(uint8 _feePercent);
+
+	event SetInstantPoolOwner(address _address);
+
+	event SetTreasury(address _address);
+
+	event SetValidatorRegistry(address _address);
+	
+	event SetFxStateRootTunnel(address _address);
+
+	event SetVersion(string _version);
+
+	event SetPOLToken(address _address);
+
 	function setupBotAdmin() external;
 
 	function version() external view returns (string memory);
@@ -58,7 +102,25 @@ interface IMaticX is IERC20Upgradeable {
 
 	function togglePause() external;
 
+	function convertMaticXToStakeToken(uint256 _balance)
+		external
+		view
+		returns (
+			uint256,
+			uint256,
+			uint256
+		);
+
 	function convertMaticXToMatic(uint256 _balance)
+		external
+		view
+		returns (
+			uint256,
+			uint256,
+			uint256
+		);
+
+	function convertStakeTokenToMaticX(uint256 _balance)
 		external
 		view
 		returns (
@@ -120,33 +182,4 @@ interface IMaticX is IERC20Upgradeable {
 			address _validatorRegistry,
 			address _polToken
 		);
-
-	event Submit(address indexed _from, uint256 _amount);
-	event Delegate(uint256 indexed _validatorId, uint256 _amountDelegated);
-	event RequestWithdraw(
-		address indexed _from,
-		uint256 _amountMaticX,
-		uint256 _amountMatic
-	);
-	event ClaimWithdrawal(
-		address indexed _from,
-		uint256 indexed _idx,
-		uint256 _amountClaimed
-	);
-	event WithdrawRewards(uint256 indexed _validatorId, uint256 _rewards);
-	event StakeRewards(uint256 indexed _validatorId, uint256 _amountStaked);
-	event DistributeFees(address indexed _address, uint256 _amount);
-	event MigrateDelegation(
-		uint256 indexed _fromValidatorId,
-		uint256 indexed _toValidatorId,
-		uint256 _amount
-	);
-	event MintFromPolygon(address indexed _user, uint256 _amount);
-	event SetFeePercent(uint8 _feePercent);
-	event SetInstantPoolOwner(address _address);
-	event SetTreasury(address _address);
-	event SetValidatorRegistry(address _address);
-	event SetFxStateRootTunnel(address _address);
-	event SetVersion(string _version);
-	event SetPOLToken(address _address);
 }
