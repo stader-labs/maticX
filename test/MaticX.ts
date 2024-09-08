@@ -10,6 +10,7 @@ import {
 	IFxStateRootTunnel,
 	IPolygonMigration,
 	IStakeManager,
+	IValidatorShare,
 	MaticX,
 	ValidatorRegistry,
 } from "../typechain";
@@ -120,6 +121,29 @@ describe("MaticX", function () {
 	}
 
 	describe("Submit Matic", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if passing the zero amount", async function () {
+				const { maticX, staker } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(staker).submit(0);
+				await expect(promise).to.be.revertedWith("Invalid amount");
+			});
+
+			it("Should revert with the right error if having insufficient token approval from the user", async function () {
+				const { maticX, matic, staker } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(staker)
+					.approve(maticX.address, stakeAmount.sub(1));
+
+				const promise = maticX.connect(staker).submit(stakeAmount);
+				await expect(promise).to.be.revertedWith(
+					"SafeERC20: low-level call failed"
+				);
+			});
+		});
+
 		describe("Positive", function () {
 			it("Should emit the Submit and Delegate events", async function () {
 				const { maticX, matic, staker, preferredDepositValidatorId } =
@@ -151,6 +175,44 @@ describe("MaticX", function () {
 					.withArgs(
 						ethers.constants.AddressZero,
 						staker.address,
+						stakeAmount
+					);
+			});
+
+			it("Should emit the ShareMinted event on the StakingInfo contract", async function () {
+				const {
+					maticX,
+					stakeManager,
+					matic,
+					staker,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await matic.connect(staker).approve(maticX.address, stakeAmount);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+				const validatorShare = await ethers.getContractAt(
+					"IValidatorShare",
+					validatorShareAddress
+				) as IValidatorShare;
+
+				const stakingLoggerAddress =
+					await validatorShare.stakingLogger();
+				const stakingLogger = await ethers.getContractAt(
+					"IStakingInfo",
+					stakingLoggerAddress
+				);
+
+				const promise = maticX.connect(staker).submit(stakeAmount);
+				await expect(promise)
+					.to.emit(stakingLogger, "ShareMinted")
+					.withArgs(
+						preferredDepositValidatorId,
+						maticX.address,
+						stakeAmount,
 						stakeAmount
 					);
 			});
@@ -195,8 +257,31 @@ describe("MaticX", function () {
 	});
 
 	describe("Submit POL", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if passing the zero amount", async function () {
+				const { maticX, staker } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(staker).submitPOL(0);
+				await expect(promise).to.be.revertedWith("Invalid amount");
+			});
+
+			it("Should revert with the right error if having insufficient token approval from the user", async function () {
+				const { maticX, pol, staker } =
+					await loadFixture(deployFixture);
+
+				await pol
+					.connect(staker)
+					.approve(maticX.address, stakeAmount.sub(1));
+
+				const promise = maticX.connect(staker).submit(stakeAmount);
+				await expect(promise).to.be.revertedWith(
+					"SafeERC20: low-level call failed"
+				);
+			});
+		});
+
 		describe("Positive", function () {
-			it("Should emit the Submit and Delegate events", async function () {
+			it("Should emit the Submit and Delegate events on the MaticX contract", async function () {
 				const { maticX, pol, staker, preferredDepositValidatorId } =
 					await loadFixture(deployFixture);
 
@@ -210,7 +295,7 @@ describe("MaticX", function () {
 					.withArgs(preferredDepositValidatorId, stakeAmount);
 			});
 
-			it("Should emit the Transfer event", async function () {
+			it("Should emit the Transfer event on the MaticX contract", async function () {
 				const { maticX, pol, staker } =
 					await loadFixture(deployFixture);
 
@@ -222,6 +307,44 @@ describe("MaticX", function () {
 					.withArgs(
 						ethers.constants.AddressZero,
 						staker.address,
+						stakeAmount
+					);
+			});
+
+			it("Should emit the ShareMinted event on the StakingInfo contract", async function () {
+				const {
+					maticX,
+					stakeManager,
+					pol,
+					staker,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(staker).approve(maticX.address, stakeAmount);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+				const validatorShare = await ethers.getContractAt(
+					"IValidatorShare",
+					validatorShareAddress
+				) as IValidatorShare;
+
+				const stakingLoggerAddress =
+					await validatorShare.stakingLogger();
+				const stakingLogger = await ethers.getContractAt(
+					"IStakingInfo",
+					stakingLoggerAddress
+				);
+
+				const promise = maticX.connect(staker).submitPOL(stakeAmount);
+				await expect(promise)
+					.to.emit(stakingLogger, "ShareMinted")
+					.withArgs(
+						preferredDepositValidatorId,
+						maticX.address,
+						stakeAmount,
 						stakeAmount
 					);
 			});
