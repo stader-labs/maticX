@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-
-import "./interfaces/IValidatorShare.sol";
-import "./interfaces/IValidatorRegistry.sol";
-import "./interfaces/IStakeManager.sol";
-import "./interfaces/IMaticX.sol";
-import "./interfaces/IFxStateRootTunnel.sol";
+import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { IValidatorShare } from "./interfaces/IValidatorShare.sol";
+import { IValidatorRegistry } from "./interfaces/IValidatorRegistry.sol";
+import { IStakeManager } from "./interfaces/IStakeManager.sol";
+import { IFxStateRootTunnel } from "./interfaces/IFxStateRootTunnel.sol";
+import { IMaticX } from "./interfaces/IMaticX.sol";
 
 /**
  * @title MaticX
