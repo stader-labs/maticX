@@ -199,18 +199,18 @@ contract MaticX is
 		require(_amount > 0, "Invalid amount");
 
 		(
-			uint256 totalAmount2WithdrawInMatic,
+			uint256 totalAmount2WithdrawInStakeToken,
 			uint256 totalShares,
 			uint256 totalPooledStakeTokens
 		) = _convertMaticXToStakeToken(_amount);
 
 		_burn(msg.sender, _amount);
 
-		uint256 leftAmount2WithdrawInMatic = totalAmount2WithdrawInMatic;
+		uint256 leftAmount2WithdrawInStakeToken = totalAmount2WithdrawInStakeToken;
 		uint256 totalDelegated = getTotalStakeAcrossAllValidators();
 
 		require(
-			totalDelegated >= totalAmount2WithdrawInMatic,
+			totalDelegated >= totalAmount2WithdrawInStakeToken,
 			"Too much to withdraw"
 		);
 
@@ -218,12 +218,18 @@ contract MaticX is
 			.getValidators();
 		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
 			.preferredWithdrawalValidatorId();
+
 		uint256 currentIdx = 0;
-		for (; currentIdx < validators.length; ++currentIdx) {
-			if (preferredValidatorId == validators[currentIdx]) break;
+		for (; currentIdx < validators.length; ) {
+			if (preferredValidatorId == validators[currentIdx]) {
+				break;
+			}
+			unchecked {
+				 ++currentIdx;
+			}
 		}
 
-		while (leftAmount2WithdrawInMatic > 0) {
+		while (leftAmount2WithdrawInStakeToken > 0) {
 			uint256 validatorId = validators[currentIdx];
 
 			address validatorShare = IStakeManager(stakeManager)
@@ -233,9 +239,9 @@ contract MaticX is
 			);
 
 			uint256 amount2WithdrawFromValidator = (validatorBalance <=
-				leftAmount2WithdrawInMatic)
+				leftAmount2WithdrawInStakeToken)
 				? validatorBalance
-				: leftAmount2WithdrawInMatic;
+				: leftAmount2WithdrawInStakeToken;
 
 			_pol
 				? IValidatorShare(validatorShare).sellVoucher_newPOL(
@@ -256,7 +262,7 @@ contract MaticX is
 				)
 			);
 
-			leftAmount2WithdrawInMatic -= amount2WithdrawFromValidator;
+			leftAmount2WithdrawInStakeToken -= amount2WithdrawFromValidator;
 			currentIdx = currentIdx + 1 < validators.length
 				? currentIdx + 1
 				: 0;
@@ -265,11 +271,11 @@ contract MaticX is
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
 			abi.encode(
 				totalShares - _amount,
-				totalPooledStakeTokens - totalAmount2WithdrawInMatic
+				totalPooledStakeTokens - totalAmount2WithdrawInStakeToken
 			)
 		);
 
-		emit RequestWithdraw(msg.sender, _amount, totalAmount2WithdrawInMatic);
+		emit RequestWithdraw(msg.sender, _amount, totalAmount2WithdrawInStakeToken);
 	}
 
 	/**
