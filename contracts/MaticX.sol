@@ -206,7 +206,7 @@ contract MaticX is
 
 		_burn(msg.sender, _amount);
 
-		uint256 leftAmount2WithdrawInStakeToken = totalAmount2WithdrawInStakeToken;
+		uint256 leftAmount2Withdraw = totalAmount2WithdrawInStakeToken;
 		uint256 totalDelegated = getTotalStakeAcrossAllValidators();
 
 		require(
@@ -214,24 +214,26 @@ contract MaticX is
 			"Too much to withdraw"
 		);
 
-		uint256[] memory validators = IValidatorRegistry(validatorRegistry)
+		uint256[] memory validatorIds = IValidatorRegistry(validatorRegistry)
 			.getValidators();
 		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
 			.preferredWithdrawalValidatorId();
 
-		uint256 currentIdx = 0;
-		for (; currentIdx < validators.length; ) {
-			if (preferredValidatorId == validators[currentIdx]) {
+		uint256 currentIndex = 0;
+		uint256 validatorIdCount = validatorIds.length;
+		uint256 totalValidatorRequests = validatorIdCount;
+
+		for (; currentIndex < validatorIdCount; ) {
+			if (preferredValidatorId == validatorIds[currentIndex]) {
 				break;
 			}
 			unchecked {
-				 ++currentIdx;
+				++currentIndex;
 			}
 		}
 
-		while (leftAmount2WithdrawInStakeToken > 0) {
-			uint256 validatorId = validators[currentIdx];
-
+		while (totalValidatorRequests > 0 && leftAmount2Withdraw > 0) {
+			uint256 validatorId = validatorIds[currentIndex];
 			address validatorShare = IStakeManager(stakeManager)
 				.getValidatorContract(validatorId);
 			(uint256 validatorBalance, ) = getTotalStake(
@@ -239,34 +241,45 @@ contract MaticX is
 			);
 
 			uint256 amount2WithdrawFromValidator = (validatorBalance <=
-				leftAmount2WithdrawInStakeToken)
+				leftAmount2Withdraw)
 				? validatorBalance
-				: leftAmount2WithdrawInStakeToken;
+				: leftAmount2Withdraw;
 
-			_pol
-				? IValidatorShare(validatorShare).sellVoucher_newPOL(
-					amount2WithdrawFromValidator,
-					type(uint256).max
-				)
-				: IValidatorShare(validatorShare).sellVoucher_new(
-					amount2WithdrawFromValidator,
-					type(uint256).max
+			if (amount2WithdrawFromValidator > 0) {
+				_pol
+					? IValidatorShare(validatorShare).sellVoucher_newPOL(
+						amount2WithdrawFromValidator,
+						type(uint256).max
+					)
+					: IValidatorShare(validatorShare).sellVoucher_new(
+						amount2WithdrawFromValidator,
+						type(uint256).max
+					);
+
+				userWithdrawalRequests[msg.sender].push(
+					WithdrawalRequest(
+						IValidatorShare(validatorShare).unbondNonces(
+							address(this)
+						),
+						IStakeManager(stakeManager).epoch() +
+							IStakeManager(stakeManager).withdrawalDelay(),
+						validatorShare
+					)
 				);
 
-			userWithdrawalRequests[msg.sender].push(
-				WithdrawalRequest(
-					IValidatorShare(validatorShare).unbondNonces(address(this)),
-					IStakeManager(stakeManager).epoch() +
-						IStakeManager(stakeManager).withdrawalDelay(),
-					validatorShare
-				)
-			);
+				leftAmount2Withdraw -= amount2WithdrawFromValidator;
+			}
 
-			leftAmount2WithdrawInStakeToken -= amount2WithdrawFromValidator;
-			currentIdx = currentIdx + 1 < validators.length
-				? currentIdx + 1
+			--totalValidatorRequests;
+			currentIndex = currentIndex + 1 < validatorIdCount
+				? currentIndex + 1
 				: 0;
 		}
+
+		require(
+			leftAmount2Withdraw == 0,
+			"Non zero amount left to withdraw from validators"
+		);
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
 			abi.encode(
@@ -275,7 +288,11 @@ contract MaticX is
 			)
 		);
 
-		emit RequestWithdraw(msg.sender, _amount, totalAmount2WithdrawInStakeToken);
+		emit RequestWithdraw(
+			msg.sender,
+			_amount,
+			totalAmount2WithdrawInStakeToken
+		);
 	}
 
 	/**

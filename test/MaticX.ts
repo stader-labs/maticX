@@ -73,13 +73,13 @@ describe("MaticX", function () {
 		])) as MaticX;
 
 		// Contract initializations
-		const validators = await validatorRegistry.getValidators();
-		const preferredDepositValidatorId = validators[0];
+		const validatorIds = await validatorRegistry.getValidators();
+		const preferredDepositValidatorId = validatorIds[0];
 		validatorRegistry.setPreferredDepositValidatorId(
 			preferredDepositValidatorId
 		);
 
-		const preferredWithdrawalValidatorId = validators[0];
+		const preferredWithdrawalValidatorId = validatorIds[0];
 		validatorRegistry.setPreferredWithdrawalValidatorId(
 			preferredWithdrawalValidatorId
 		);
@@ -123,6 +123,7 @@ describe("MaticX", function () {
 			stakerA,
 			stakerB,
 			stakers,
+			validatorIds,
 			preferredDepositValidatorId,
 			preferredWithdrawalValidatorId,
 		};
@@ -250,7 +251,7 @@ describe("MaticX", function () {
 				);
 			});
 
-			it("Should the right Matic and POL balances", async function () {
+			it("Should the right Matic and POL token balances", async function () {
 				const { maticX, stakeManager, matic, pol, stakerA } =
 					await loadFixture(deployFixture);
 
@@ -435,7 +436,7 @@ describe("MaticX", function () {
 				);
 			});
 
-			it("Should the right POL balances", async function () {
+			it("Should the right POL token balances", async function () {
 				const { maticX, stakeManager, pol, stakerA } =
 					await loadFixture(deployFixture);
 
@@ -508,14 +509,13 @@ describe("MaticX", function () {
 
 	describe("Request a Matic withdrawal", function () {
 		describe("Positive", function () {
-			it("Should revert with the right error if burning a too much amount", async function () {
+			it("Should revert with the right error if requesting a higher amount than staked before", async function () {
 				const { maticX, matic, stakerA } =
 					await loadFixture(deployFixture);
 
 				await matic
 					.connect(stakerA)
 					.approve(maticX.address, stakeAmount);
-
 				await maticX.connect(stakerA).submit(stakeAmount);
 
 				const promise = maticX
@@ -525,18 +525,103 @@ describe("MaticX", function () {
 					"ERC20: burn amount exceeds balance"
 				);
 			});
-		});
 
-		describe("Positive", function () {
-			it("Should emit the RequestWithdraw event", async function () {
-				const { maticX, matic, stakerA } =
+			it("Should revert with the right error if having MaticX shares transferred from the current staker", async function () {
+				const { maticX, matic, stakerA, stakerB } =
 					await loadFixture(deployFixture);
 
 				await matic
 					.connect(stakerA)
 					.approve(maticX.address, stakeAmount);
-
 				await maticX.connect(stakerA).submit(stakeAmount);
+
+				await maticX.connect(stakerA).transfer(stakerB.address, 1);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise).to.be.revertedWith(
+					"ERC20: burn amount exceeds balance"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the RequestWithdraw and Transfer events", async function () {
+				const { maticX, matic, stakerA, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "RequestWithdraw")
+					.withArgs(
+						stakerA.address,
+						totalStakeAmount,
+						totalStakeAmount
+					)
+					.and.to.emit(maticX, "Transfer")
+					.withArgs(
+						stakerA.address,
+						ethers.constants.AddressZero,
+						stakeAmount
+					);
+			});
+
+			it("Should emit the RequestWithraw event if transferring extra MaticX shares to the current staker", async function () {
+				const { maticX, matic, stakerA, stakerB, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				await maticX
+					.connect(stakerB)
+					.transfer(stakerA.address, stakeAmount);
+				const totalStakeAmount = stakeAmount.mul(2);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(totalStakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "RequestWithdraw")
+					.withArgs(
+						stakerA.address,
+						totalStakeAmount,
+						totalStakeAmount
+					);
+			});
+
+			it("Should emit the RequestWithraw event if changing a preferred withdrawal validator id", async function () {
+				const {
+					maticX,
+					matic,
+					validatorRegistry,
+					stakerA,
+					validatorIds,
+				} = await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const preferredWithdrawalValidatorId = validatorIds[1];
+				await validatorRegistry.setPreferredWithdrawalValidatorId(
+					preferredWithdrawalValidatorId
+				);
 
 				const promise = maticX
 					.connect(stakerA)
@@ -544,6 +629,244 @@ describe("MaticX", function () {
 				await expect(promise)
 					.to.emit(maticX, "RequestWithdraw")
 					.withArgs(stakerA.address, stakeAmount, stakeAmount);
+			});
+
+			it("Should return the right staker's withdrawal request", async function () {
+				const {
+					maticX,
+					matic,
+					stakeManager,
+					stakerA,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+
+				const initialUserWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const currentUserWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				expect(currentUserWithdrawalRequests.length).not.to.equal(
+					initialUserWithdrawalRequests.length
+				);
+				expect(currentUserWithdrawalRequests).to.have.lengthOf(1);
+
+				const [currentValidatorNonce, , currentValidatorShareAddress] =
+					currentUserWithdrawalRequests[0];
+				expect(currentValidatorNonce).to.equal(1);
+				expect(currentValidatorShareAddress).to.equal(
+					validatorShareAddress
+				);
+			});
+
+			it("Should return the right MaticX token balances", async function () {
+				const { maticX, matic, stakerA, stakerB, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise).to.changeTokenBalances(
+					maticX,
+					[stakerA, stakerB],
+					[stakeAmount.mul(-1), 0]
+				);
+			});
+		});
+	});
+
+	describe("Request a POL withdrawal", function () {
+		describe("Positive", function () {
+			it("Should revert with the right error if requesting a higher amount than staked before", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdrawPOL(stakeAmount.add(1));
+				await expect(promise).to.be.revertedWith(
+					"ERC20: burn amount exceeds balance"
+				);
+			});
+
+			it("Should revert with the right error if having MaticX shares transferred from the current staker", async function () {
+				const { maticX, pol, stakerA, stakerB } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				await maticX.connect(stakerA).transfer(stakerB.address, 1);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdrawPOL(stakeAmount);
+				await expect(promise).to.be.revertedWith(
+					"ERC20: burn amount exceeds balance"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the RequestWithdraw and Transfer events", async function () {
+				const { maticX, pol, stakerA, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdrawPOL(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "RequestWithdraw")
+					.withArgs(
+						stakerA.address,
+						totalStakeAmount,
+						totalStakeAmount
+					)
+					.and.to.emit(maticX, "Transfer")
+					.withArgs(
+						stakerA.address,
+						ethers.constants.AddressZero,
+						stakeAmount
+					);
+			});
+
+			it("Should emit the RequestWithraw event if transferring extra MaticX shares to the current staker", async function () {
+				const { maticX, pol, stakerA, stakerB, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX
+					.connect(stakerB)
+					.transfer(stakerA.address, stakeAmount);
+				const totalStakeAmount = stakeAmount.mul(2);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdrawPOL(totalStakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "RequestWithdraw")
+					.withArgs(
+						stakerA.address,
+						totalStakeAmount,
+						totalStakeAmount
+					);
+			});
+
+			it("Should emit the RequestWithraw event if changing a preferred withdrawal validator id", async function () {
+				const {
+					maticX,
+					pol,
+					validatorRegistry,
+					stakerA,
+					validatorIds,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const preferredWithdrawalValidatorId = validatorIds[1];
+				await validatorRegistry.setPreferredWithdrawalValidatorId(
+					preferredWithdrawalValidatorId
+				);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdrawPOL(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "RequestWithdraw")
+					.withArgs(stakerA.address, stakeAmount, stakeAmount);
+			});
+
+			it("Should return the right staker's withdrawal request", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakerA,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+
+				const initialUserWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+
+				await maticX.connect(stakerA).requestWithdrawPOL(stakeAmount);
+
+				const currentUserWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				expect(currentUserWithdrawalRequests.length).not.to.equal(
+					initialUserWithdrawalRequests.length
+				);
+				expect(currentUserWithdrawalRequests).to.have.lengthOf(1);
+
+				const [currentValidatorNonce, , currentValidatorShareAddress] =
+					currentUserWithdrawalRequests[0];
+				expect(currentValidatorNonce).to.equal(1);
+				expect(currentValidatorShareAddress).to.equal(
+					validatorShareAddress
+				);
+			});
+
+			it("Should return the right MaticX token balances", async function () {
+				const { maticX, pol, stakerA, stakerB, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdrawPOL(stakeAmount);
+				await expect(promise).to.changeTokenBalances(
+					maticX,
+					[stakerA, stakerB],
+					[stakeAmount.mul(-1), 0]
+				);
 			});
 		});
 	});
