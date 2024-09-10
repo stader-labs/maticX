@@ -17,6 +17,7 @@ import {
 
 describe("MaticX", function () {
 	const stakeAmount = ethers.utils.parseUnits("100", 18);
+	const totalStakeAmount = stakeAmount.mul(3);
 
 	async function deployFixture() {
 		// EOAs
@@ -26,7 +27,8 @@ describe("MaticX", function () {
 		const maticHolder = await impersonateAccount(
 			"0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0"
 		);
-		const [staker] = await ethers.getSigners();
+		const [stakerA, stakerB] = await ethers.getSigners();
+		const stakers = [stakerA, stakerB];
 
 		// Contracts
 		const validatorRegistry = (await ethers.getContractAt(
@@ -77,7 +79,7 @@ describe("MaticX", function () {
 			preferredDepositValidatorId
 		);
 
-		const preferredWithdrawalValidatorId = validators[1];
+		const preferredWithdrawalValidatorId = validators[0];
 		validatorRegistry.setPreferredWithdrawalValidatorId(
 			preferredWithdrawalValidatorId
 		);
@@ -90,13 +92,24 @@ describe("MaticX", function () {
 		await maticX.connect(manager).setPOLToken(pol.address);
 
 		// ERC20 transfers
-		await matic.connect(maticHolder).transfer(staker.address, stakeAmount);
+		for (const staker of stakers) {
+			await matic
+				.connect(maticHolder)
+				.transfer(staker.address, totalStakeAmount);
+		}
 
 		await matic
 			.connect(maticHolder)
-			.approve(polygonMigration.address, stakeAmount);
-		await polygonMigration.connect(maticHolder).migrate(stakeAmount);
-		await pol.connect(maticHolder).transfer(staker.address, stakeAmount);
+			.approve(polygonMigration.address, totalStakeAmount.mul(2));
+		await polygonMigration
+			.connect(maticHolder)
+			.migrate(totalStakeAmount.mul(2));
+
+		for (const staker of stakers) {
+			await pol
+				.connect(maticHolder)
+				.transfer(staker.address, totalStakeAmount);
+		}
 
 		return {
 			maticX,
@@ -107,7 +120,9 @@ describe("MaticX", function () {
 			polygonMigration,
 			fxStateRootTunnel,
 			manager,
-			staker,
+			stakerA,
+			stakerB,
+			stakers,
 			preferredDepositValidatorId,
 			preferredWithdrawalValidatorId,
 		};
@@ -123,21 +138,21 @@ describe("MaticX", function () {
 	describe("Submit Matic", function () {
 		describe("Negative", function () {
 			it("Should revert with the right error if passing the zero amount", async function () {
-				const { maticX, staker } = await loadFixture(deployFixture);
+				const { maticX, stakerA } = await loadFixture(deployFixture);
 
-				const promise = maticX.connect(staker).submit(0);
+				const promise = maticX.connect(stakerA).submit(0);
 				await expect(promise).to.be.revertedWith("Invalid amount");
 			});
 
 			it("Should revert with the right error if having insufficient token approval from the user", async function () {
-				const { maticX, matic, staker } =
+				const { maticX, matic, stakerA } =
 					await loadFixture(deployFixture);
 
 				await matic
-					.connect(staker)
+					.connect(stakerA)
 					.approve(maticX.address, stakeAmount.sub(1));
 
-				const promise = maticX.connect(staker).submit(stakeAmount);
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
 				await expect(promise).to.be.revertedWith(
 					"SafeERC20: low-level call failed"
 				);
@@ -146,35 +161,35 @@ describe("MaticX", function () {
 
 		describe("Positive", function () {
 			it("Should emit the Submit and Delegate events", async function () {
-				const { maticX, matic, staker, preferredDepositValidatorId } =
+				const { maticX, matic, stakerA, preferredDepositValidatorId } =
 					await loadFixture(deployFixture);
 
 				await matic
-					.connect(staker)
+					.connect(stakerA)
 					.approve(maticX.address, stakeAmount);
 
-				const promise = maticX.connect(staker).submit(stakeAmount);
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
 				await expect(promise)
 					.to.emit(maticX, "Submit")
-					.withArgs(staker.address, stakeAmount)
+					.withArgs(stakerA.address, stakeAmount)
 					.and.to.emit(maticX, "Delegate")
 					.withArgs(preferredDepositValidatorId, stakeAmount);
 			});
 
 			it("Should emit the Transfer event", async function () {
-				const { maticX, matic, staker } =
+				const { maticX, matic, stakerA } =
 					await loadFixture(deployFixture);
 
 				await matic
-					.connect(staker)
+					.connect(stakerA)
 					.approve(maticX.address, stakeAmount);
 
-				const promise = maticX.connect(staker).submit(stakeAmount);
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
 				await expect(promise)
 					.to.emit(maticX, "Transfer")
 					.withArgs(
 						ethers.constants.AddressZero,
-						staker.address,
+						stakerA.address,
 						stakeAmount
 					);
 			});
@@ -184,20 +199,22 @@ describe("MaticX", function () {
 					maticX,
 					stakeManager,
 					matic,
-					staker,
+					stakerA,
 					preferredDepositValidatorId,
 				} = await loadFixture(deployFixture);
 
-				await matic.connect(staker).approve(maticX.address, stakeAmount);
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
 
 				const validatorShareAddress =
 					await stakeManager.getValidatorContract(
 						preferredDepositValidatorId
 					);
-				const validatorShare = await ethers.getContractAt(
+				const validatorShare = (await ethers.getContractAt(
 					"IValidatorShare",
 					validatorShareAddress
-				) as IValidatorShare;
+				)) as IValidatorShare;
 
 				const stakingLoggerAddress =
 					await validatorShare.stakingLogger();
@@ -206,7 +223,7 @@ describe("MaticX", function () {
 					stakingLoggerAddress
 				);
 
-				const promise = maticX.connect(staker).submit(stakeAmount);
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
 				await expect(promise)
 					.to.emit(stakingLogger, "ShareMinted")
 					.withArgs(
@@ -218,33 +235,33 @@ describe("MaticX", function () {
 			});
 
 			it("Should return the right MaticX balance", async function () {
-				const { maticX, matic, staker } =
+				const { maticX, matic, stakerA } =
 					await loadFixture(deployFixture);
 
 				await matic
-					.connect(staker)
+					.connect(stakerA)
 					.approve(maticX.address, stakeAmount);
 
-				const promise = maticX.connect(staker).submit(stakeAmount);
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
 				await expect(promise).to.changeTokenBalance(
 					maticX,
-					staker,
+					stakerA,
 					stakeAmount
 				);
 			});
 
 			it("Should the right Matic and POL balances", async function () {
-				const { maticX, stakeManager, matic, pol, staker } =
+				const { maticX, stakeManager, matic, pol, stakerA } =
 					await loadFixture(deployFixture);
 
 				await matic
-					.connect(staker)
+					.connect(stakerA)
 					.approve(maticX.address, stakeAmount);
 
-				const promise = maticX.connect(staker).submit(stakeAmount);
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
 				await expect(promise).to.changeTokenBalances(
 					matic,
-					[staker, maticX],
+					[stakerA, maticX],
 					[stakeAmount.mul(-1), 0]
 				);
 				await expect(promise).to.changeTokenBalances(
@@ -253,27 +270,82 @@ describe("MaticX", function () {
 					[stakeAmount]
 				);
 			});
+
+			it("Should return the right total pooled stake tokens", async function () {
+				const { maticX, matic, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, totalStakeAmount);
+
+					for (let i = 0; i < 3; i++) {
+						await maticX.connect(staker).submit(stakeAmount);
+					}
+				}
+
+				const totalPooledStakeTokens =
+					await maticX.getTotalPooledStakeTokens();
+				expect(totalPooledStakeTokens).to.equal(
+					totalStakeAmount.mul(2)
+				);
+			});
+
+			it("Should return the right total stake from a validator share", async function () {
+				const {
+					maticX,
+					stakeManager,
+					matic,
+					stakers,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+				const initialTotalStake = await maticX.getTotalStake(
+					validatorShareAddress
+				);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				const currentTotalStake = await maticX.getTotalStake(
+					validatorShareAddress
+				);
+				expect(currentTotalStake).not.to.equal(initialTotalStake);
+				expect(currentTotalStake[0]).to.equal(stakeAmount.mul(2));
+				expect(currentTotalStake[1]).to.equal(
+					ethers.utils.parseUnits("100000000000", 18)
+				);
+			});
 		});
 	});
 
 	describe("Submit POL", function () {
 		describe("Negative", function () {
 			it("Should revert with the right error if passing the zero amount", async function () {
-				const { maticX, staker } = await loadFixture(deployFixture);
+				const { maticX, stakerA } = await loadFixture(deployFixture);
 
-				const promise = maticX.connect(staker).submitPOL(0);
+				const promise = maticX.connect(stakerA).submitPOL(0);
 				await expect(promise).to.be.revertedWith("Invalid amount");
 			});
 
 			it("Should revert with the right error if having insufficient token approval from the user", async function () {
-				const { maticX, pol, staker } =
+				const { maticX, pol, stakerA } =
 					await loadFixture(deployFixture);
 
 				await pol
-					.connect(staker)
+					.connect(stakerA)
 					.approve(maticX.address, stakeAmount.sub(1));
 
-				const promise = maticX.connect(staker).submit(stakeAmount);
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
 				await expect(promise).to.be.revertedWith(
 					"SafeERC20: low-level call failed"
 				);
@@ -282,31 +354,31 @@ describe("MaticX", function () {
 
 		describe("Positive", function () {
 			it("Should emit the Submit and Delegate events on the MaticX contract", async function () {
-				const { maticX, pol, staker, preferredDepositValidatorId } =
+				const { maticX, pol, stakerA, preferredDepositValidatorId } =
 					await loadFixture(deployFixture);
 
-				await pol.connect(staker).approve(maticX.address, stakeAmount);
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
 
-				const promise = maticX.connect(staker).submitPOL(stakeAmount);
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
 				await expect(promise)
 					.to.emit(maticX, "Submit")
-					.withArgs(staker.address, stakeAmount)
+					.withArgs(stakerA.address, stakeAmount)
 					.and.to.emit(maticX, "Delegate")
 					.withArgs(preferredDepositValidatorId, stakeAmount);
 			});
 
 			it("Should emit the Transfer event on the MaticX contract", async function () {
-				const { maticX, pol, staker } =
+				const { maticX, pol, stakerA } =
 					await loadFixture(deployFixture);
 
-				await pol.connect(staker).approve(maticX.address, stakeAmount);
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
 
-				const promise = maticX.connect(staker).submitPOL(stakeAmount);
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
 				await expect(promise)
 					.to.emit(maticX, "Transfer")
 					.withArgs(
 						ethers.constants.AddressZero,
-						staker.address,
+						stakerA.address,
 						stakeAmount
 					);
 			});
@@ -316,20 +388,20 @@ describe("MaticX", function () {
 					maticX,
 					stakeManager,
 					pol,
-					staker,
+					stakerA,
 					preferredDepositValidatorId,
 				} = await loadFixture(deployFixture);
 
-				await pol.connect(staker).approve(maticX.address, stakeAmount);
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
 
 				const validatorShareAddress =
 					await stakeManager.getValidatorContract(
 						preferredDepositValidatorId
 					);
-				const validatorShare = await ethers.getContractAt(
+				const validatorShare = (await ethers.getContractAt(
 					"IValidatorShare",
 					validatorShareAddress
-				) as IValidatorShare;
+				)) as IValidatorShare;
 
 				const stakingLoggerAddress =
 					await validatorShare.stakingLogger();
@@ -338,7 +410,7 @@ describe("MaticX", function () {
 					stakingLoggerAddress
 				);
 
-				const promise = maticX.connect(staker).submitPOL(stakeAmount);
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
 				await expect(promise)
 					.to.emit(stakingLogger, "ShareMinted")
 					.withArgs(
@@ -350,31 +422,128 @@ describe("MaticX", function () {
 			});
 
 			it("Should return the right MaticX balance", async function () {
-				const { maticX, pol, staker } =
+				const { maticX, pol, stakerA } =
 					await loadFixture(deployFixture);
 
-				await pol.connect(staker).approve(maticX.address, stakeAmount);
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
 
-				const promise = maticX.connect(staker).submitPOL(stakeAmount);
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
 				await expect(promise).to.changeTokenBalance(
 					maticX,
-					staker,
+					stakerA,
 					stakeAmount
 				);
 			});
 
 			it("Should the right POL balances", async function () {
-				const { maticX, stakeManager, pol, staker } =
+				const { maticX, stakeManager, pol, stakerA } =
 					await loadFixture(deployFixture);
 
-				await pol.connect(staker).approve(maticX.address, stakeAmount);
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
 
-				const promise = maticX.connect(staker).submitPOL(stakeAmount);
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
 				await expect(promise).to.changeTokenBalances(
 					pol,
-					[staker, maticX, stakeManager],
+					[stakerA, maticX, stakeManager],
 					[stakeAmount.mul(-1), 0, stakeAmount]
 				);
+			});
+
+			it("Should return the right total pooled stake tokens", async function () {
+				const { maticX, pol, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, totalStakeAmount);
+
+					for (let i = 0; i < 3; i++) {
+						await maticX.connect(staker).submitPOL(stakeAmount);
+					}
+				}
+
+				const totalPooledStakeTokens =
+					await maticX.getTotalPooledStakeTokens();
+				expect(totalPooledStakeTokens).to.equal(
+					totalStakeAmount.mul(2)
+				);
+			});
+
+			it("Should return the right total stake from a validator share", async function () {
+				const {
+					maticX,
+					stakeManager,
+					pol,
+					stakers,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+				const initialTotalStake = await maticX.getTotalStake(
+					validatorShareAddress
+				);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				const currentTotalStake = await maticX.getTotalStake(
+					validatorShareAddress
+				);
+				expect(currentTotalStake).not.to.equal(initialTotalStake);
+				expect(currentTotalStake[0]).to.equal(stakeAmount.mul(2));
+				expect(currentTotalStake[1]).to.equal(
+					ethers.utils.parseUnits("100000000000", 18)
+				);
+			});
+		});
+	});
+
+	describe("Request a Matic withdrawal", function () {
+		describe("Positive", function () {
+			it("Should revert with the right error if burning a too much amount", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount.add(1));
+				await expect(promise).to.be.revertedWith(
+					"ERC20: burn amount exceeds balance"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the RequestWithdraw event", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "RequestWithdraw")
+					.withArgs(stakerA.address, stakeAmount, stakeAmount);
 			});
 		});
 	});
