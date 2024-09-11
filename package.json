@@ -12,7 +12,7 @@
 		"test": "hardhat test --bail",
 		"test:ci": "hardhat test --parallel",
 		"cover": "rimraf coverage && hardhat coverage",
-		"gas": "cross-env REPORT_GAS=1 npm run test",
+		"gas": "cross-env REPORT_GAS=true npm run test",
 		"size": "hardhat size-contracts",
 		"analyze": "slitherin . --slither",
 		"analyze:ci": "slitherin --separated . --skip-clean --ignore-compile",
