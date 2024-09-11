@@ -172,8 +172,8 @@ const config: HardhatUserConfig = {
 			mining,
 			forking: {
 				url: envVars.ROOT_CHAIN_RPC,
-				blockNumber: 20_700_204,
-				enabled: true,
+				blockNumber: envVars.FORKING_ROOT_BLOCK_NUMBER,
+				enabled: false,
 			},
 		},
 		localhost: {

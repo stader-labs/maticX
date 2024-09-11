@@ -1,3 +1,6 @@
+import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
+import { reset } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { Transaction, utils } from "ethers";
 import { ethers, upgrades } from "hardhat";
@@ -12,10 +15,8 @@ import {
 	StakeManagerMock,
 	ValidatorRegistry,
 } from "../typechain";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
 
-describe.skip("ChildPool", () => {
+describe("ChildPool", () => {
 	let childPool: ChildPool;
 	let deployer: SignerWithAddress;
 	let manager: SignerWithAddress;
@@ -126,6 +127,8 @@ describe.skip("ChildPool", () => {
 	});
 
 	beforeEach(async () => {
+		await reset();
+
 		[deployer, ...users] = await ethers.getSigners();
 		manager = deployer;
 		treasury = users[1];
@@ -234,9 +237,8 @@ describe.skip("ChildPool", () => {
 	});
 
 	it("get remaining amount after instant withdrawal fee deduction", async () => {
-		const result = await childPool.getAmountAfterInstantWithdrawalFees(
-			1000
-		);
+		const result =
+			await childPool.getAmountAfterInstantWithdrawalFees(1000);
 		expect(result).to.eql([BigNumber.from("999"), BigNumber.from("1")]);
 	});
 
@@ -301,9 +303,8 @@ describe.skip("ChildPool", () => {
 			BigNumber.from("1000").mul(wei)
 		);
 		const maticXAmount = ethers.utils.parseEther("50.0");
-		const [maticAmount, ,] = await childPool.convertMaticXToMatic(
-			maticXAmount
-		);
+		const [maticAmount, ,] =
+			await childPool.convertMaticXToMatic(maticXAmount);
 		const requestResult = await requestMaticXSwap(users[0], maticXAmount);
 		// 50 maticX deposited in instant pool
 		expect(await childPool.instantPoolMaticX()).to.eql(
@@ -375,9 +376,8 @@ describe.skip("ChildPool", () => {
 			ethers.utils.parseEther("1000.0")
 		);
 		const maticXAmount = ethers.utils.parseEther("50.0");
-		const [maticAmount, ,] = await childPool.convertMaticXToMatic(
-			maticXAmount
-		);
+		const [maticAmount, ,] =
+			await childPool.convertMaticXToMatic(maticXAmount);
 		await requestMaticXSwap(users[0], maticXAmount);
 
 		// increase block time by 5 hours
