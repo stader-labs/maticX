@@ -27,6 +27,9 @@ describe("MaticX", function () {
 		const maticHolder = await impersonateAccount(
 			"0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0"
 		);
+		const stakeManagerGovernance = await impersonateAccount(
+			"0x6e7a5820baD6cebA8Ef5ea69c0C92EbbDAc9CE48"
+		);
 		const [stakerA, stakerB] = await ethers.getSigners();
 		const stakers = [stakerA, stakerB];
 
@@ -120,6 +123,8 @@ describe("MaticX", function () {
 			polygonMigration,
 			fxStateRootTunnel,
 			manager,
+			maticHolder,
+			stakeManagerGovernance,
 			stakerA,
 			stakerB,
 			stakers,
@@ -508,7 +513,7 @@ describe("MaticX", function () {
 	});
 
 	describe("Request a Matic withdrawal", function () {
-		describe("Positive", function () {
+		describe("Negative", function () {
 			it("Should revert with the right error if requesting a higher amount than staked before", async function () {
 				const { maticX, matic, stakerA } =
 					await loadFixture(deployFixture);
@@ -694,7 +699,7 @@ describe("MaticX", function () {
 	});
 
 	describe("Request a POL withdrawal", function () {
-		describe("Positive", function () {
+		describe("Negative", function () {
 			it("Should revert with the right error if requesting a higher amount than staked before", async function () {
 				const { maticX, pol, stakerA } =
 					await loadFixture(deployFixture);
@@ -811,7 +816,7 @@ describe("MaticX", function () {
 					.withArgs(stakerA.address, stakeAmount, stakeAmount);
 			});
 
-			it("Should return the right staker's withdrawal request", async function () {
+			it("Should return the right staker's withdrawal requests", async function () {
 				const {
 					maticX,
 					pol,
@@ -828,20 +833,20 @@ describe("MaticX", function () {
 						preferredDepositValidatorId
 					);
 
-				const initialUserWithdrawalRequests =
+				const initialWithdrawalRequests =
 					await maticX.getUserWithdrawalRequests(stakerA.address);
 
 				await maticX.connect(stakerA).requestWithdrawPOL(stakeAmount);
 
-				const currentUserWithdrawalRequests =
+				const currentWithdrawalRequests =
 					await maticX.getUserWithdrawalRequests(stakerA.address);
-				expect(currentUserWithdrawalRequests.length).not.to.equal(
-					initialUserWithdrawalRequests.length
+				expect(currentWithdrawalRequests.length).not.to.equal(
+					initialWithdrawalRequests.length
 				);
-				expect(currentUserWithdrawalRequests).to.have.lengthOf(1);
+				expect(currentWithdrawalRequests).to.have.lengthOf(1);
 
 				const [currentValidatorNonce, , currentValidatorShareAddress] =
-					currentUserWithdrawalRequests[0];
+					currentWithdrawalRequests[0];
 				expect(currentValidatorNonce).to.equal(1);
 				expect(currentValidatorShareAddress).to.equal(
 					validatorShareAddress
@@ -867,6 +872,386 @@ describe("MaticX", function () {
 					[stakerA, stakerB],
 					[stakeAmount.mul(-1), 0]
 				);
+			});
+		});
+	});
+
+	describe("Claim a Matic withdrawal", function () {
+		describe("Negative", function () {
+			it("Should return the right error if claiming too early", async function () {
+				const {
+					maticX,
+					matic,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch.sub(1));
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise).to.be.revertedWith(
+					"Not able to claim yet"
+				);
+			});
+
+			it("Should return the right error if having no requests for the user", async function () {
+				const { maticX, stakerA } = await loadFixture(deployFixture);
+
+				const withdrawalIndex = 0;
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise).to.be.revertedWith("Request not exists");
+			});
+
+			it("Should return the right error if having no request at a given index for the user", async function () {
+				const { maticX, matic, stakerA, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 1;
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise).to.be.revertedWith("Request not exists");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the ClaimWithdrawal event", async function () {
+				const {
+					maticX,
+					matic,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise)
+					.to.emit(maticX, "ClaimWithdrawal")
+					.withArgs(stakerA.address, withdrawalIndex, stakeAmount);
+			});
+
+			it("Should return the right Matic and POL token balances", async function () {
+				const {
+					maticX,
+					matic,
+					pol,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise).to.changeTokenBalances(
+					matic,
+					[maticX, stakerA],
+					[0, stakeAmount]
+				);
+				await expect(promise).to.changeTokenBalance(
+					pol,
+					stakeManager,
+					stakeAmount.mul(-1)
+				);
+			});
+
+			it("Should return the right staker's withdrawal requests", async function () {
+				const {
+					maticX,
+					matic,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const initialWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] =
+					initialWithdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				await maticX.connect(stakerA).claimWithdrawal(withdrawalIndex);
+
+				const currentWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				expect(currentWithdrawalRequests.length).not.to.equal(
+					initialWithdrawalRequests.length
+				);
+				expect(currentWithdrawalRequests).to.be.empty;
+			});
+		});
+	});
+
+	describe("Claim a POL withdrawal", function () {
+		describe("Negative", function () {
+			it("Should return the right error if claiming too early", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdrawPOL(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch.sub(1));
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawalPOL(withdrawalIndex);
+				await expect(promise).to.be.revertedWith(
+					"Not able to claim yet"
+				);
+			});
+
+			it("Should return the right error if having no requests for the user", async function () {
+				const { maticX, stakerA } = await loadFixture(deployFixture);
+
+				const withdrawalIndex = 0;
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawalPOL(withdrawalIndex);
+				await expect(promise).to.be.revertedWith("Request not exists");
+			});
+
+			it("Should return the right error if having no request at a given index for the user", async function () {
+				const { maticX, pol, stakerA, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdrawPOL(stakeAmount);
+
+				const withdrawalIndex = 1;
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawalPOL(withdrawalIndex);
+				await expect(promise).to.be.revertedWith("Request not exists");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the ClaimWithdrawal event", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdrawPOL(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawalPOL(withdrawalIndex);
+				await expect(promise)
+					.to.emit(maticX, "ClaimWithdrawal")
+					.withArgs(stakerA.address, withdrawalIndex, stakeAmount);
+			});
+
+			it("Should return the right POL token balances", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdrawPOL(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawalPOL(withdrawalIndex);
+				await expect(promise).to.changeTokenBalances(
+					pol,
+					[stakeManager, maticX, stakerA],
+					[stakeAmount.mul(-1), 0, stakeAmount]
+				);
+			});
+
+			it("Should return the right staker's withdrawal requests", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdrawPOL(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const initialWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] =
+					initialWithdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				await maticX.connect(stakerA).claimWithdrawalPOL(withdrawalIndex);
+
+				const currentWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				expect(currentWithdrawalRequests.length).not.to.equal(
+					initialWithdrawalRequests.length
+				);
+				expect(currentWithdrawalRequests).to.be.empty;
 			});
 		});
 	});
