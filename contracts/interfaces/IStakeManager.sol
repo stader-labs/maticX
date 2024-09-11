@@ -16,10 +16,9 @@ interface IStakeManager {
 	/// @notice get the validator contract used for delegation.
 	/// @param validatorId validator id.
 	/// @return return the address of the validator contract.
-	function getValidatorContract(uint256 validatorId)
-		external
-		view
-		returns (address);
+	function getValidatorContract(
+		uint256 validatorId
+	) external view returns (address);
 
 	/// @notice Withdraw accumulated rewards
 	/// @param validatorId validator id.
@@ -27,10 +26,9 @@ interface IStakeManager {
 
 	/// @notice Get validator total staked.
 	/// @param validatorId validator id.
-	function validatorStake(uint256 validatorId)
-		external
-		view
-		returns (uint256);
+	function validatorStake(
+		uint256 validatorId
+	) external view returns (uint256);
 
 	/// @notice Allows to unstake the staked tokens on the stakeManager.
 	/// @param validatorId validator id.
@@ -55,6 +53,8 @@ interface IStakeManager {
 		uint256 amount,
 		address delegator
 	) external returns (bool);
+
+	function setCurrentEpoch(uint256 _currentEpoch) external;
 
 	function epoch() external view returns (uint256);
 
@@ -81,10 +81,9 @@ interface IStakeManager {
 		uint256 initialRewardPerStake;
 	}
 
-	function validators(uint256 _index)
-		external
-		view
-		returns (Validator memory);
+	function validators(
+		uint256 _index
+	) external view returns (Validator memory);
 
 	// TODO: Remove it and use stakeFor instead
 	function createValidator(uint256 _validatorId) external;

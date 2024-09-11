@@ -199,18 +199,18 @@ contract MaticX is
 		require(_amount > 0, "Invalid amount");
 
 		(
-			uint256 totalAmount2WithdrawInStakeToken,
+			uint256 totalAmountToWithdrawInStakeToken,
 			uint256 totalShares,
 			uint256 totalPooledStakeTokens
 		) = _convertMaticXToStakeToken(_amount);
 
 		_burn(msg.sender, _amount);
 
-		uint256 leftAmount2Withdraw = totalAmount2WithdrawInStakeToken;
+		uint256 leftAmountToWithdraw = totalAmountToWithdrawInStakeToken;
 		uint256 totalDelegated = getTotalStakeAcrossAllValidators();
 
 		require(
-			totalDelegated >= totalAmount2WithdrawInStakeToken,
+			totalDelegated >= totalAmountToWithdrawInStakeToken,
 			"Too much to withdraw"
 		);
 
@@ -219,21 +219,21 @@ contract MaticX is
 		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
 			.preferredWithdrawalValidatorId();
 
-		uint256 currentIndex = 0;
+		uint256 currentIdx = 0;
 		uint256 validatorIdCount = validatorIds.length;
 		uint256 totalValidatorRequests = validatorIdCount;
 
-		for (; currentIndex < validatorIdCount; ) {
-			if (preferredValidatorId == validatorIds[currentIndex]) {
+		for (; currentIdx < validatorIdCount; ) {
+			if (preferredValidatorId == validatorIds[currentIdx]) {
 				break;
 			}
 			unchecked {
-				++currentIndex;
+				++currentIdx;
 			}
 		}
 
-		while (totalValidatorRequests > 0 && leftAmount2Withdraw > 0) {
-			uint256 validatorId = validatorIds[currentIndex];
+		while (totalValidatorRequests > 0 && leftAmountToWithdraw > 0) {
+			uint256 validatorId = validatorIds[currentIdx];
 			address validatorShare = IStakeManager(stakeManager)
 				.getValidatorContract(validatorId);
 			(uint256 validatorBalance, ) = getTotalStake(
@@ -241,9 +241,9 @@ contract MaticX is
 			);
 
 			uint256 amount2WithdrawFromValidator = (validatorBalance <=
-				leftAmount2Withdraw)
+				leftAmountToWithdraw)
 				? validatorBalance
-				: leftAmount2Withdraw;
+				: leftAmountToWithdraw;
 
 			if (amount2WithdrawFromValidator > 0) {
 				_pol
@@ -267,31 +267,29 @@ contract MaticX is
 					)
 				);
 
-				leftAmount2Withdraw -= amount2WithdrawFromValidator;
+				leftAmountToWithdraw -= amount2WithdrawFromValidator;
 			}
 
 			--totalValidatorRequests;
-			currentIndex = currentIndex + 1 < validatorIdCount
-				? currentIndex + 1
-				: 0;
+			currentIdx = currentIdx + 1 < validatorIdCount ? currentIdx + 1 : 0;
 		}
 
 		require(
-			leftAmount2Withdraw == 0,
-			"Non zero amount left to withdraw from validators"
+			leftAmountToWithdraw == 0,
+			"Extra amount left to withdraw from validators"
 		);
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
 			abi.encode(
 				totalShares - _amount,
-				totalPooledStakeTokens - totalAmount2WithdrawInStakeToken
+				totalPooledStakeTokens - totalAmountToWithdrawInStakeToken
 			)
 		);
 
 		emit RequestWithdraw(
 			msg.sender,
 			_amount,
-			totalAmount2WithdrawInStakeToken
+			totalAmountToWithdrawInStakeToken
 		);
 	}
 
@@ -320,17 +318,15 @@ contract MaticX is
 	 * @param _idx - Array index of the user's withdrawal request
 	 * @param _pol - If the POL flow should be used
 	 */
-	function _claimWithdrawal(
-		address _to,
-		uint256 _idx,
-		bool _pol
-	) internal returns (uint256) {
+	function _claimWithdrawal(address _to, uint256 _idx, bool _pol) internal {
 		address token = _getToken(_pol);
 		uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(
 			address(this)
 		);
 
 		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[_to];
+		require(_idx < userRequests.length, "Request not exists");
+
 		WithdrawalRequest memory userRequest = userRequests[_idx];
 		require(
 			IStakeManager(stakeManager).epoch() >= userRequest.requestEpoch,
@@ -354,7 +350,6 @@ contract MaticX is
 		IERC20Upgradeable(token).safeTransfer(_to, amountToClaim);
 
 		emit ClaimWithdrawal(_to, _idx, amountToClaim);
-		return amountToClaim;
 	}
 
 	/**

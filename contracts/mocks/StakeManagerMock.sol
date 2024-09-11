@@ -57,21 +57,15 @@ contract StakeManagerMock is IStakeManager {
 		);
 	}
 
-	function getValidatorId(address _user)
-		external
-		view
-		override
-		returns (uint256)
-	{
+	function getValidatorId(
+		address _user
+	) external view override returns (uint256) {
 		return state.validators[_user];
 	}
 
-	function getValidatorContract(uint256 _validatorId)
-		external
-		view
-		override
-		returns (address)
-	{
+	function getValidatorContract(
+		uint256 _validatorId
+	) external view override returns (address) {
 		return state.validatorShares[_validatorId];
 	}
 
@@ -88,17 +82,14 @@ contract StakeManagerMock is IStakeManager {
 		smValidators[_validatorId].status = IStakeManager.Status.Unstaked;
 	}
 
-	function validatorStake(uint256 _validatorId)
-		external
-		view
-		override
-		returns (uint256)
-	{
+	function validatorStake(
+		uint256 _validatorId
+	) external view override returns (uint256) {
 		return state.stakedAmount[_validatorId];
 	}
 
 	function withdrawalDelay() external pure override returns (uint256) {
-		return (2**13);
+		return (2 ** 13);
 	}
 
 	function delegationDeposit(
@@ -112,6 +103,10 @@ contract StakeManagerMock is IStakeManager {
 		return IERC20(state.token).transfer(msg.sender, _amount);
 	}
 
+	function setCurrentEpoch(uint256 _currentEpoch) external override {
+		state.epoch = _currentEpoch;
+	}
+
 	function epoch() external view override returns (uint256) {
 		return state.epoch;
 	}
@@ -121,12 +116,9 @@ contract StakeManagerMock is IStakeManager {
 		state.stakedAmount[_validatorId] -= 100;
 	}
 
-	function validators(uint256 _validatorId)
-		external
-		view
-		override
-		returns (Validator memory)
-	{
+	function validators(
+		uint256 _validatorId
+	) external view override returns (Validator memory) {
 		return smValidators[_validatorId];
 	}
 
