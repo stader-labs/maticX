@@ -1,4 +1,5 @@
 import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
+import { reset } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { Transaction } from "ethers";
@@ -10,7 +11,7 @@ import {
 	StakeManagerMock,
 } from "../typechain";
 
-describe.skip("ValidatorRegistry", function () {
+describe("ValidatorRegistry", function () {
 	let deployer: SignerWithAddress;
 	let manager: SignerWithAddress;
 	let treasury: SignerWithAddress;
@@ -86,6 +87,8 @@ describe.skip("ValidatorRegistry", function () {
 	});
 
 	beforeEach(async () => {
+		await reset();
+
 		[deployer, ...users] = await ethers.getSigners();
 		manager = deployer;
 		treasury = deployer;

@@ -17,6 +17,7 @@ interface EnvironmentSchema {
 	CHECKPOINT_MANAGER: string;
 	DEFENDER_TEAM_API_KEY: string;
 	DEFENDER_TEAM_API_SECRET_KEY: string;
+	FORKING_ROOT_BLOCK_NUMBER: number;
 	REPORT_GAS: boolean;
 }
 
@@ -41,6 +42,8 @@ export function extractEnvironmentVariables(): EnvironmentSchema {
 				.description("RPC node URL for root chain (Ethereum)"),
 			ROOT_GAS_PRICE: Joi.number()
 				.optional()
+				.integer()
+				.min(0)
 				.default(0)
 				.description("Gas price in root chain (Ethereum)"),
 			CHILD_CHAIN_RPC: Joi.string()
@@ -49,7 +52,9 @@ export function extractEnvironmentVariables(): EnvironmentSchema {
 				.description("RPC node URL for child chain (Polygon)"),
 			CHILD_GAS_PRICE: Joi.number()
 				.optional()
-				.default("0")
+				.integer()
+				.min(0)
+				.default(0)
 				.description("Gas price in child chain (Polygon)"),
 			STAKE_MANAGER: Joi.string()
 				.optional()
@@ -103,10 +108,17 @@ export function extractEnvironmentVariables(): EnvironmentSchema {
 				.length(64)
 				.alphanum()
 				.description("API secret key for OpenZeppelin Defender"),
+			FORKING_ROOT_BLOCK_NUMBER: Joi.number()
+				.required()
+				.integer()
+				.min(0)
+				.description("Block number when forking root chain (Ethereum)"),
 			REPORT_GAS: Joi.boolean()
 				.optional()
 				.default(false)
-				.description("Flag to report gas prices or not"),
+				.description(
+					"Flag to report gas prices or not while running tests"
+				),
 		})
 		.unknown() as Joi.ObjectSchema<EnvironmentSchema>;
 

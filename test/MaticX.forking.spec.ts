@@ -1,5 +1,6 @@
 import {
 	loadFixture,
+	reset,
 	setBalance,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -14,12 +15,17 @@ import {
 	MaticX,
 	ValidatorRegistry,
 } from "../typechain";
+import { extractEnvironmentVariables } from "../utils/environment";
 
-describe("MaticX", function () {
+const envVars = extractEnvironmentVariables();
+
+describe("MaticX (Forking)", function () {
 	const stakeAmount = ethers.utils.parseUnits("100", 18);
 	const totalStakeAmount = stakeAmount.mul(3);
 
 	async function deployFixture() {
+		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
+
 		// EOAs
 		const manager = await impersonateAccount(
 			"0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67"
@@ -1244,7 +1250,9 @@ describe("MaticX", function () {
 					.connect(stakeManagerGovernance)
 					.setCurrentEpoch(withdrawalEpoch);
 
-				await maticX.connect(stakerA).claimWithdrawalPOL(withdrawalIndex);
+				await maticX
+					.connect(stakerA)
+					.claimWithdrawalPOL(withdrawalIndex);
 
 				const currentWithdrawalRequests =
 					await maticX.getUserWithdrawalRequests(stakerA.address);

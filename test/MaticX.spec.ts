@@ -1,4 +1,5 @@
 import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
+import { reset } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { Transaction } from "ethers";
@@ -14,7 +15,7 @@ import {
 	RateProvider,
 } from "../typechain";
 
-describe.skip("MaticX (Old)", function () {
+describe("MaticX", function () {
 	let deployer: SignerWithAddress;
 	let manager: SignerWithAddress;
 	let instantPoolOwner: SignerWithAddress;
@@ -140,6 +141,8 @@ describe.skip("MaticX (Old)", function () {
 	});
 
 	beforeEach(async () => {
+		await reset();
+
 		[deployer, ...users] = await ethers.getSigners();
 		manager = deployer;
 		treasury = users[1];
