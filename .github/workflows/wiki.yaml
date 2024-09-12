@@ -1,0 +1,31 @@
+name: Wiki
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - pol-flow
+jobs:
+  wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: maticX
+
+      - name: Checkout wiki repository
+        uses: actions/checkout@v4
+        with:
+          repository: stader-labs/maticX.wiki
+          path: maticX.wiki
+
+      - name: Mirror docs to wiki
+        run: |
+          cd $GITHUB_WORKSPACE/maticX.wiki
+          git config user.name Actions
+          git config user.email actions@users.noreply.github.com
+          cp $GITHUB_WORKSPACE/maticX/docs/*.md $GITHUB_WORKSPACE/maticX.wiki
+          git add .
+          git diff-index --quiet HEAD -- || git commit -m "Mirror docs to wiki"
+          git push
