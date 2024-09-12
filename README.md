@@ -1,5 +1,12 @@
 # MaticX
 
+## Github Workflows
+
+- ![CI](https://github.com/stader-labs/maticX/actions/workflows/ci.yaml/badge.svg)
+- ![Wiki](https://github.com/stader-labs/maticX/actions/workflows/wiki.yaml/badge.svg)
+
+## Configuration
+
 Before deploying check out the `.env.test.example` file. You should create your own `.env.test` file.
 
 ```bash
@@ -18,7 +25,7 @@ FX_CHILD=<FX CHILD ADDRESS ON POLYGON (POLYGON FOUNDATION)>
 CHECKPOINT_MANAGER=<CHECKPOINT MANAGER ADDRESS ON ETHEREUM (POLYGON FOUNDATION)>
 ```
 
-# Deploying
+## Deployment
 
 To deploy on testnet run:
 
@@ -44,21 +51,21 @@ npx hardhat deployMaticXImpl --network mainnet
 npx hardhat deployValidatorRegistryImpl --network mainnet
 ```
 
-# Upgrading
+## Upgrade
 
 ```bash
 npx hardhat run ./scripts/upgradeMaticX.ts --network <network>
 npx hardhat run ./scripts/upgradeValidatorRegistry.ts --network <network>
 ```
 
-# Verifying on etherscan
+## Verification on Etherscan
 
 ```bash
 npx hardhat verifyMaticX --network <network>
 npx hardhat verify <address> <...args> --network <network>
 ```
 
-# Testing
+## Test
 
 ```bash
 npx hardhat test
