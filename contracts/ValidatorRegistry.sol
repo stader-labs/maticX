@@ -16,8 +16,10 @@ contract ValidatorRegistry is
 	AccessControlUpgradeable,
 	ReentrancyGuardUpgradeable
 {
+	bytes32 public constant BOT = keccak256("BOT");
+
 	address private stakeManager;
-	address private polygonERC20;
+	address private maticToken;
 	address private maticX;
 
 	string public override version;
@@ -26,19 +28,18 @@ contract ValidatorRegistry is
 	mapping(uint256 => bool) public override validatorIdExists;
 
 	uint256[] private validators;
-
-	bytes32 public constant BOT = keccak256("BOT");
+	address private polToken;
 
 	/// -------------------------- initialize ----------------------------------
 
 	/// @notice Initialize the ValidatorRegistry contract.
 	/// @param _stakeManager address of the polygon stake manager.
-	/// @param _polygonERC20 address of the polygon ERC20 contract.
+	/// @param _maticToken address of the polygon ERC20 contract.
 	/// @param _maticX address of the MaticX contract.
 	/// @param _manager address of the manager.
 	function initialize(
 		address _stakeManager,
-		address _polygonERC20,
+		address _maticToken,
 		address _maticX,
 		address _manager
 	) external initializer {
@@ -46,7 +47,7 @@ contract ValidatorRegistry is
 		__Pausable_init();
 
 		stakeManager = _stakeManager;
-		polygonERC20 = _polygonERC20;
+		maticToken = _maticToken;
 		maticX = _maticX;
 
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
@@ -179,6 +180,19 @@ contract ValidatorRegistry is
 		emit SetVersion(_version);
 	}
 
+	/**
+	 * @dev Sets the address of the POL token. Callable by the admin only.
+	 * @param _address - Address of the POL token
+	 */
+	function setPOLToken(
+		address _address
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+		require(_address != address(0), "Zero POL token address");
+
+		polToken = _address;
+		emit SetPOLToken(_address);
+	}
+
 	/// @notice Allows to pause the contract.
 	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		paused() ? _unpause() : _pause();
@@ -186,19 +200,26 @@ contract ValidatorRegistry is
 
 	/// -------------------------------Getters-----------------------------------
 
-	/// @notice Get the maticX contract addresses
-	/// @return _stakeManager address of the polygon stake manager.
-	/// @return _polygonERC20 address of the polygon ERC20 contract.
-	/// @return _maticX address of the MaticX contract.
+	/// @notice Get contract addresses.
+	/// @return _stakeManager address of the stake manager.
+	/// @return _maticToken address of the Matic token.
+	/// @return _maticX address of MaticX.
+	/// @return _polToken address of the POL token.
 	function getContracts()
 		external
 		view
 		override
-		returns (address _stakeManager, address _polygonERC20, address _maticX)
+		returns (
+			address _stakeManager,
+			address _maticToken,
+			address _maticX,
+			address _polToken
+		)
 	{
 		_stakeManager = stakeManager;
-		_polygonERC20 = polygonERC20;
+		_maticToken = maticToken;
 		_maticX = maticX;
+		_polToken = polToken;
 	}
 
 	/// @notice Get validator id by its index.

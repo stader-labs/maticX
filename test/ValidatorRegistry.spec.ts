@@ -128,7 +128,6 @@ describe("ValidatorRegistry", function () {
 
 		await validatorRegistry.setMaticX(maticX.address);
 
-		// add bot role for deployer
 		await validatorRegistry.grantRole(
 			await validatorRegistry.BOT(),
 			manager.address
