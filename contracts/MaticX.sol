@@ -3,8 +3,9 @@ pragma solidity 0.8.7;
 
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { StringsUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { IValidatorShare } from "./interfaces/IValidatorShare.sol";
 import { IValidatorRegistry } from "./interfaces/IValidatorRegistry.sol";
@@ -24,6 +25,7 @@ contract MaticX is
 	PausableUpgradeable
 {
 	using SafeERC20Upgradeable for IERC20Upgradeable;
+	using StringsUpgradeable for string;
 
 	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
 	bytes32 public constant BOT = keccak256("BOT");
@@ -647,10 +649,9 @@ contract MaticX is
 	function setFeePercent(
 		uint8 _feePercent
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(_feePercent <= 100, "_feePercent must not exceed 100");
+		require(_feePercent <= 100, "Fee percent must not exceed 100");
 
 		feePercent = _feePercent;
-
 		emit SetFeePercent(_feePercent);
 	}
 
@@ -661,20 +662,23 @@ contract MaticX is
 	function setTreasury(
 		address _address
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		treasury = _address;
+		require(_address != address(0), "Zero treasury address");
 
+		treasury = _address;
 		emit SetTreasury(_address);
 	}
 
 	/**
-	 * @dev Sets the address of the stake manager. Callable by the admin only.
-	 * @param _address Address of the stake manager
+	 * @dev Sets the address of the validator registry. Callable by the admin
+	 * only.
+	 * @param _address Address of the validator registry
 	 */
 	function setValidatorRegistry(
 		address _address
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		validatorRegistry = _address;
+		require(_address != address(0), "Zero validator registry address");
 
+		validatorRegistry = _address;
 		emit SetValidatorRegistry(_address);
 	}
 
@@ -685,8 +689,9 @@ contract MaticX is
 	function setFxStateRootTunnel(
 		address _address
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		fxStateRootTunnel = _address;
+		require(_address != address(0), "Zero fx state root tunnel address");
 
+		fxStateRootTunnel = _address;
 		emit SetFxStateRootTunnel(_address);
 	}
 
@@ -697,8 +702,9 @@ contract MaticX is
 	function setVersion(
 		string calldata _version
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		version = _version;
+		require(!_version.equal(""), "Empty version");
 
+		version = _version;
 		emit SetVersion(_version);
 	}
 
@@ -714,10 +720,7 @@ contract MaticX is
 		polToken = _address;
 		emit SetPOLToken(_address);
 
-		IERC20Upgradeable(polToken).safeApprove(
-			stakeManager,
-			type(uint256).max
-		);
+		IERC20Upgradeable(polToken).approve(stakeManager, type(uint256).max);
 	}
 
 	////////////////////////////////////////////////////////////

@@ -16,6 +16,7 @@ import {
 	ValidatorRegistry,
 } from "../typechain";
 import { extractEnvironmentVariables } from "../utils/environment";
+import { generateRandomAddress } from "../utils/account";
 
 const envVars = extractEnvironmentVariables();
 
@@ -100,6 +101,8 @@ describe("MaticX (Forking)", function () {
 			.setFxStateRootTunnel(fxStateRootTunnel.address);
 		await maticX.connect(manager).setPOLToken(pol.address);
 
+		const defaultAdminRole = await maticX.DEFAULT_ADMIN_ROLE();
+
 		// ERC20 transfers
 		for (const staker of stakers) {
 			await matic
@@ -134,6 +137,7 @@ describe("MaticX (Forking)", function () {
 			stakerA,
 			stakerB,
 			stakers,
+			defaultAdminRole,
 			validatorIds,
 			preferredDepositValidatorId,
 			preferredWithdrawalValidatorId,
@@ -1260,6 +1264,298 @@ describe("MaticX (Forking)", function () {
 					initialWithdrawalRequests.length
 				);
 				expect(currentWithdrawalRequests).to.be.empty;
+			});
+		});
+	});
+
+	describe("Withdraw Matic validators rewards", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if having an insufficient rewards amount", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawValidatorsReward([
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+					]);
+				await expect(promise).to.be.revertedWith(
+					"Too small rewards amount"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			// TODO Add tests
+		});
+	});
+
+	describe("Withdraw POL validators rewards", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if having an insufficient rewards amount", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawValidatorsRewardPOL([
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+					]);
+				await expect(promise).to.be.revertedWith(
+					"Too small rewards amount"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			// TODO Add tests
+		});
+	});
+
+	describe("Set a fee percent", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX.connect(stakerA).setFeePercent(100);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing a too high fee percent", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).setFeePercent(101);
+				await expect(promise).to.be.revertedWith(
+					"Fee percent must not exceed 100"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetFeePercent event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const feePercent = 100;
+				const promise = maticX
+					.connect(manager)
+					.setFeePercent(feePercent);
+				await expect(promise)
+					.to.emit(maticX, "SetFeePercent")
+					.withArgs(feePercent);
+			});
+		});
+	});
+
+	describe("Set a treasury address", function () {
+		const treasuryAddress = generateRandomAddress();
+
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(stakerA)
+					.setTreasury(treasuryAddress);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero treasury address", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setTreasury(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero treasury address"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetTreasury event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setTreasury(treasuryAddress);
+				await expect(promise)
+					.to.emit(maticX, "SetTreasury")
+					.withArgs(treasuryAddress);
+			});
+		});
+	});
+
+	describe("Set a validator registry address", function () {
+		const validatorRegistryAddress = generateRandomAddress();
+
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(stakerA)
+					.setValidatorRegistry(validatorRegistryAddress);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero treasury address", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setValidatorRegistry(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero validator registry address"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetValidatorRegistry event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setValidatorRegistry(validatorRegistryAddress);
+				await expect(promise)
+					.to.emit(maticX, "SetValidatorRegistry")
+					.withArgs(validatorRegistryAddress);
+			});
+		});
+	});
+
+	describe("Set a fx state root tunnel address", function () {
+		const fxStateRootTunnelAddress = generateRandomAddress();
+
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(stakerA)
+					.setFxStateRootTunnel(fxStateRootTunnelAddress);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero fx state root tunnel address", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setFxStateRootTunnel(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero fx state root tunnel address"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetFxStateRootTunnel event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setFxStateRootTunnel(fxStateRootTunnelAddress);
+				await expect(promise)
+					.to.emit(maticX, "SetFxStateRootTunnel")
+					.withArgs(fxStateRootTunnelAddress);
+			});
+		});
+	});
+
+	describe("Set a version", function () {
+		const version = "1";
+
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX.connect(stakerA).setVersion(version);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing an empty version", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).setVersion("");
+				await expect(promise).to.be.revertedWith("Empty version");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetVersion event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).setVersion(version);
+				await expect(promise)
+					.to.emit(maticX, "SetVersion")
+					.withArgs(version);
+			});
+		});
+	});
+
+	describe("Set a POL token address", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, pol, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(stakerA)
+					.setPOLToken(pol.address);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero POL token address", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setPOLToken(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero POL token address"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetPOLToken event", async function () {
+				const { maticX, pol, manager } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setPOLToken(pol.address);
+				await expect(promise)
+					.to.emit(maticX, "SetPOLToken")
+					.withArgs(pol.address);
 			});
 		});
 	});
