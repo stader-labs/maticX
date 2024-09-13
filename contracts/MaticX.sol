@@ -65,12 +65,24 @@ contract MaticX is
 		__Pausable_init();
 		__ERC20_init("Liquid Staking Matic", "MaticX");
 
+		require(_manager != address(0), "Zero manager address");
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
 
+		require(
+			_validatorRegistry != address(0),
+			"Zero validator registry address"
+		);
 		validatorRegistry = _validatorRegistry;
+
+		require(_stakeManager != address(0), "Zero stake manager address");
 		stakeManager = _stakeManager;
+
+		require(_treasury != address(0), "Zero treasury address");
 		treasury = _treasury;
+
+		require(_maticToken != address(0), "Zero matic token address");
 		maticToken = _maticToken;
+
 		feePercent = 5;
 
 		IERC20Upgradeable(maticToken).safeApprove(
@@ -89,6 +101,8 @@ contract MaticX is
 		onlyRole(DEFAULT_ADMIN_ROLE)
 	{
 		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
+
+		emit SetupBotAdmin();
 	}
 
 	////////////////////////////////////////////////////////////
@@ -361,7 +375,7 @@ contract MaticX is
 	 */
 	function withdrawRewards(
 		uint256 _validatorId
-	) public override whenNotPaused returns (uint256) {
+	) external override whenNotPaused returns (uint256) {
 		return _withdrawRewards(_validatorId, false);
 	}
 
@@ -371,7 +385,7 @@ contract MaticX is
 	 */
 	function withdrawValidatorsReward(
 		uint256[] calldata _validatorIds
-	) public override whenNotPaused returns (uint256[] memory) {
+	) external override whenNotPaused returns (uint256[] memory) {
 		uint256[] memory rewards = new uint256[](_validatorIds.length);
 		for (uint256 i = 0; i < _validatorIds.length; i++) {
 			rewards[i] = _withdrawRewards(_validatorIds[i], false);
@@ -385,7 +399,7 @@ contract MaticX is
 	 */
 	function withdrawValidatorsRewardPOL(
 		uint256[] calldata _validatorIds
-	) public override whenNotPaused returns (uint256[] memory) {
+	) external override whenNotPaused returns (uint256[] memory) {
 		uint256[] memory rewards = new uint256[](_validatorIds.length);
 		for (uint256 i = 0; i < _validatorIds.length; i++) {
 			rewards[i] = _withdrawRewards(_validatorIds[i], true);
@@ -720,7 +734,13 @@ contract MaticX is
 		polToken = _address;
 		emit SetPOLToken(_address);
 
-		IERC20Upgradeable(polToken).approve(stakeManager, type(uint256).max);
+		require(
+			IERC20Upgradeable(polToken).approve(
+				stakeManager,
+				type(uint256).max
+			),
+			"Unable to approve POL token on StakeManager"
+		);
 	}
 
 	////////////////////////////////////////////////////////////
@@ -760,7 +780,7 @@ contract MaticX is
 	 * This function is deprecated.
 	 * @return Total pooled stake tokens
 	 */
-	function getTotalPooledMatic() public view override returns (uint256) {
+	function getTotalPooledMatic() external view override returns (uint256) {
 		return getTotalStakeAcrossAllValidators();
 	}
 
