@@ -12,6 +12,8 @@ interface IMaticX is IERC20Upgradeable {
 		address validatorAddress;
 	}
 
+	event SetupBotAdmin();
+
 	event Submit(address indexed _from, uint256 _amount);
 
 	event Delegate(uint256 indexed _validatorId, uint256 _amountDelegated);
