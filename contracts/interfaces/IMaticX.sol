@@ -58,6 +58,8 @@ interface IMaticX is IERC20Upgradeable {
 
 	event SetPOLToken(address _address);
 
+	function initializeV2(address _polToken) external;
+
 	function setupBotAdmin() external;
 
 	function submit(uint256 _amount) external returns (uint256);

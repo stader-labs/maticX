@@ -99,7 +99,7 @@ describe("MaticX (Forking)", function () {
 		await maticX
 			.connect(manager)
 			.setFxStateRootTunnel(fxStateRootTunnel.address);
-		await maticX.connect(manager).setPOLToken(pol.address);
+		await maticX.connect(manager).initializeV2(pol.address);
 
 		const defaultAdminRole = await maticX.DEFAULT_ADMIN_ROLE();
 
