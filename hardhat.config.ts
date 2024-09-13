@@ -222,8 +222,8 @@ const config: HardhatUserConfig = {
 			"interfaces/",
 			"lib/",
 			"mocks/",
-			"state-transfer",
-			"tunnel",
+			"state-transfer/",
+			"tunnel/",
 		],
 	},
 	gasReporter: {
@@ -234,8 +234,8 @@ const config: HardhatUserConfig = {
 			"interfaces/",
 			"lib/",
 			"mocks/",
-			"state-transfer",
-			"tunnel",
+			"state-transfer/",
+			"tunnel/",
 		],
 	},
 };

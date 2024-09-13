@@ -37,6 +37,7 @@ describe("MaticX (Forking)", function () {
 		const stakeManagerGovernance = await impersonateAccount(
 			"0x6e7a5820baD6cebA8Ef5ea69c0C92EbbDAc9CE48"
 		);
+		const treasury = manager;
 		const [stakerA, stakerB] = await ethers.getSigners();
 		const stakers = [stakerA, stakerB];
 
@@ -79,7 +80,7 @@ describe("MaticX (Forking)", function () {
 			stakeManager.address,
 			matic.address,
 			manager.address,
-			manager.address,
+			treasury.address,
 		])) as MaticX;
 
 		// Contract initializations
@@ -132,6 +133,7 @@ describe("MaticX (Forking)", function () {
 			polygonMigration,
 			fxStateRootTunnel,
 			manager,
+			treasury,
 			maticHolder,
 			stakeManagerGovernance,
 			stakerA,
@@ -150,6 +152,366 @@ describe("MaticX (Forking)", function () {
 		setBalance(address, ethers.utils.parseEther("10000"));
 		return await ethers.getImpersonatedSigner(address);
 	}
+
+	describe("Deploy the contract", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if passing the zero validator registry address", async function () {
+				const { stakeManager, matic, manager, treasury } =
+					await loadFixture(deployFixture);
+
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					ethers.constants.AddressZero,
+					stakeManager.address,
+					matic.address,
+					manager.address,
+					treasury.address,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero validator registry address"
+				);
+			});
+
+			it("Should revert with the right error if passing the zero stake manager address", async function () {
+				const { validatorRegistry, matic, manager, treasury } =
+					await loadFixture(deployFixture);
+
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					validatorRegistry.address,
+					ethers.constants.AddressZero,
+					matic.address,
+					manager.address,
+					treasury.address,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero stake manager address"
+				);
+			});
+
+			it("Should revert with the right error if passing the zero matic token address", async function () {
+				const { validatorRegistry, stakeManager, manager, treasury } =
+					await loadFixture(deployFixture);
+
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					validatorRegistry.address,
+					stakeManager.address,
+					ethers.constants.AddressZero,
+					manager.address,
+					treasury.address,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero matic token address"
+				);
+			});
+
+			it("Should revert with the right error if passing the zero manager address", async function () {
+				const { validatorRegistry, stakeManager, matic, treasury } =
+					await loadFixture(deployFixture);
+
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					validatorRegistry.address,
+					stakeManager.address,
+					matic.address,
+					ethers.constants.AddressZero,
+					treasury.address,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero manager address"
+				);
+			});
+
+			it("Should revert with the right error if passing the zero treasury address", async function () {
+				const { validatorRegistry, stakeManager, matic, manager } =
+					await loadFixture(deployFixture);
+
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					validatorRegistry.address,
+					stakeManager.address,
+					matic.address,
+					manager.address,
+					ethers.constants.AddressZero,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero treasury address"
+				);
+			});
+
+			it("Should revert with the right error if reinitializing", async function () {
+				const {
+					maticX,
+					validatorRegistry,
+					stakeManager,
+					matic,
+					manager,
+					treasury,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX.initialize(
+					validatorRegistry.address,
+					stakeManager.address,
+					matic.address,
+					manager.address,
+					treasury.address
+				);
+				await expect(promise).to.be.revertedWith(
+					"Initializable: contract is already initialized"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should return the default admin role set for the manager", async function () {
+				const { maticX, manager, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const hasRole: boolean = await maticX.hasRole(
+					defaultAdminRole,
+					manager.address
+				);
+				expect(hasRole).to.be.true;
+			});
+
+			it("Should return the right paused status", async function () {
+				const { maticX } = await loadFixture(deployFixture);
+
+				const paused: boolean = await maticX.paused();
+				expect(paused).to.be.false;
+			});
+
+			it("Should return the right treasury", async function () {
+				const { maticX, treasury } = await loadFixture(deployFixture);
+
+				const currentTreasuryAddress = await maticX.treasury();
+				expect(currentTreasuryAddress).to.equal(treasury.address);
+			});
+
+			it("Should return the right version", async function () {
+				const { maticX } = await loadFixture(deployFixture);
+
+				const currentVersion = await maticX.version();
+				expect(currentVersion).to.equal("");
+			});
+
+			it("Should return the right fee percent", async function () {
+				const { maticX } = await loadFixture(deployFixture);
+
+				const currentFeePercent = await maticX.feePercent();
+				expect(currentFeePercent).to.equal(5);
+			});
+
+			it("Should return the fx state root tunnel address", async function () {
+				const { maticX, fxStateRootTunnel } =
+					await loadFixture(deployFixture);
+
+				const currentFxStateRootTunnel =
+					await maticX.fxStateRootTunnel();
+				expect(currentFxStateRootTunnel).to.equal(
+					fxStateRootTunnel.address
+				);
+			});
+
+			it("Should return the right contract addresses", async function () {
+				const { maticX, stakeManager, matic, validatorRegistry, pol } =
+					await loadFixture(deployFixture);
+
+				const [
+					stakeManagerAddress,
+					maticAddress,
+					validatorRegistryAddress,
+					polAddress,
+				] = await maticX.getContracts();
+				expect(stakeManagerAddress).to.equal(stakeManager.address);
+				expect(maticAddress).to.equal(matic.address);
+				expect(validatorRegistryAddress).to.equal(
+					validatorRegistry.address
+				);
+				expect(polAddress).to.equal(pol.address);
+			});
+		});
+	});
+
+	describe("Fallback", function () {
+		describe("Negative", function () {
+			it("Should revert if calling a non existing method", async function () {
+				const { maticX, stakerA } = await loadFixture(deployFixture);
+
+				const iface = new ethers.utils.Interface([
+					"function foobar(uint256)",
+				]);
+				const promise = stakerA.sendTransaction({
+					to: maticX.address,
+					data: iface.encodeFunctionData("foobar", [1]),
+				});
+				await expect(promise).to.be.reverted;
+			});
+
+			it("Should revert if sending arbitrary data", async function () {
+				const { maticX, stakerA } = await loadFixture(deployFixture);
+
+				const promise = stakerA.sendTransaction({
+					to: maticX.address,
+					data: "0x01",
+				});
+				await expect(promise).to.be.reverted;
+			});
+
+			it("Should revert if sending no data", async function () {
+				const { maticX, stakerA } = await loadFixture(deployFixture);
+
+				const promise = stakerA.sendTransaction({
+					to: maticX.address,
+				});
+				await expect(promise).to.be.reverted;
+			});
+		});
+	});
+
+	describe("Grant a role", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(stakerA)
+					.grantRole(defaultAdminRole, stakerA.address);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the RoleGranted event", async function () {
+				const { maticX, manager, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.grantRole(defaultAdminRole, stakerA.address);
+				await expect(promise)
+					.to.emit(maticX, "RoleGranted")
+					.withArgs(
+						defaultAdminRole,
+						stakerA.address,
+						manager.address
+					);
+			});
+
+			it("Should return the right state of the granted role", async function () {
+				const { maticX, manager, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const hasRole: boolean = await maticX.hasRole(
+					defaultAdminRole,
+					manager.address
+				);
+				expect(hasRole).to.be.true;
+			});
+		});
+	});
+
+	describe("Revoke a role", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(stakerA)
+					.revokeRole(defaultAdminRole, stakerA.address);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the RoleRevoked event", async function () {
+				const { maticX, manager, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.revokeRole(defaultAdminRole, manager.address);
+				await expect(promise)
+					.to.emit(maticX, "RoleRevoked")
+					.withArgs(
+						defaultAdminRole,
+						manager.address,
+						manager.address
+					);
+			});
+
+			it("Should return the right state of the revoked role", async function () {
+				const { maticX, manager, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				await maticX
+					.connect(manager)
+					.revokeRole(defaultAdminRole, manager.address);
+
+				const hasRole: boolean = await maticX.hasRole(
+					defaultAdminRole,
+					manager.address
+				);
+				expect(hasRole).to.be.false;
+			});
+		});
+	});
+
+	describe("Renounce a role", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, manager, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.renounceRole(defaultAdminRole, stakerA.address);
+				await expect(promise).to.be.revertedWith(
+					"AccessControl: can only renounce roles for self"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the RoleRevoked event", async function () {
+				const { maticX, manager, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.renounceRole(defaultAdminRole, manager.address);
+				await expect(promise)
+					.to.emit(maticX, "RoleRevoked")
+					.withArgs(
+						defaultAdminRole,
+						manager.address,
+						manager.address
+					);
+			});
+
+			it("Should return the right state of the revoked role", async function () {
+				const { maticX, manager, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				await maticX
+					.connect(manager)
+					.renounceRole(defaultAdminRole, manager.address);
+
+				const hasRole: boolean = await maticX.hasRole(
+					defaultAdminRole,
+					manager.address
+				);
+				expect(hasRole).to.be.false;
+			});
+		});
+	});
 
 	describe("Submit Matic", function () {
 		describe("Negative", function () {
