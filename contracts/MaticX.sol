@@ -29,6 +29,8 @@ contract MaticX is
 
 	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
 	bytes32 public constant BOT = keccak256("BOT");
+	uint256 private constant NOT_ENTERED = 1;
+	uint256 private constant ENTERED = 2;
 
 	address private validatorRegistry;
 	address private stakeManager;
@@ -45,6 +47,17 @@ contract MaticX is
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 	address public override fxStateRootTunnel;
 	address private polToken;
+	uint256 private reentrancyGuardStatus;
+
+	/**
+	 * @dev Enables guard from reentrancy calls. 
+	 */
+	modifier nonReentrant() {
+		require(reentrancyGuardStatus != ENTERED, "ReentrancyGuard: reentrant call");
+		reentrancyGuardStatus = ENTERED;
+		_;
+		reentrancyGuardStatus = NOT_ENTERED;
+	}
 
 	/**
 	 * @dev Initializes the current contract.
@@ -105,6 +118,22 @@ contract MaticX is
 		emit SetupBotAdmin();
 	}
 
+	/**
+	 * @dev Initializes version 2 of the current contract.
+	 * @param _polToken - Address of the POL token
+	 */
+	function initializeV2(address _polToken) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+		require(_polToken != address(0), "Zero POL token address");
+
+		polToken = _polToken;
+		reentrancyGuardStatus = NOT_ENTERED;
+
+		IERC20Upgradeable(_polToken).safeApprove(
+			stakeManager,
+			type(uint256).max
+		);
+	}
+
 	////////////////////////////////////////////////////////////
 	/////                                                    ///
 	/////             ***Staking Contract Interactions***    ///
@@ -120,7 +149,7 @@ contract MaticX is
 	 */
 	function submit(
 		uint256 _amount
-	) external override whenNotPaused returns (uint256) {
+	) external override nonReentrant whenNotPaused returns (uint256) {
 		return _submit(msg.sender, _amount, false);
 	}
 
@@ -133,7 +162,7 @@ contract MaticX is
 	 */
 	function submitPOL(
 		uint256 _amount
-	) external override whenNotPaused returns (uint256) {
+	) external override nonReentrant whenNotPaused returns (uint256) {
 		return _submit(msg.sender, _amount, true);
 	}
 
@@ -145,6 +174,7 @@ contract MaticX is
 	 * @param _pol - If the POL flow should be used
 	 * @return Amount of MaticX shares generated
 	 */
+	// slither-disable-next-line reentrancy-benign
 	function _submit(
 		address depositSender,
 		uint256 _amount,
@@ -192,7 +222,9 @@ contract MaticX is
 	 * @dev Registers a user's request to withdraw Matic tokens.
 	 * @param _amount - Amount of Matic tokens that is requested to withdraw
 	 */
-	function requestWithdraw(uint256 _amount) external override whenNotPaused {
+	function requestWithdraw(
+		uint256 _amount
+	) external override nonReentrant whenNotPaused {
 		_requestWithdraw(_amount, false);
 	}
 
@@ -202,7 +234,7 @@ contract MaticX is
 	 */
 	function requestWithdrawPOL(
 		uint256 _amount
-	) external override whenNotPaused {
+	) external override nonReentrant whenNotPaused {
 		_requestWithdraw(_amount, true);
 	}
 
@@ -211,6 +243,7 @@ contract MaticX is
 	 * @param _amount - Amount of POL that is requested to withdraw
 	 * @param _pol - If the POL flow should be used
 	 */
+	// slither-disable-next-line reentrancy-no-eth
 	function _requestWithdraw(uint256 _amount, bool _pol) internal {
 		require(_amount > 0, "Invalid amount");
 
@@ -314,7 +347,7 @@ contract MaticX is
 	 * user.
 	 * @param _idx - Array index of the user's withdrawal request
 	 */
-	function claimWithdrawal(uint256 _idx) external override whenNotPaused {
+	function claimWithdrawal(uint256 _idx) external override nonReentrant whenNotPaused {
 		_claimWithdrawal(msg.sender, _idx, false);
 	}
 
@@ -323,7 +356,7 @@ contract MaticX is
 	 * user.
 	 * @param _idx - Array index of the user's withdrawal request
 	 */
-	function claimWithdrawalPOL(uint256 _idx) external override whenNotPaused {
+	function claimWithdrawalPOL(uint256 _idx) external override nonReentrant whenNotPaused {
 		_claimWithdrawal(msg.sender, _idx, true);
 	}
 
@@ -375,7 +408,7 @@ contract MaticX is
 	 */
 	function withdrawRewards(
 		uint256 _validatorId
-	) external override whenNotPaused returns (uint256) {
+	) external override nonReentrant whenNotPaused returns (uint256) {
 		return _withdrawRewards(_validatorId, false);
 	}
 
@@ -385,7 +418,7 @@ contract MaticX is
 	 */
 	function withdrawValidatorsReward(
 		uint256[] calldata _validatorIds
-	) external override whenNotPaused returns (uint256[] memory) {
+	) external override nonReentrant whenNotPaused returns (uint256[] memory) {
 		uint256[] memory rewards = new uint256[](_validatorIds.length);
 		for (uint256 i = 0; i < _validatorIds.length; i++) {
 			rewards[i] = _withdrawRewards(_validatorIds[i], false);
@@ -399,7 +432,7 @@ contract MaticX is
 	 */
 	function withdrawValidatorsRewardPOL(
 		uint256[] calldata _validatorIds
-	) external override whenNotPaused returns (uint256[] memory) {
+	) external override nonReentrant whenNotPaused returns (uint256[] memory) {
 		uint256[] memory rewards = new uint256[](_validatorIds.length);
 		for (uint256 i = 0; i < _validatorIds.length; i++) {
 			rewards[i] = _withdrawRewards(_validatorIds[i], true);
@@ -442,7 +475,7 @@ contract MaticX is
 	 */
 	function stakeRewardsAndDistributeFees(
 		uint256 _validatorId
-	) external override whenNotPaused onlyRole(BOT) {
+	) external override nonReentrant whenNotPaused onlyRole(BOT) {
 		_stakeRewardsAndDistributeFees(_validatorId, false);
 	}
 
@@ -453,7 +486,7 @@ contract MaticX is
 	 */
 	function stakeRewardsAndDistributeFeesPOL(
 		uint256 _validatorId
-	) external override whenNotPaused onlyRole(BOT) {
+	) external override nonReentrant whenNotPaused onlyRole(BOT) {
 		_stakeRewardsAndDistributeFees(_validatorId, true);
 	}
 
@@ -510,7 +543,7 @@ contract MaticX is
 		uint256 _fromValidatorId,
 		uint256 _toValidatorId,
 		uint256 _amount
-	) external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+	) external override nonReentrant whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_fromValidatorId
@@ -733,14 +766,6 @@ contract MaticX is
 
 		polToken = _address;
 		emit SetPOLToken(_address);
-
-		require(
-			IERC20Upgradeable(polToken).approve(
-				stakeManager,
-				type(uint256).max
-			),
-			"Unable to approve POL token on StakeManager"
-		);
 	}
 
 	////////////////////////////////////////////////////////////
