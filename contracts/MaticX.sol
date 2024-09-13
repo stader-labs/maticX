@@ -40,9 +40,9 @@ contract MaticX is
 	string public override version;
 	uint8 public override feePercent;
 
-	address public instantPoolOwner_deprecated;
-	uint256 public instantPoolMatic_deprecated;
-	uint256 public instantPoolMaticX_deprecated;
+	address private instantPoolOwner_deprecated;
+	uint256 private instantPoolMatic_deprecated;
+	uint256 private instantPoolMaticX_deprecated;
 
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 	address public override fxStateRootTunnel;
@@ -90,11 +90,11 @@ contract MaticX is
 		require(_stakeManager != address(0), "Zero stake manager address");
 		stakeManager = _stakeManager;
 
-		require(_treasury != address(0), "Zero treasury address");
-		treasury = _treasury;
-
 		require(_maticToken != address(0), "Zero matic token address");
 		maticToken = _maticToken;
+
+		require(_treasury != address(0), "Zero treasury address");
+		treasury = _treasury;
 
 		feePercent = 5;
 
