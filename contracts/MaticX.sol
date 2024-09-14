@@ -115,28 +115,16 @@ contract MaticX is
 		address _polToken
 	) external reinitializer(2) onlyRole(DEFAULT_ADMIN_ROLE) {
 		require(_polToken != address(0), "Zero POL token address");
-
 		polToken = _polToken;
+
 		reentrancyGuardStatus = NOT_ENTERED;
+
+		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
 
 		IERC20Upgradeable(_polToken).safeApprove(
 			stakeManager,
 			type(uint256).max
 		);
-	}
-
-	/**
-	 * @dev Sets the BOT's admin role. Callable by the admin only.
-	 */
-	function setupBotAdmin()
-		external
-		override
-		whenNotPaused
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
-		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
-
-		emit SetupBotAdmin();
 	}
 
 	////////////////////////////////////////////////////////////
