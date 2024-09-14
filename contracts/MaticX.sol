@@ -50,7 +50,7 @@ contract MaticX is
 	uint256 private reentrancyGuardStatus;
 
 	/**
-	 * @dev Enables guard from reentrancy calls.
+	 * @dev Enables guard from reentrant calls.
 	 */
 	modifier nonReentrant() {
 		require(
@@ -77,12 +77,9 @@ contract MaticX is
 		address _manager,
 		address _treasury
 	) external initializer {
-		__AccessControl_init();
-		__Pausable_init();
-		__ERC20_init("Liquid Staking Matic", "MaticX");
-
-		require(_manager != address(0), "Zero manager address");
-		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
+		AccessControlUpgradeable.__AccessControl_init();
+		PausableUpgradeable.__Pausable_init();
+		ERC20Upgradeable.__ERC20_init("Liquid Staking Matic", "MaticX");
 
 		require(
 			_validatorRegistry != address(0),
@@ -95,6 +92,9 @@ contract MaticX is
 
 		require(_maticToken != address(0), "Zero matic token address");
 		maticToken = _maticToken;
+
+		require(_manager != address(0), "Zero manager address");
+		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
 
 		require(_treasury != address(0), "Zero treasury address");
 		treasury = _treasury;
