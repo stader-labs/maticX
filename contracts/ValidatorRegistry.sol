@@ -45,7 +45,6 @@ contract ValidatorRegistry is
 	) external initializer {
 		AccessControlUpgradeable.__AccessControl_init();
 		PausableUpgradeable.__Pausable_init();
-		ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
 
 		require(_stakeManager != address(0), "Zero stake manager address");
 		stakeManager = _stakeManager;
@@ -58,6 +57,19 @@ contract ValidatorRegistry is
 
 		require(_manager != address(0), "Zero manager address");
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
+	}
+
+	/**
+	 * @dev Initializes version 2 of the current contract.
+	 * @param _polToken - Address of the POL token
+	 */
+	function initializeV2(
+		address _polToken
+	) external reinitializer(2) onlyRole(DEFAULT_ADMIN_ROLE) {
+		ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
+
+		require(_polToken != address(0), "Zero POL token address");
+		polToken = _polToken;
 	}
 
 	/// ----------------------------- API --------------------------------------
@@ -189,19 +201,6 @@ contract ValidatorRegistry is
 		version = _version;
 
 		emit SetVersion(_version);
-	}
-
-	/**
-	 * @dev Sets the address of the POL token. Callable by the admin only.
-	 * @param _address - Address of the POL token
-	 */
-	function setPOLToken(
-		address _address
-	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(_address != address(0), "Zero POL token address");
-
-		polToken = _address;
-		emit SetPOLToken(_address);
 	}
 
 	/// @notice Allows to pause the contract.

@@ -284,7 +284,7 @@ describe("MaticX (Forking)", function () {
 			it("Should return the right paused status", async function () {
 				const { maticX } = await loadFixture(deployFixture);
 
-				const paused: boolean = await maticX.paused();
+				const paused = await maticX.paused();
 				expect(paused).to.be.false;
 			});
 
@@ -354,7 +354,7 @@ describe("MaticX (Forking)", function () {
 					await ethers.getContractFactory("ExtendedMaticXMock");
 				await upgrades.upgradeProxy(maticX, ExtendedMaticXMock);
 
-				const currentImplementationAddress: string =
+				const currentImplementationAddress =
 					await upgrades.erc1967.getImplementationAddress(
 						maticX.address
 					);
@@ -366,7 +366,7 @@ describe("MaticX (Forking)", function () {
 			it("Should return the same address of the implementation if not extended", async function () {
 				const { maticX } = await loadFixture(deployFixture);
 
-				const initialImplementationAddress: string =
+				const initialImplementationAddress =
 					await upgrades.erc1967.getImplementationAddress(
 						maticX.address
 					);
@@ -374,7 +374,7 @@ describe("MaticX (Forking)", function () {
 				const MaticX = await ethers.getContractFactory("MaticX");
 				await upgrades.upgradeProxy(maticX, MaticX);
 
-				const currentImplementationAddress: string =
+				const currentImplementationAddress =
 					await upgrades.erc1967.getImplementationAddress(
 						maticX.address
 					);
