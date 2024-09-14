@@ -16,8 +16,6 @@ interface IValidatorRegistry {
 
 	event SetVersion(string _version);
 
-	event SetPOLToken(address _address);
-
 	function addValidator(uint256 _validatorId) external;
 
 	function removeValidator(uint256 _validatorId) external;
@@ -55,6 +53,4 @@ interface IValidatorRegistry {
 	function getValidatorId(uint256 _index) external view returns (uint256);
 
 	function getValidators() external view returns (uint256[] memory);
-
-	function setPOLToken(address _address) external;
 }
