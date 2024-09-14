@@ -219,7 +219,6 @@ describe("MaticX", function () {
 		await fxStateRootTunnel.setMaticX(maticX.address);
 		await fxStateRootTunnel.setFxChildTunnel(fxStateChildTunnel.address);
 		await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
-		await maticX.setupBotAdmin();
 		await maticX.grantRole(await maticX.BOT(), instantPoolOwner.address);
 	});
 

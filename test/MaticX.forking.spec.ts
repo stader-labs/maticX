@@ -630,17 +630,18 @@ describe("MaticX (Forking)", function () {
 		});
 
 		describe("Positive", function () {
-			it("Should return the right contract addresses", async function () {
-				const { maticX, pol, manager } = await loadFixture(
-					deployFixture.bind(null, false)
-				);
+			it("Should emit the Initialized and RoleAdminChanged events", async function () {
+				const { maticX, pol, manager, botRole, defaultAdminRole } =
+					await loadFixture(deployFixture.bind(null, false));
 
 				const promise = maticX
 					.connect(manager)
 					.initializeV2(pol.address);
 				await expect(promise)
 					.to.emit(maticX, "Initialized")
-					.withArgs(2);
+					.withArgs(2)
+					.and.to.emit(maticX, "RoleAdminChanged")
+					.withArgs(botRole, defaultAdminRole, defaultAdminRole);
 			});
 
 			it("Should return the right contract addresses", async function () {
@@ -680,45 +681,6 @@ describe("MaticX (Forking)", function () {
 					stakeManager.address
 				);
 				expect(currentAllowance).to.equal(ethers.constants.MaxUint256);
-			});
-		});
-	});
-
-	describe("Setup bot admin", function () {
-		describe("Negative", function () {
-			it("Should revert with the right error if called by a non admin", async function () {
-				const { maticX, executor, defaultAdminRole } =
-					await loadFixture(deployFixture.bind(null, false));
-
-				const promise = maticX.connect(executor).setupBotAdmin();
-				await expect(promise).to.be.revertedWith(
-					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
-				);
-			});
-
-			it("Should revert with the right error if paused", async function () {
-				const { maticX, manager } = await loadFixture(
-					deployFixture.bind(null, false)
-				);
-
-				await maticX.connect(manager).togglePause();
-
-				const promise = maticX.connect(manager).setupBotAdmin();
-				await expect(promise).to.be.revertedWith("Pausable: paused");
-			});
-		});
-
-		describe("Positive", function () {
-			it("Should emit the SetupBotAdmin and RoleAdminChanged events", async function () {
-				const { maticX, manager, botRole, defaultAdminRole } =
-					await loadFixture(deployFixture.bind(null, false));
-
-				const promise = maticX.connect(manager).setupBotAdmin();
-				await expect(promise)
-					.to.emit(maticX, "SetupBotAdmin")
-					.withArgs()
-					.and.to.emit(maticX, "RoleAdminChanged")
-					.withArgs(botRole, defaultAdminRole, defaultAdminRole);
 			});
 		});
 	});
@@ -1128,6 +1090,19 @@ describe("MaticX (Forking)", function () {
 				await expect(promise).to.be.revertedWith("Pausable: paused");
 			});
 
+			it("Should revert with the right error if requesting the zero amount", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const promise = maticX.connect(stakerA).requestWithdraw(0);
+				await expect(promise).to.be.revertedWith("Invalid amount");
+			});
+
 			it("Should revert with the right error if requesting a higher amount than staked before", async function () {
 				const { maticX, matic, stakerA } =
 					await loadFixture(deployFixture);
@@ -1324,6 +1299,17 @@ describe("MaticX (Forking)", function () {
 					.connect(stakerA)
 					.requestWithdrawPOL(stakeAmount);
 				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if requesting the zero amount", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const promise = maticX.connect(stakerA).requestWithdrawPOL(0);
+				await expect(promise).to.be.revertedWith("Invalid amount");
 			});
 
 			it("Should revert with the right error if requesting a higher amount than staked before", async function () {
@@ -1901,6 +1887,38 @@ describe("MaticX (Forking)", function () {
 				);
 				expect(currentWithdrawalRequests).to.be.empty;
 			});
+		});
+	});
+
+	describe("Withdraw Matic validator rewards", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawRewards(preferredDepositValidatorId);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if having an insufficient rewards amount", async function () {
+				const { maticX, manager, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawRewards(preferredDepositValidatorId);
+				await expect(promise).to.be.revertedWith(
+					"Too small rewards amount"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			// TODO Add tests
 		});
 	});
 

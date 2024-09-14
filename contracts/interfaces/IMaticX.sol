@@ -12,8 +12,6 @@ interface IMaticX is IERC20Upgradeable {
 		address validatorAddress;
 	}
 
-	event SetupBotAdmin();
-
 	event Submit(address indexed _from, uint256 _amount);
 
 	event Delegate(uint256 indexed _validatorId, uint256 _amountDelegated);
@@ -46,8 +44,6 @@ interface IMaticX is IERC20Upgradeable {
 
 	event SetFeePercent(uint8 _feePercent);
 
-	event SetInstantPoolOwner(address _address);
-
 	event SetTreasury(address _address);
 
 	event SetValidatorRegistry(address _address);
@@ -57,8 +53,6 @@ interface IMaticX is IERC20Upgradeable {
 	event SetVersion(string _version);
 
 	event SetPOLToken(address _address);
-
-	function setupBotAdmin() external;
 
 	function submit(uint256 _amount) external returns (uint256);
 
