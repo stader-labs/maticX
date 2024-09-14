@@ -50,10 +50,13 @@ contract MaticX is
 	uint256 private reentrancyGuardStatus;
 
 	/**
-	 * @dev Enables guard from reentrancy calls. 
+	 * @dev Enables guard from reentrancy calls.
 	 */
 	modifier nonReentrant() {
-		require(reentrancyGuardStatus != ENTERED, "ReentrancyGuard: reentrant call");
+		require(
+			reentrancyGuardStatus != ENTERED,
+			"ReentrancyGuard: reentrant call"
+		);
 		reentrancyGuardStatus = ENTERED;
 		_;
 		reentrancyGuardStatus = NOT_ENTERED;
@@ -105,6 +108,24 @@ contract MaticX is
 	}
 
 	/**
+	 * @dev Initializes version 2 of the current contract.
+	 * @param _polToken - Address of the POL token
+	 */
+	function initializeV2(
+		address _polToken
+	) external reinitializer(2) onlyRole(DEFAULT_ADMIN_ROLE) {
+		require(_polToken != address(0), "Zero POL token address");
+
+		polToken = _polToken;
+		reentrancyGuardStatus = NOT_ENTERED;
+
+		IERC20Upgradeable(_polToken).safeApprove(
+			stakeManager,
+			type(uint256).max
+		);
+	}
+
+	/**
 	 * @dev Sets the BOT's admin role. Callable by the admin only.
 	 */
 	function setupBotAdmin()
@@ -118,25 +139,9 @@ contract MaticX is
 		emit SetupBotAdmin();
 	}
 
-	/**
-	 * @dev Initializes version 2 of the current contract.
-	 * @param _polToken - Address of the POL token
-	 */
-	function initializeV2(address _polToken) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(_polToken != address(0), "Zero POL token address");
-
-		polToken = _polToken;
-		reentrancyGuardStatus = NOT_ENTERED;
-
-		IERC20Upgradeable(_polToken).safeApprove(
-			stakeManager,
-			type(uint256).max
-		);
-	}
-
 	////////////////////////////////////////////////////////////
 	/////                                                    ///
-	/////             ***Staking Contract Interactions***    ///
+	/////        ***Staking Contract Interactions***         ///
 	/////                                                    ///
 	////////////////////////////////////////////////////////////
 
@@ -347,7 +352,9 @@ contract MaticX is
 	 * user.
 	 * @param _idx - Array index of the user's withdrawal request
 	 */
-	function claimWithdrawal(uint256 _idx) external override nonReentrant whenNotPaused {
+	function claimWithdrawal(
+		uint256 _idx
+	) external override nonReentrant whenNotPaused {
 		_claimWithdrawal(msg.sender, _idx, false);
 	}
 
@@ -356,7 +363,9 @@ contract MaticX is
 	 * user.
 	 * @param _idx - Array index of the user's withdrawal request
 	 */
-	function claimWithdrawalPOL(uint256 _idx) external override nonReentrant whenNotPaused {
+	function claimWithdrawalPOL(
+		uint256 _idx
+	) external override nonReentrant whenNotPaused {
 		_claimWithdrawal(msg.sender, _idx, true);
 	}
 
@@ -543,7 +552,13 @@ contract MaticX is
 		uint256 _fromValidatorId,
 		uint256 _toValidatorId,
 		uint256 _amount
-	) external override nonReentrant whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+	)
+		external
+		override
+		nonReentrant
+		whenNotPaused
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_fromValidatorId
