@@ -24,7 +24,7 @@ describe("MaticX (Forking)", function () {
 	const stakeAmount = ethers.utils.parseUnits("100", 18);
 	const totalStakeAmount = stakeAmount.mul(3);
 
-	async function deployFixture() {
+	async function deployFixture(callInitializeV2 = true) {
 		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
 
 		// EOAs
@@ -38,7 +38,7 @@ describe("MaticX (Forking)", function () {
 			"0x6e7a5820baD6cebA8Ef5ea69c0C92EbbDAc9CE48"
 		);
 		const treasury = manager;
-		const [stakerA, stakerB] = await ethers.getSigners();
+		const [executor, stakerA, stakerB] = await ethers.getSigners();
 		const stakers = [stakerA, stakerB];
 
 		// Contracts
@@ -100,9 +100,13 @@ describe("MaticX (Forking)", function () {
 		await maticX
 			.connect(manager)
 			.setFxStateRootTunnel(fxStateRootTunnel.address);
-		await maticX.connect(manager).initializeV2(pol.address);
+
+		if (callInitializeV2) {
+			await maticX.connect(manager).initializeV2(pol.address);
+		}
 
 		const defaultAdminRole = await maticX.DEFAULT_ADMIN_ROLE();
+		const botRole = await maticX.BOT();
 
 		// ERC20 transfers
 		for (const staker of stakers) {
@@ -136,10 +140,12 @@ describe("MaticX (Forking)", function () {
 			treasury,
 			maticHolder,
 			stakeManagerGovernance,
+			executor,
 			stakerA,
 			stakerB,
 			stakers,
 			defaultAdminRole,
+			botRole,
 			validatorIds,
 			preferredDepositValidatorId,
 			preferredWithdrawalValidatorId,
@@ -268,7 +274,7 @@ describe("MaticX (Forking)", function () {
 				const { maticX, manager, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
-				const hasRole: boolean = await maticX.hasRole(
+				const hasRole = await maticX.hasRole(
 					defaultAdminRole,
 					manager.address
 				);
@@ -337,12 +343,12 @@ describe("MaticX (Forking)", function () {
 	describe("Fallback", function () {
 		describe("Negative", function () {
 			it("Should revert if calling a non existing method", async function () {
-				const { maticX, stakerA } = await loadFixture(deployFixture);
+				const { maticX, executor } = await loadFixture(deployFixture);
 
 				const iface = new ethers.utils.Interface([
 					"function foobar(uint256)",
 				]);
-				const promise = stakerA.sendTransaction({
+				const promise = executor.sendTransaction({
 					to: maticX.address,
 					data: iface.encodeFunctionData("foobar", [1]),
 				});
@@ -350,9 +356,9 @@ describe("MaticX (Forking)", function () {
 			});
 
 			it("Should revert if sending arbitrary data", async function () {
-				const { maticX, stakerA } = await loadFixture(deployFixture);
+				const { maticX, executor } = await loadFixture(deployFixture);
 
-				const promise = stakerA.sendTransaction({
+				const promise = executor.sendTransaction({
 					to: maticX.address,
 					data: "0x01",
 				});
@@ -360,9 +366,9 @@ describe("MaticX (Forking)", function () {
 			});
 
 			it("Should revert if sending no data", async function () {
-				const { maticX, stakerA } = await loadFixture(deployFixture);
+				const { maticX, executor } = await loadFixture(deployFixture);
 
-				const promise = stakerA.sendTransaction({
+				const promise = executor.sendTransaction({
 					to: maticX.address,
 				});
 				await expect(promise).to.be.reverted;
@@ -373,42 +379,46 @@ describe("MaticX (Forking)", function () {
 	describe("Grant a role", function () {
 		describe("Negative", function () {
 			it("Should revert with the right error if called by a non admin", async function () {
-				const { maticX, stakerA, defaultAdminRole } =
+				const { maticX, executor, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
 				const promise = maticX
-					.connect(stakerA)
-					.grantRole(defaultAdminRole, stakerA.address);
+					.connect(executor)
+					.grantRole(defaultAdminRole, executor.address);
 				await expect(promise).to.be.revertedWith(
-					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
 				);
 			});
 		});
 
 		describe("Positive", function () {
 			it("Should emit the RoleGranted event", async function () {
-				const { maticX, manager, stakerA, defaultAdminRole } =
+				const { maticX, manager, executor, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
 				const promise = maticX
 					.connect(manager)
-					.grantRole(defaultAdminRole, stakerA.address);
+					.grantRole(defaultAdminRole, executor.address);
 				await expect(promise)
 					.to.emit(maticX, "RoleGranted")
 					.withArgs(
 						defaultAdminRole,
-						stakerA.address,
+						executor.address,
 						manager.address
 					);
 			});
 
-			it("Should return the right state of the granted role", async function () {
-				const { maticX, manager, defaultAdminRole } =
+			it("Should return the right status of the granted role", async function () {
+				const { maticX, manager, executor, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
-				const hasRole: boolean = await maticX.hasRole(
+				await maticX
+					.connect(manager)
+					.grantRole(defaultAdminRole, executor.address);
+
+				const hasRole = await maticX.hasRole(
 					defaultAdminRole,
-					manager.address
+					executor.address
 				);
 				expect(hasRole).to.be.true;
 			});
@@ -418,46 +428,54 @@ describe("MaticX (Forking)", function () {
 	describe("Revoke a role", function () {
 		describe("Negative", function () {
 			it("Should revert with the right error if called by a non admin", async function () {
-				const { maticX, stakerA, defaultAdminRole } =
+				const { maticX, executor, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
 				const promise = maticX
-					.connect(stakerA)
-					.revokeRole(defaultAdminRole, stakerA.address);
+					.connect(executor)
+					.revokeRole(defaultAdminRole, executor.address);
 				await expect(promise).to.be.revertedWith(
-					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
 				);
 			});
 		});
 
 		describe("Positive", function () {
 			it("Should emit the RoleRevoked event", async function () {
-				const { maticX, manager, defaultAdminRole } =
-					await loadFixture(deployFixture);
-
-				const promise = maticX
-					.connect(manager)
-					.revokeRole(defaultAdminRole, manager.address);
-				await expect(promise)
-					.to.emit(maticX, "RoleRevoked")
-					.withArgs(
-						defaultAdminRole,
-						manager.address,
-						manager.address
-					);
-			});
-
-			it("Should return the right state of the revoked role", async function () {
-				const { maticX, manager, defaultAdminRole } =
+				const { maticX, manager, executor, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
 				await maticX
 					.connect(manager)
-					.revokeRole(defaultAdminRole, manager.address);
+					.grantRole(defaultAdminRole, executor.address);
 
-				const hasRole: boolean = await maticX.hasRole(
+				const promise = maticX
+					.connect(manager)
+					.revokeRole(defaultAdminRole, executor.address);
+				await expect(promise)
+					.to.emit(maticX, "RoleRevoked")
+					.withArgs(
+						defaultAdminRole,
+						executor.address,
+						manager.address
+					);
+			});
+
+			it("Should return the right status of the revoked role", async function () {
+				const { maticX, manager, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				await maticX
+					.connect(manager)
+					.grantRole(defaultAdminRole, executor.address);
+
+				await maticX
+					.connect(manager)
+					.revokeRole(defaultAdminRole, executor.address);
+
+				const hasRole = await maticX.hasRole(
 					defaultAdminRole,
-					manager.address
+					executor.address
 				);
 				expect(hasRole).to.be.false;
 			});
@@ -467,12 +485,12 @@ describe("MaticX (Forking)", function () {
 	describe("Renounce a role", function () {
 		describe("Negative", function () {
 			it("Should revert with the right error if called by a non admin", async function () {
-				const { maticX, manager, stakerA, defaultAdminRole } =
+				const { maticX, manager, executor, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
 				const promise = maticX
 					.connect(manager)
-					.renounceRole(defaultAdminRole, stakerA.address);
+					.renounceRole(defaultAdminRole, executor.address);
 				await expect(promise).to.be.revertedWith(
 					"AccessControl: can only renounce roles for self"
 				);
@@ -496,7 +514,7 @@ describe("MaticX (Forking)", function () {
 					);
 			});
 
-			it("Should return the right state of the revoked role", async function () {
+			it("Should return the right status of the revoked role", async function () {
 				const { maticX, manager, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
@@ -504,7 +522,7 @@ describe("MaticX (Forking)", function () {
 					.connect(manager)
 					.renounceRole(defaultAdminRole, manager.address);
 
-				const hasRole: boolean = await maticX.hasRole(
+				const hasRole = await maticX.hasRole(
 					defaultAdminRole,
 					manager.address
 				);
@@ -513,8 +531,210 @@ describe("MaticX (Forking)", function () {
 		});
 	});
 
+	describe("Toggle pause", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX.connect(executor).togglePause();
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the Paused event if pausing", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).togglePause();
+				await expect(promise)
+					.to.emit(maticX, "Paused")
+					.withArgs(manager.address);
+			});
+
+			it("Should emit the Unpaused event if pausing", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(manager).togglePause();
+				await expect(promise)
+					.to.emit(maticX, "Unpaused")
+					.withArgs(manager.address);
+			});
+
+			it("Should return the right paused status if toggling once", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const paused = await maticX.paused();
+				expect(paused).to.be.true;
+			});
+
+			it("Should return the right paused status if toggling twice", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+				await maticX.connect(manager).togglePause();
+
+				const paused = await maticX.paused();
+				expect(paused).to.be.false;
+			});
+		});
+	});
+
+	describe("Initialize V2", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if reinitializing", async function () {
+				const { maticX, pol, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
+
+				await maticX.connect(manager).initializeV2(pol.address);
+
+				const promise = maticX
+					.connect(manager)
+					.initializeV2(pol.address);
+				await expect(promise).to.be.revertedWith(
+					"Initializable: contract is already initialized"
+				);
+			});
+
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, pol, executor, defaultAdminRole } =
+					await loadFixture(deployFixture.bind(null, false));
+
+				const promise = maticX
+					.connect(executor)
+					.initializeV2(pol.address);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero pol token address", async function () {
+				const { maticX, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
+
+				const promise = maticX
+					.connect(manager)
+					.initializeV2(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero POL token address"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should return the right contract addresses", async function () {
+				const { maticX, pol, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
+
+				const promise = maticX
+					.connect(manager)
+					.initializeV2(pol.address);
+				await expect(promise)
+					.to.emit(maticX, "Initialized")
+					.withArgs(2);
+			});
+
+			it("Should return the right contract addresses", async function () {
+				const {
+					maticX,
+					stakeManager,
+					matic,
+					validatorRegistry,
+					pol,
+					manager,
+				} = await loadFixture(deployFixture.bind(null, false));
+
+				await maticX.connect(manager).initializeV2(pol.address);
+
+				const [
+					stakeManagerAddress,
+					maticAddress,
+					validatorRegistryAddress,
+					polAddress,
+				] = await maticX.getContracts();
+				expect(stakeManagerAddress).to.equal(stakeManager.address);
+				expect(maticAddress).to.equal(matic.address);
+				expect(validatorRegistryAddress).to.equal(
+					validatorRegistry.address
+				);
+				expect(polAddress).to.equal(pol.address);
+			});
+
+			it("Should return the right allowance of the POL token for the StakeManager contract", async function () {
+				const { maticX, stakeManager, pol, manager } =
+					await loadFixture(deployFixture.bind(null, false));
+
+				await maticX.connect(manager).initializeV2(pol.address);
+
+				const currentAllowance = await pol.allowance(
+					maticX.address,
+					stakeManager.address
+				);
+				expect(currentAllowance).to.equal(ethers.constants.MaxUint256);
+			});
+		});
+	});
+
+	describe("Setup bot admin", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, executor, defaultAdminRole } =
+					await loadFixture(deployFixture.bind(null, false));
+
+				const promise = maticX.connect(executor).setupBotAdmin();
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(manager).setupBotAdmin();
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetupBotAdmin and RoleAdminChanged events", async function () {
+				const { maticX, manager, botRole, defaultAdminRole } =
+					await loadFixture(deployFixture.bind(null, false));
+
+				const promise = maticX.connect(manager).setupBotAdmin();
+				await expect(promise)
+					.to.emit(maticX, "SetupBotAdmin")
+					.withArgs()
+					.and.to.emit(maticX, "RoleAdminChanged")
+					.withArgs(botRole, defaultAdminRole, defaultAdminRole);
+			});
+		});
+	});
+
 	describe("Submit Matic", function () {
 		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
 			it("Should revert with the right error if passing the zero amount", async function () {
 				const { maticX, stakerA } = await loadFixture(deployFixture);
 
@@ -708,6 +928,16 @@ describe("MaticX (Forking)", function () {
 
 	describe("Submit POL", function () {
 		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
 			it("Should revert with the right error if passing the zero amount", async function () {
 				const { maticX, stakerA } = await loadFixture(deployFixture);
 
@@ -886,6 +1116,18 @@ describe("MaticX (Forking)", function () {
 
 	describe("Request a Matic withdrawal", function () {
 		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
 			it("Should revert with the right error if requesting a higher amount than staked before", async function () {
 				const { maticX, matic, stakerA } =
 					await loadFixture(deployFixture);
@@ -1072,6 +1314,18 @@ describe("MaticX (Forking)", function () {
 
 	describe("Request a POL withdrawal", function () {
 		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdrawPOL(stakeAmount);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
 			it("Should revert with the right error if requesting a higher amount than staked before", async function () {
 				const { maticX, pol, stakerA } =
 					await loadFixture(deployFixture);
@@ -1250,6 +1504,16 @@ describe("MaticX (Forking)", function () {
 
 	describe("Claim a Matic withdrawal", function () {
 		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(stakerA).claimWithdrawal(0);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
 			it("Should return the right error if claiming too early", async function () {
 				const {
 					maticX,
@@ -1443,6 +1707,16 @@ describe("MaticX (Forking)", function () {
 
 	describe("Claim a POL withdrawal", function () {
 		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(stakerA).claimWithdrawalPOL(0);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
 			it("Should return the right error if claiming too early", async function () {
 				const {
 					maticX,
@@ -1632,6 +1906,25 @@ describe("MaticX (Forking)", function () {
 
 	describe("Withdraw Matic validators rewards", function () {
 		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawValidatorsReward([
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+					]);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
 			it("Should revert with the right error if having an insufficient rewards amount", async function () {
 				const {
 					maticX,
@@ -1659,6 +1952,25 @@ describe("MaticX (Forking)", function () {
 
 	describe("Withdraw POL validators rewards", function () {
 		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawValidatorsRewardPOL([
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+					]);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
 			it("Should revert with the right error if having an insufficient rewards amount", async function () {
 				const {
 					maticX,
