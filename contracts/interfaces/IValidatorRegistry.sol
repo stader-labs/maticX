@@ -26,7 +26,7 @@ interface IValidatorRegistry {
 
 	function setPreferredWithdrawalValidatorId(uint256 _validatorId) external;
 
-	function setMaticX(address _maticX) external;
+	function setMaticX(address _address) external;
 
 	function setVersion(string memory _version) external;
 
