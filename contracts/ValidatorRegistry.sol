@@ -43,13 +43,20 @@ contract ValidatorRegistry is
 		address _maticX,
 		address _manager
 	) external initializer {
-		__AccessControl_init();
-		__Pausable_init();
+		AccessControlUpgradeable.__AccessControl_init();
+		PausableUpgradeable.__Pausable_init();
+		ReentrancyGuardUpgradeable.__ReentrancyGuard_init();
 
+		require(_stakeManager != address(0), "Zero stake manager address");
 		stakeManager = _stakeManager;
+
+		require(_maticToken != address(0), "Zero matic token address");
 		maticToken = _maticToken;
+
+		// slither-disable-next-line missing-zero-check
 		maticX = _maticX;
 
+		require(_manager != address(0), "Zero manager address");
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
 	}
 
@@ -88,6 +95,7 @@ contract ValidatorRegistry is
 
 	/// @notice Allows to remove an validator from the registry.
 	/// @param _validatorId the validator id.
+	// slither-disable-next-line pess-multiple-storage-read
 	function removeValidator(
 		uint256 _validatorId
 	)
@@ -112,12 +120,14 @@ contract ValidatorRegistry is
 			.getTotalStake(maticX);
 		require(validatorBalance == 0, "Validator has some shares left");
 
-		// swap with the last item and pop it.
-		uint256 validatorsLength = validators.length;
-		for (uint256 idx = 0; idx < validatorsLength - 1; ++idx) {
-			if (_validatorId == validators[idx]) {
-				validators[idx] = validators[validatorsLength - 1];
+		uint256 iterationCount = validators.length - 1;
+		for (uint256 i = 0; i < iterationCount; ) {
+			if (_validatorId == validators[i]) {
+				validators[i] = validators[iterationCount];
 				break;
+			}
+			unchecked {
+				++i;
 			}
 		}
 		validators.pop();
@@ -163,11 +173,12 @@ contract ValidatorRegistry is
 
 	/// @notice Allows to set the MaticX contract address.
 	function setMaticX(
-		address _maticX
+		address _address
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		maticX = _maticX;
+		require(_address != address(0), "Zero MaticX address");
+		maticX = _address;
 
-		emit SetMaticX(_maticX);
+		emit SetMaticX(_address);
 	}
 
 	/// @notice Allows to set the contract version.
@@ -248,7 +259,7 @@ contract ValidatorRegistry is
 	 */
 	modifier whenValidatorIdExists(uint256 _validatorId) {
 		require(
-			validatorIdExists[_validatorId] == true,
+			validatorIdExists[_validatorId],
 			"Validator id doesn't exist in our registry"
 		);
 		_;
@@ -264,7 +275,7 @@ contract ValidatorRegistry is
 	 */
 	modifier whenValidatorIdDoesNotExist(uint256 _validatorId) {
 		require(
-			validatorIdExists[_validatorId] == false,
+			!validatorIdExists[_validatorId],
 			"Validator id already exists in our registry"
 		);
 		_;
