@@ -340,6 +340,51 @@ describe("MaticX (Forking)", function () {
 		});
 	});
 
+	describe("Upgrade the contract", function () {
+		describe("Checks", function () {
+			it("Should return a new address of the implementation if extended", async function () {
+				const { maticX } = await loadFixture(deployFixture);
+
+				const initialImplementationAddress =
+					await upgrades.erc1967.getImplementationAddress(
+						maticX.address
+					);
+
+				const ExtendedMaticXMock =
+					await ethers.getContractFactory("ExtendedMaticXMock");
+				await upgrades.upgradeProxy(maticX, ExtendedMaticXMock);
+
+				const currentImplementationAddress: string =
+					await upgrades.erc1967.getImplementationAddress(
+						maticX.address
+					);
+				expect(initialImplementationAddress).not.to.equal(
+					currentImplementationAddress
+				);
+			});
+
+			it("Should return the same address of the implementation if not extended", async function () {
+				const { maticX } = await loadFixture(deployFixture);
+
+				const initialImplementationAddress: string =
+					await upgrades.erc1967.getImplementationAddress(
+						maticX.address
+					);
+
+				const MaticX = await ethers.getContractFactory("MaticX");
+				await upgrades.upgradeProxy(maticX, MaticX);
+
+				const currentImplementationAddress: string =
+					await upgrades.erc1967.getImplementationAddress(
+						maticX.address
+					);
+				expect(currentImplementationAddress).to.equal(
+					initialImplementationAddress
+				);
+			});
+		});
+	});
+
 	describe("Fallback", function () {
 		describe("Negative", function () {
 			it("Should revert if calling a non existing method", async function () {
