@@ -8,7 +8,7 @@ import { IStakeManager } from "./interfaces/IStakeManager.sol";
 import { IValidatorShare } from "./interfaces/IValidatorShare.sol";
 import { IValidatorRegistry } from "./interfaces/IValidatorRegistry.sol";
 
-/// @title ValidatorRegistry
+/// @title ValidatorRegistry contract
 /// @notice ValidatorRegistry is the main contract that manages validators
 contract ValidatorRegistry is
 	IValidatorRegistry,
@@ -29,6 +29,39 @@ contract ValidatorRegistry is
 
 	uint256[] private validators;
 	address private polToken;
+
+	/// -------------------------------modifiers-----------------------------------
+
+	/**
+	 * @dev Modifier to make a function callable only when the validator id exists in our registry.
+	 * @param _validatorId the validator id.
+	 * Requirements:
+	 *
+	 * - The validator id must exist in our registry.
+	 */
+	modifier whenValidatorIdExists(uint256 _validatorId) {
+		require(
+			validatorIdExists[_validatorId],
+			"Validator id doesn't exist in our registry"
+		);
+		_;
+	}
+
+	/**
+	 * @dev Modifier to make a function callable only when the validator id doesn't exist in our registry.
+	 * @param _validatorId the validator id.
+	 *
+	 * Requirements:
+	 *
+	 * - The validator id must not exist in our registry.
+	 */
+	modifier whenValidatorIdDoesNotExist(uint256 _validatorId) {
+		require(
+			!validatorIdExists[_validatorId],
+			"Validator id already exists in our registry"
+		);
+		_;
+	}
 
 	/// -------------------------- initialize ----------------------------------
 
@@ -74,9 +107,9 @@ contract ValidatorRegistry is
 
 	/// ----------------------------- API --------------------------------------
 
-	/// @notice Allows a validator that was already staked on the polygon stake manager
+	/// @notice Allows a validator that was already staked on the stake manager
 	/// to join the MaticX protocol.
-	/// @param _validatorId id of the validator.
+	/// @param _validatorId - Validator id
 	function addValidator(
 		uint256 _validatorId
 	)
@@ -105,8 +138,8 @@ contract ValidatorRegistry is
 		emit AddValidator(_validatorId);
 	}
 
-	/// @notice Allows to remove an validator from the registry.
-	/// @param _validatorId the validator id.
+	/// @notice Removes a validator from the registry.
+	/// @param _validatorId - Validator id.
 	// slither-disable-next-line pess-multiple-storage-read
 	function removeValidator(
 		uint256 _validatorId
@@ -151,8 +184,8 @@ contract ValidatorRegistry is
 
 	/// -------------------------------Setters-----------------------------------
 
-	/// @notice Allows to set the preffered validator id for deposits
-	/// @param _validatorId the validator id.
+	/// @notice Sets the prefered validator id for deposits.
+	/// @param _validatorId - Validator id for deposits
 	function setPreferredDepositValidatorId(
 		uint256 _validatorId
 	)
@@ -167,8 +200,8 @@ contract ValidatorRegistry is
 		emit SetPreferredDepositValidatorId(_validatorId);
 	}
 
-	/// @notice Allows to set the preffered validator id for withdrawals
-	/// @param _validatorId the validator id.
+	/// @notice Set the prefered validator id for withdrawals.
+	/// @param _validatorId - Validator id for withdrawals
 	function setPreferredWithdrawalValidatorId(
 		uint256 _validatorId
 	)
@@ -183,7 +216,8 @@ contract ValidatorRegistry is
 		emit SetPreferredWithdrawalValidatorId(_validatorId);
 	}
 
-	/// @notice Allows to set the MaticX contract address.
+	/// @notice Sets the address of MaticX.
+	/// @param _address - Address of MaticX
 	function setMaticX(
 		address _address
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -193,8 +227,8 @@ contract ValidatorRegistry is
 		emit SetMaticX(_address);
 	}
 
-	/// @notice Allows to set the contract version.
-	/// @param _version contract version
+	/// @notice Sets a new version of this contract
+	/// @param _version - New version of this contract
 	function setVersion(
 		string memory _version
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -203,18 +237,18 @@ contract ValidatorRegistry is
 		emit SetVersion(_version);
 	}
 
-	/// @notice Allows to pause the contract.
+	/// @notice Toggles the paused status of this contract.
 	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		paused() ? _unpause() : _pause();
 	}
 
 	/// -------------------------------Getters-----------------------------------
 
-	/// @notice Get contract addresses.
-	/// @return _stakeManager address of the stake manager.
-	/// @return _maticToken address of the Matic token.
-	/// @return _maticX address of MaticX.
-	/// @return _polToken address of the POL token.
+	/// @notice Returns the contract addresses used on the current contract.
+	/// @return _stakeManager - Address of the stake manager
+	/// @return _maticToken - Address of the Matic token
+	/// @return _maticX - Address of MaticX
+	/// @return _polToken - Address of the POL token
 	function getContracts()
 		external
 		view
@@ -232,51 +266,18 @@ contract ValidatorRegistry is
 		_polToken = polToken;
 	}
 
-	/// @notice Get validator id by its index.
-	/// @param _index validator index
-	/// @return _validatorId the validator id.
+	/// @notice Returns validator id by index.
+	/// @param _index - Validator index
+	/// @return Validator id
 	function getValidatorId(
 		uint256 _index
 	) external view override returns (uint256) {
 		return validators[_index];
 	}
 
-	/// @notice Get validators.
-	/// @return _validators the validators.
+	/// @notice Returns a list of registered validators.
+	/// @return List of registered validators
 	function getValidators() external view override returns (uint256[] memory) {
 		return validators;
-	}
-
-	/// -------------------------------Modifiers-----------------------------------
-
-	/**
-	 * @dev Modifier to make a function callable only when the validator id exists in our registry.
-	 * @param _validatorId the validator id.
-	 * Requirements:
-	 *
-	 * - The validator id must exist in our registry.
-	 */
-	modifier whenValidatorIdExists(uint256 _validatorId) {
-		require(
-			validatorIdExists[_validatorId],
-			"Validator id doesn't exist in our registry"
-		);
-		_;
-	}
-
-	/**
-	 * @dev Modifier to make a function callable only when the validator id doesn't exist in our registry.
-	 * @param _validatorId the validator id.
-	 *
-	 * Requirements:
-	 *
-	 * - The validator id must not exist in our registry.
-	 */
-	modifier whenValidatorIdDoesNotExist(uint256 _validatorId) {
-		require(
-			!validatorIdExists[_validatorId],
-			"Validator id already exists in our registry"
-		);
-		_;
 	}
 }
