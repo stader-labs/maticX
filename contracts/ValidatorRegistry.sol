@@ -63,7 +63,7 @@ contract ValidatorRegistry is
 		_;
 	}
 
-	/// -------------------------- initialize ----------------------------------
+	/// -------------------------- Initialize ----------------------------------
 
 	/// @notice Initialize the ValidatorRegistry contract.
 	/// @param _stakeManager address of the polygon stake manager.
@@ -124,12 +124,12 @@ contract ValidatorRegistry is
 
 		require(
 			smValidator.contractAddress != address(0),
-			"Validator has no ValidatorShare"
+			"Validator has no validator share"
 		);
 		require(
 			(smValidator.status == IStakeManager.Status.Active) &&
 				smValidator.deactivationEpoch == 0,
-			"Validator isn't ACTIVE"
+			"Validator isn't active"
 		);
 
 		validators.push(_validatorId);
@@ -175,8 +175,8 @@ contract ValidatorRegistry is
 				++i;
 			}
 		}
-		validators.pop();
 
+		validators.pop();
 		delete validatorIdExists[_validatorId];
 
 		emit RemoveValidator(_validatorId);
@@ -272,6 +272,7 @@ contract ValidatorRegistry is
 	function getValidatorId(
 		uint256 _index
 	) external view override returns (uint256) {
+		require(_index < validators.length, "Invalid validator index");
 		return validators[_index];
 	}
 

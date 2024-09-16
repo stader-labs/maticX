@@ -60,7 +60,7 @@ contract MaticX is
 		reentrancyGuardStatus = NOT_ENTERED;
 	}
 
-	/// -------------------------- initialize ----------------------------------
+	/// -------------------------- Initialize ----------------------------------
 
 	/// @notice Initializes the current contract.
 	/// @param _validatorRegistry - Address of the validator registry
