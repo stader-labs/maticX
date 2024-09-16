@@ -47,7 +47,7 @@ contract MaticX is
 	address private polToken;
 	uint256 private reentrancyGuardStatus;
 
-	/// -------------------------------modifiers-----------------------------------
+	/// ------------------------------ Modifiers -------------------------------
 
 	/// @notice Enables guard from reentrant calls.
 	modifier nonReentrant() {
@@ -60,7 +60,13 @@ contract MaticX is
 		reentrancyGuardStatus = NOT_ENTERED;
 	}
 
-	/// -------------------------- Initialize ----------------------------------
+	/// -------------------------- Initializers --------------------------------
+
+	/// @dev The constructor is disabled for a proxy upgrade.
+	/// @custom:oz-upgrades-unsafe-allow constructor
+	constructor() {
+		_disableInitializers();
+	}
 
 	/// @notice Initializes the current contract.
 	/// @param _validatorRegistry - Address of the validator registry
@@ -263,19 +269,19 @@ contract MaticX is
 				IValidatorShare(validatorShare)
 			);
 
-			uint256 amount2WithdrawFromValidator = (validatorBalance <=
+			uint256 amountToWithdrawFromValidator = (validatorBalance <=
 				leftAmountToWithdraw)
 				? validatorBalance
 				: leftAmountToWithdraw;
 
-			if (amount2WithdrawFromValidator > 0) {
+			if (amountToWithdrawFromValidator > 0) {
 				_pol
 					? IValidatorShare(validatorShare).sellVoucher_newPOL(
-						amount2WithdrawFromValidator,
+						amountToWithdrawFromValidator,
 						type(uint256).max
 					)
 					: IValidatorShare(validatorShare).sellVoucher_new(
-						amount2WithdrawFromValidator,
+						amountToWithdrawFromValidator,
 						type(uint256).max
 					);
 
@@ -290,7 +296,7 @@ contract MaticX is
 					)
 				);
 
-				leftAmountToWithdraw -= amount2WithdrawFromValidator;
+				leftAmountToWithdraw -= amountToWithdrawFromValidator;
 			}
 
 			--totalValidatorRequests;
@@ -432,26 +438,24 @@ contract MaticX is
 		return rewards;
 	}
 
-	/// @notice Stake Matic rewards and distribute fees to the treasury.
-	/// @param _validatorId - Validator id to stake Matic rewards and distribute
-	/// fees
+	/// @notice Stake Matic rewards and distribute fees to the treasury if any.
+	/// @param _validatorId - Validator id to stake Matic rewards
 	function stakeRewardsAndDistributeFees(
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused onlyRole(BOT) {
 		_stakeRewardsAndDistributeFees(_validatorId, false);
 	}
 
-	/// @notice Stake POL rewards and distribute fees to the treasury.
-	/// @param _validatorId - Validator id to stake POL rewards and distribute
-	/// fees
+	/// @notice Stake POL rewards and distribute fees to the treasury if any.
+	/// @param _validatorId - Validator id to stake POL rewards
 	function stakeRewardsAndDistributeFeesPOL(
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused onlyRole(BOT) {
 		_stakeRewardsAndDistributeFees(_validatorId, true);
 	}
 
-	/// @dev Stake token rewards and distribute fees to the treasury.
-	/// @param _validatorId - Validator id to stake rewards and distribute fees
+	/// @dev Stake rewards and distribute fees to the treasury if any.
+	/// @param _validatorId - Validator id to stake rewards
 	/// @param _pol - If the POL flow must be used
 	function _stakeRewardsAndDistributeFees(
 		uint256 _validatorId,
@@ -468,7 +472,8 @@ contract MaticX is
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
-		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this)); // TODO Consider this case: `- instantPoolMatic_deprecated`;
+		// TODO Consider this case: `- instantPoolMatic_deprecated`;
+		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this));
 		require(rewards > 0, "Reward is zero");
 
 		uint256 treasuryFees = (rewards * feePercent) / 100;
@@ -535,17 +540,7 @@ contract MaticX is
 		paused() ? _unpause() : _pause();
 	}
 
-	/// @notice Returns the total stake of this contract for the given validator
-	/// share.
-	/// @param _validatorShare - Address of the validator share
-	/// @return Total stake of this contract
-	function getTotalStake(
-		IValidatorShare _validatorShare
-	) public view override returns (uint256, uint256) {
-		return _validatorShare.getTotalStake(address(this));
-	}
-
-	/// -------------------------------Helpers----------------------------------
+	/// ------------------------------ Helpers ---------------------------------
 
 	/// @notice Converts an arbitrary amount of MaticX shares to stake tokens.
 	/// @param _balance - Balance in MaticX
@@ -645,7 +640,7 @@ contract MaticX is
 		emit MintFromPolygon(_user, _amount);
 	}
 
-	/// -------------------------------Setters-----------------------------------
+	/// ------------------------------ Setters ---------------------------------
 
 	/// @notice Sets a fee percent.
 	/// @param _feePercent - Fee percent (10 = 10%)
@@ -713,10 +708,9 @@ contract MaticX is
 		emit SetPOLToken(_address);
 	}
 
-	/// -------------------------------Getters-----------------------------------
+	/// ------------------------------ Getters ---------------------------------
 
-	/// @notice Returns total pooled stake tokens from all registered
-	/// validators.
+	/// @notice Returns total pooled stake tokens from all registered validators.
 	/// @return Total pooled stake tokens
 	function getTotalStakeAcrossAllValidators()
 		public
@@ -757,6 +751,16 @@ contract MaticX is
 		returns (uint256)
 	{
 		return getTotalStakeAcrossAllValidators();
+	}
+
+	/// @notice Returns the total stake of this contract for the given validator
+	/// share.
+	/// @param _validatorShare - Address of the validator share
+	/// @return Total stake of this contract
+	function getTotalStake(
+		IValidatorShare _validatorShare
+	) public view override returns (uint256, uint256) {
+		return _validatorShare.getTotalStake(address(this));
 	}
 
 	/// @notice Returns all withdrawal requests initiated by the user.
