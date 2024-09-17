@@ -379,8 +379,8 @@ contract MaticX is
 		emit ClaimWithdrawal(_to, _idx, amountToClaim);
 	}
 
-	/// @notice Withdraws Matic rewards from a given validator. This method is
-	/// deprecated.
+	/// @notice Withdraws Matic rewards from a given validator.
+	/// @custom:deprecated
 	/// @param _validatorId - Validator id to withdraw Matic rewards
 	function withdrawRewards(
 		uint256 _validatorId
@@ -489,7 +489,7 @@ contract MaticX is
 			: IValidatorShare(validatorShare).buyVoucher(amountStaked, 0);
 
 		uint256 totalShares = totalSupply();
-		uint256 totalPooledStakeTokens = getTotalPooledStakeTokens();
+		uint256 totalPooledStakeTokens = getTotalStakeAcrossAllValidators();
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
 			abi.encode(totalShares, totalPooledStakeTokens)
@@ -554,7 +554,7 @@ contract MaticX is
 	}
 
 	/// @notice Converts an arbitrary amount of MaticX shares to stake tokens.
-	/// This method is deprecated.
+	/// @custom:deprecated
 	/// @param _balance - Balance in MaticX
 	/// @return Balance in stake tokens
 	/// @return Total shares
@@ -576,7 +576,7 @@ contract MaticX is
 		uint256 totalShares = totalSupply();
 		totalShares = totalShares == 0 ? 1 : totalShares;
 
-		uint256 totalPooledStakeTokens = getTotalPooledStakeTokens();
+		uint256 totalPooledStakeTokens = getTotalStakeAcrossAllValidators();
 		totalPooledStakeTokens = totalPooledStakeTokens == 0
 			? 1
 			: totalPooledStakeTokens;
@@ -599,7 +599,7 @@ contract MaticX is
 	}
 
 	/// @notice Converts an arbritrary amount of stake tokens to MaticX shares.
-	// This method is deprecated.
+	/// @custom:deprecated
 	/// @param _balance - Balance in a stake token
 	/// @return Balance in MaticX
 	/// @return Total shares
@@ -621,7 +621,7 @@ contract MaticX is
 		uint256 totalShares = totalSupply();
 		totalShares = totalShares == 0 ? 1 : totalShares;
 
-		uint256 totalPooledStakeTokens = getTotalPooledStakeTokens();
+		uint256 totalPooledStakeTokens = getTotalStakeAcrossAllValidators();
 		totalPooledStakeTokens = totalPooledStakeTokens == 0
 			? 1
 			: totalPooledStakeTokens;
@@ -734,22 +734,10 @@ contract MaticX is
 		return totalStake;
 	}
 
-	/// @notice Returns total pooled stake tokens from all registered
-	/// validators. This method is deprecated.
+	/// @notice Returns total pooled stake tokens from all registered validators.
+	/// @custom:deprecated
 	/// @return Total pooled stake tokens
 	function getTotalPooledMatic() external view override returns (uint256) {
-		return getTotalStakeAcrossAllValidators();
-	}
-
-	/// @notice Returns total pooled stake tokens from all registered
-	/// validators.
-	/// @return Total pooled stake tokens
-	function getTotalPooledStakeTokens()
-		public
-		view
-		override
-		returns (uint256)
-	{
 		return getTotalStakeAcrossAllValidators();
 	}
 
