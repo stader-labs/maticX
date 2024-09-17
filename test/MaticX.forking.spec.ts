@@ -891,7 +891,7 @@ describe("MaticX (Forking)", function () {
 				}
 
 				const totalPooledStakeTokens =
-					await maticX.getTotalPooledStakeTokens();
+					await maticX.getTotalStakeAcrossAllValidators();
 				expect(totalPooledStakeTokens).to.equal(
 					totalStakeAmount.mul(2)
 				);
@@ -1079,7 +1079,7 @@ describe("MaticX (Forking)", function () {
 				}
 
 				const totalPooledStakeTokens =
-					await maticX.getTotalPooledStakeTokens();
+					await maticX.getTotalStakeAcrossAllValidators();
 				expect(totalPooledStakeTokens).to.equal(
 					totalStakeAmount.mul(2)
 				);

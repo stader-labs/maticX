@@ -130,8 +130,8 @@ interface IMaticX is IERC20Upgradeable {
 	/// @param _idx - Array index of the user's withdrawal request
 	function claimWithdrawalPOL(uint256 _idx) external;
 
-	/// @notice Withdraws Matic rewards from a given validator. This method is
-	/// deprecated.
+	/// @notice Withdraws Matic rewards from a given validator.
+	/// @custom:deprecated
 	/// @param _validatorId - Validator id to withdraw Matic rewards
 	function withdrawRewards(uint256 _validatorId) external returns (uint256);
 
@@ -178,7 +178,7 @@ interface IMaticX is IERC20Upgradeable {
 	) external view returns (uint256, uint256, uint256);
 
 	/// @notice Converts an arbitrary amount of MaticX shares to stake tokens.
-	/// This method is deprecated.
+	/// @custom:deprecated
 	/// @param _balance - Balance in MaticX
 	/// @return Balance in stake tokens
 	/// @return Total shares
@@ -197,7 +197,7 @@ interface IMaticX is IERC20Upgradeable {
 	) external view returns (uint256, uint256, uint256);
 
 	/// @notice Converts an arbritrary amount of stake tokens to MaticX shares.
-	// This method is deprecated.
+	/// @custom:deprecated
 	/// @param _balance - Balance in a stake token
 	/// @return Balance in MaticX
 	/// @return Total shares
@@ -236,15 +236,10 @@ interface IMaticX is IERC20Upgradeable {
 	/// @return Total pooled stake tokens
 	function getTotalStakeAcrossAllValidators() external view returns (uint256);
 
-	/// @notice Returns total pooled stake tokens from all registered
-	/// validators. This method is deprecated.
+	/// @notice Returns total pooled stake tokens from all registered validators.
+	/// @custom:deprecated
 	/// @return Total pooled stake tokens
 	function getTotalPooledMatic() external view returns (uint256);
-
-	/// @notice Returns total pooled stake tokens from all registered
-	/// validators.
-	/// @return Total pooled stake tokens
-	function getTotalPooledStakeTokens() external view returns (uint256);
 
 	/// @notice Returns the total stake of this contract for the given validator
 	/// share.
