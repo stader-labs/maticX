@@ -9,7 +9,7 @@ import { IValidatorShare } from "./interfaces/IValidatorShare.sol";
 import { IValidatorRegistry } from "./interfaces/IValidatorRegistry.sol";
 
 /// @title ValidatorRegistry contract
-/// @notice ValidatorRegistry is the main contract that manages validators
+/// @notice ValidatorRegistry is the main contract that manages validators.
 contract ValidatorRegistry is
 	IValidatorRegistry,
 	PausableUpgradeable,
@@ -30,15 +30,10 @@ contract ValidatorRegistry is
 	uint256[] private validators;
 	address private polToken;
 
-	/// -------------------------------modifiers-----------------------------------
+	/// ------------------------------ Modifiers -------------------------------
 
-	/**
-	 * @dev Modifier to make a function callable only when the validator id exists in our registry.
-	 * @param _validatorId the validator id.
-	 * Requirements:
-	 *
-	 * - The validator id must exist in our registry.
-	 */
+	/// @notice Checks if the given validator id exists in the registry.
+	/// @param _validatorId - Validator id
 	modifier whenValidatorIdExists(uint256 _validatorId) {
 		require(
 			validatorIdExists[_validatorId],
@@ -47,14 +42,8 @@ contract ValidatorRegistry is
 		_;
 	}
 
-	/**
-	 * @dev Modifier to make a function callable only when the validator id doesn't exist in our registry.
-	 * @param _validatorId the validator id.
-	 *
-	 * Requirements:
-	 *
-	 * - The validator id must not exist in our registry.
-	 */
+	/// @notice Checks if the given validator id doesn't exist in the registry.
+	/// @param _validatorId - Validator id
 	modifier whenValidatorIdDoesNotExist(uint256 _validatorId) {
 		require(
 			!validatorIdExists[_validatorId],
@@ -63,13 +52,19 @@ contract ValidatorRegistry is
 		_;
 	}
 
-	/// -------------------------- Initialize ----------------------------------
+	/// -------------------------- Initializers --------------------------------
+
+	/// @dev The constructor is disabled for a proxy upgrade.
+	/// @custom:oz-upgrades-unsafe-allow constructor
+	constructor() {
+		_disableInitializers();
+	}
 
 	/// @notice Initialize the ValidatorRegistry contract.
-	/// @param _stakeManager address of the polygon stake manager.
-	/// @param _maticToken address of the polygon ERC20 contract.
-	/// @param _maticX address of the MaticX contract.
-	/// @param _manager address of the manager.
+	/// @param _stakeManager address of the polygon stake manager
+	/// @param _maticToken address of the polygon ERC20 contract
+	/// @param _maticX address of the MaticX contract
+	/// @param _manager address of the manager
 	function initialize(
 		address _stakeManager,
 		address _maticToken,
@@ -107,8 +102,8 @@ contract ValidatorRegistry is
 
 	/// ----------------------------- API --------------------------------------
 
-	/// @notice Allows a validator that was already staked on the stake manager
-	/// to join the MaticX protocol.
+	/// @notice Allows a validator that has been already staked on the stake
+	/// manager contract to join the MaticX protocol.
 	/// @param _validatorId - Validator id
 	function addValidator(
 		uint256 _validatorId
@@ -139,7 +134,7 @@ contract ValidatorRegistry is
 	}
 
 	/// @notice Removes a validator from the registry.
-	/// @param _validatorId - Validator id.
+	/// @param _validatorId - Validator id
 	// slither-disable-next-line pess-multiple-storage-read
 	function removeValidator(
 		uint256 _validatorId
@@ -182,7 +177,7 @@ contract ValidatorRegistry is
 		emit RemoveValidator(_validatorId);
 	}
 
-	/// -------------------------------Setters-----------------------------------
+	/// ------------------------------ Setters ---------------------------------
 
 	/// @notice Sets the prefered validator id for deposits.
 	/// @param _validatorId - Validator id for deposits
@@ -242,7 +237,7 @@ contract ValidatorRegistry is
 		paused() ? _unpause() : _pause();
 	}
 
-	/// -------------------------------Getters-----------------------------------
+	/// ------------------------------ Getters ---------------------------------
 
 	/// @notice Returns the contract addresses used on the current contract.
 	/// @return _stakeManager - Address of the stake manager
