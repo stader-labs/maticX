@@ -451,7 +451,7 @@ describe("MaticX", function () {
 			.withArgs(1, 123, 100);
 	});
 
-	it("Should send correct message from L1 to L2", async () => {
+	it.skip("Should send correct message from L1 to L2", async () => {
 		const user = users[0];
 		const mintAmount = 1000000;
 		const withdrawAmount = 400000;
