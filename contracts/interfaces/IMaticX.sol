@@ -214,10 +214,6 @@ interface IMaticX is IERC20Upgradeable {
 	/// @param _version - New version of this contract
 	function setVersion(string calldata _version) external;
 
-	/// @notice Sets the address of the POL token.
-	/// @param _address - Address of the POL token
-	function setPOLToken(address _address) external;
-
 	/// @notice Returns total pooled stake tokens from all registered validators.
 	/// @return Total pooled stake tokens
 	function getTotalStakeAcrossAllValidators() external view returns (uint256);

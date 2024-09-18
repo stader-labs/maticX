@@ -653,17 +653,6 @@ contract MaticX is
 		emit SetVersion(_version);
 	}
 
-	/// @notice Sets the address of the POL token.
-	/// @param _address - Address of the POL token
-	function setPOLToken(
-		address _address
-	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(_address != address(0), "Zero POL token address");
-
-		polToken = _address;
-		emit SetPOLToken(_address);
-	}
-
 	/// ------------------------------ Getters ---------------------------------
 
 	/// @notice Returns total pooled stake tokens from all registered validators.
