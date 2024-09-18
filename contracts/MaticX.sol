@@ -132,8 +132,9 @@ contract MaticX is
 	/// ----------------------------- API --------------------------------------
 
 	/// @notice Sends Matic tokens to the current contract and mints MaticX
-	/// shares to the sender. Requires that the sender has a preliminary
-	/// approved _amount of Matic to this contract.
+	/// shares to the sender. It requires that the sender has a preliminary
+	/// approved amount of Matic to this contract.
+	/// @custom:deprecated
 	/// @param _amount - Amount of Matic tokens sent to this contract
 	/// @return Amount of generated MaticX shares
 	function submit(
@@ -143,8 +144,8 @@ contract MaticX is
 	}
 
 	/// @notice Sends POL tokens to the current contract and mints MaticX shares
-	/// to the sender. Requires that the sender has a preliminary approved
-	/// _amount of POL to this contract.
+	/// to the sender. It requires that the sender has a preliminary approved
+	/// amount of POL to this contract.
 	/// @param _amount - Amount of POL tokens sent to this contract
 	/// @return Amount of generated MaticX shares
 	function submitPOL(
@@ -154,8 +155,8 @@ contract MaticX is
 	}
 
 	/// @dev Sends stake tokens to the current contract and mints MaticX shares
-	/// shares to the sender. Requires that the sender has a preliminary
-	/// approved _amount of stake tokens to this contract.
+	/// shares to the sender. It requires that the sender has a preliminary
+	/// approved amount of stake tokens to this contract.
 	/// @param depositSender - Address of the sender who is depositing
 	/// @param _amount - Amount of stake tokens sent to this contract
 	/// @param _pol - If the POL flow must be used
@@ -165,7 +166,7 @@ contract MaticX is
 		address depositSender,
 		uint256 _amount,
 		bool _pol
-	) internal returns (uint256) {
+	) private returns (uint256) {
 		require(_amount > 0, "Invalid amount");
 
 		address token = _getToken(_pol);
@@ -204,27 +205,18 @@ contract MaticX is
 		return mintedAmount;
 	}
 
-	/// @notice Registers a user's request to withdraw Matic tokens.
-	/// @param _amount - Amount of Matic tokens to be withdrawn
+	/// @notice Registers a user's request to withdraw POL tokens.
+	/// @param _amount - Amount of POL tokens to be withdrawn
 	function requestWithdraw(
 		uint256 _amount
 	) external override nonReentrant whenNotPaused {
-		_requestWithdraw(_amount, false);
+		_requestWithdraw(msg.sender, _amount);
 	}
 
-	/// @notice Registers a user's request to withdraw POL tokens.
+	/// @dev Registers a user's request to withdraw POL tokens.
 	/// @param _amount - Amount of POL tokens to be withdrawn
-	function requestWithdrawPOL(
-		uint256 _amount
-	) external override nonReentrant whenNotPaused {
-		_requestWithdraw(_amount, true);
-	}
-
-	/// @dev Registers a user's request to withdraw stake tokens.
-	/// @param _amount - Amount of stake tokens to be withdrawn
-	/// @param _pol - If the POL flow must be used
 	// slither-disable-next-line reentrancy-no-eth
-	function _requestWithdraw(uint256 _amount, bool _pol) internal {
+	function _requestWithdraw(address claimer, uint256 _amount) private {
 		require(_amount > 0, "Invalid amount");
 
 		(
@@ -233,7 +225,7 @@ contract MaticX is
 			uint256 totalPooledStakeTokens
 		) = _convertMaticXToStakeToken(_amount);
 
-		_burn(msg.sender, _amount);
+		_burn(claimer, _amount);
 
 		uint256 leftAmountToWithdraw = totalAmountToWithdrawInStakeToken;
 		uint256 totalDelegated = getTotalStakeAcrossAllValidators();
@@ -250,7 +242,7 @@ contract MaticX is
 
 		uint256 currentIdx = 0;
 		uint256 validatorIdCount = validatorIds.length;
-		uint256 totalValidatorRequests = validatorIdCount;
+		uint256 totalAttempts = validatorIdCount;
 
 		for (; currentIdx < validatorIdCount; ) {
 			if (preferredValidatorId == validatorIds[currentIdx]) {
@@ -261,7 +253,7 @@ contract MaticX is
 			}
 		}
 
-		while (totalValidatorRequests > 0 && leftAmountToWithdraw > 0) {
+		while (leftAmountToWithdraw > 0 && totalAttempts > 0) {
 			uint256 validatorId = validatorIds[currentIdx];
 			address validatorShare = IStakeManager(stakeManager)
 				.getValidatorContract(validatorId);
@@ -275,23 +267,20 @@ contract MaticX is
 				: leftAmountToWithdraw;
 
 			if (amountToWithdrawFromValidator > 0) {
-				_pol
-					? IValidatorShare(validatorShare).sellVoucher_newPOL(
-						amountToWithdrawFromValidator,
-						type(uint256).max
-					)
-					: IValidatorShare(validatorShare).sellVoucher_new(
-						amountToWithdrawFromValidator,
-						type(uint256).max
-					);
+				IValidatorShare(validatorShare).sellVoucher_newPOL(
+					amountToWithdrawFromValidator,
+					type(uint256).max
+				);
+
+				uint256 validatorNonce = IValidatorShare(validatorShare)
+					.unbondNonces(address(this));
+				uint256 requestEpoch = IStakeManager(stakeManager).epoch() +
+					IStakeManager(stakeManager).withdrawalDelay();
 
 				userWithdrawalRequests[msg.sender].push(
 					WithdrawalRequest(
-						IValidatorShare(validatorShare).unbondNonces(
-							address(this)
-						),
-						IStakeManager(stakeManager).epoch() +
-							IStakeManager(stakeManager).withdrawalDelay(),
+						validatorNonce,
+						requestEpoch,
 						validatorShare
 					)
 				);
@@ -299,7 +288,7 @@ contract MaticX is
 				leftAmountToWithdraw -= amountToWithdrawFromValidator;
 			}
 
-			--totalValidatorRequests;
+			--totalAttempts;
 			currentIdx = currentIdx + 1 < validatorIdCount ? currentIdx + 1 : 0;
 		}
 
@@ -316,38 +305,26 @@ contract MaticX is
 		);
 
 		emit RequestWithdraw(
-			msg.sender,
+			claimer,
 			_amount,
 			totalAmountToWithdrawInStakeToken
 		);
 	}
 
-	/// @notice Claims Matic tokens from a validator share and sends them to the
+	/// @notice Claims POL tokens from a validator share and sends them to the
 	/// user.
 	/// @param _idx - Array index of the user's withdrawal request
 	function claimWithdrawal(
 		uint256 _idx
 	) external override nonReentrant whenNotPaused {
-		_claimWithdrawal(msg.sender, _idx, false);
+		_claimWithdrawal(msg.sender, _idx);
 	}
 
-	/// @notice Claims POL tokens from a validator share and sends them to the
-	/// user.
-	/// @param _idx - Array index of the user's withdrawal request
-	function claimWithdrawalPOL(
-		uint256 _idx
-	) external override nonReentrant whenNotPaused {
-		_claimWithdrawal(msg.sender, _idx, true);
-	}
-
-	/// @dev Claims stake tokens from a validator share and sends them to the
-	/// user.
+	/// @dev Claims POL tokens from a validator share and sends them to the user.
 	/// @param _to - Address of the user
 	/// @param _idx - Array index of the user's withdrawal request
-	/// @param _pol - If the POL flow must be used
-	function _claimWithdrawal(address _to, uint256 _idx, bool _pol) internal {
-		address token = _getToken(_pol);
-		uint256 balanceBeforeClaim = IERC20Upgradeable(token).balanceOf(
+	function _claimWithdrawal(address _to, uint256 _idx) private {
+		uint256 balanceBeforeClaim = IERC20Upgradeable(polToken).balanceOf(
 			address(this)
 		);
 
@@ -360,21 +337,19 @@ contract MaticX is
 			"Not able to claim yet"
 		);
 
-		_pol
-			? IValidatorShare(userRequest.validatorAddress)
-				.unstakeClaimTokens_newPOL(userRequest.validatorNonce)
-			: IValidatorShare(userRequest.validatorAddress)
-				.unstakeClaimTokens_new(userRequest.validatorNonce);
+		IValidatorShare(userRequest.validatorAddress).unstakeClaimTokens_newPOL(
+				userRequest.validatorNonce
+			);
 
 		// swap with the last item and pop it.
 		userRequests[_idx] = userRequests[userRequests.length - 1];
 		userRequests.pop();
 
-		uint256 amountToClaim = IERC20Upgradeable(token).balanceOf(
+		uint256 amountToClaim = IERC20Upgradeable(polToken).balanceOf(
 			address(this)
 		) - balanceBeforeClaim;
 
-		IERC20Upgradeable(token).safeTransfer(_to, amountToClaim);
+		IERC20Upgradeable(polToken).safeTransfer(_to, amountToClaim);
 
 		emit ClaimWithdrawal(_to, _idx, amountToClaim);
 	}
@@ -418,7 +393,7 @@ contract MaticX is
 	function _withdrawRewards(
 		uint256 _validatorId,
 		bool _pol
-	) internal returns (uint256) {
+	) private returns (uint256) {
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
@@ -460,7 +435,7 @@ contract MaticX is
 	function _stakeRewardsAndDistributeFees(
 		uint256 _validatorId,
 		bool _pol
-	) internal {
+	) private {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_validatorId

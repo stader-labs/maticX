@@ -99,36 +99,28 @@ interface IMaticX is IERC20Upgradeable {
 	event SetPOLToken(address _address);
 
 	/// @notice Sends Matic tokens to the current contract and mints MaticX
-	/// shares to the sender. Requires that the sender has a preliminary
-	/// approved _amount of Matic to this contract.
+	/// shares to the sender. It requires that the sender has a preliminary
+	/// approved amount of Matic to this contract.
+	/// @custom:deprecated
 	/// @param _amount - Amount of Matic tokens sent to this contract
 	/// @return Amount of generated MaticX shares
 	function submit(uint256 _amount) external returns (uint256);
 
 	/// @notice Sends POL tokens to the current contract and mints MaticX shares
-	/// to the sender. Requires that the sender has a preliminary approved
+	/// to the sender. It requires that the sender has a preliminary approved
 	/// _amount of POL to this contract.
 	/// @param _amount - Amount of POL tokens sent to this contract
 	/// @return Amount of generated MaticX shares
 	function submitPOL(uint256 _amount) external returns (uint256);
 
-	/// @notice Registers a user's request to withdraw Matic tokens.
-	/// @param _amount - Amount of Matic tokens to be withdrawn
+	/// @notice Registers a user's request to withdraw pol tokens.
+	/// @param _amount - Amount of stake tokens to be withdrawn
 	function requestWithdraw(uint256 _amount) external;
-
-	/// @notice Registers a user's request to withdraw POL tokens.
-	/// @param _amount - Amount of POL tokens to be withdrawn
-	function requestWithdrawPOL(uint256 _amount) external;
 
 	/// @notice Claims Matic tokens from a validator share and sends them to the
 	/// user.
 	/// @param _idx - Array index of the user's withdrawal request
 	function claimWithdrawal(uint256 _idx) external;
-
-	/// @notice Claims POL tokens from a validator share and sends them to the
-	/// user.
-	/// @param _idx - Array index of the user's withdrawal request
-	function claimWithdrawalPOL(uint256 _idx) external;
 
 	/// @notice Withdraws Matic rewards from a given validator.
 	/// @custom:deprecated
