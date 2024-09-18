@@ -117,25 +117,19 @@ interface IMaticX is IERC20Upgradeable {
 	/// @param _amount - Amount of stake tokens to be withdrawn
 	function requestWithdraw(uint256 _amount) external;
 
-	/// @notice Claims Matic tokens from a validator share and sends them to the
+	/// @notice Claims POL tokens from a validator share and sends them to the
 	/// user.
 	/// @param _idx - Array index of the user's withdrawal request
 	function claimWithdrawal(uint256 _idx) external;
 
-	/// @notice Withdraws Matic rewards from a given validator.
+	/// @notice Withdraws POL rewards from the given validator.
 	/// @custom:deprecated
 	/// @param _validatorId - Validator id to withdraw Matic rewards
 	function withdrawRewards(uint256 _validatorId) external returns (uint256);
 
-	/// @notice Withdraws Matic rewards from given validators.
+	/// @notice Withdraws POL rewards from the given validators.
 	/// @param _validatorIds - Array of validator ids to withdraw Matic rewards
 	function withdrawValidatorsReward(
-		uint256[] calldata _validatorIds
-	) external returns (uint256[] memory);
-
-	/// @notice Withdraw POL rewards from given validators.
-	/// @param _validatorIds - Array of validator ids to withdraw POL rewards
-	function withdrawValidatorsRewardPOL(
 		uint256[] calldata _validatorIds
 	) external returns (uint256[] memory);
 

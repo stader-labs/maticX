@@ -1573,7 +1573,7 @@ describe("MaticX (Forking)", function () {
 		});
 	});
 
-	describe("Withdraw Matic validator rewards", function () {
+	describe("Withdraw validator rewards", function () {
 		describe("Negative", function () {
 			it("Should revert with the right error if paused", async function () {
 				const { maticX, manager, preferredDepositValidatorId } =
@@ -1605,7 +1605,7 @@ describe("MaticX (Forking)", function () {
 		});
 	});
 
-	describe("Withdraw Matic validators rewards", function () {
+	describe("Withdraw validators rewards", function () {
 		describe("Negative", function () {
 			it("Should revert with the right error if paused", async function () {
 				const {
@@ -1637,52 +1637,6 @@ describe("MaticX (Forking)", function () {
 				const promise = maticX
 					.connect(manager)
 					.withdrawValidatorsReward([
-						preferredDepositValidatorId,
-						preferredWithdrawalValidatorId,
-					]);
-				await expect(promise).to.be.revertedWith(
-					"Too small rewards amount"
-				);
-			});
-		});
-
-		describe("Positive", function () {
-			// TODO Add tests
-		});
-	});
-
-	describe("Withdraw POL validators rewards", function () {
-		describe("Negative", function () {
-			it("Should revert with the right error if paused", async function () {
-				const {
-					maticX,
-					manager,
-					preferredDepositValidatorId,
-					preferredWithdrawalValidatorId,
-				} = await loadFixture(deployFixture);
-
-				await maticX.connect(manager).togglePause();
-
-				const promise = maticX
-					.connect(manager)
-					.withdrawValidatorsRewardPOL([
-						preferredDepositValidatorId,
-						preferredWithdrawalValidatorId,
-					]);
-				await expect(promise).to.be.revertedWith("Pausable: paused");
-			});
-
-			it("Should revert with the right error if having an insufficient rewards amount", async function () {
-				const {
-					maticX,
-					manager,
-					preferredDepositValidatorId,
-					preferredWithdrawalValidatorId,
-				} = await loadFixture(deployFixture);
-
-				const promise = maticX
-					.connect(manager)
-					.withdrawValidatorsRewardPOL([
 						preferredDepositValidatorId,
 						preferredWithdrawalValidatorId,
 					]);

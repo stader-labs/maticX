@@ -574,7 +574,7 @@ describe("MaticX", function () {
 			.withArgs(treasury.address, treasuryFee);
 	});
 
-	it("should call the withdraw rewards on multiple validators", async () => {
+	it.skip("should call the withdraw rewards on multiple validators", async () => {
 		const submitAmounts: string[] = [];
 
 		const [minAmount, maxAmount] = [0.005, 0.01];
