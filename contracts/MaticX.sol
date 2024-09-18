@@ -169,7 +169,7 @@ contract MaticX is
 	) private returns (uint256) {
 		require(_amount > 0, "Invalid amount");
 
-		address token = _getToken(_pol);
+		address token = _pol ? polToken : maticToken;
 		IERC20Upgradeable(token).safeTransferFrom(
 			msg.sender,
 			address(this),
@@ -399,24 +399,12 @@ contract MaticX is
 	function stakeRewardsAndDistributeFees(
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused onlyRole(BOT) {
-		_stakeRewardsAndDistributeFees(_validatorId, false);
-	}
-
-	/// @notice Stake POL rewards and distribute fees to the treasury if any.
-	/// @param _validatorId - Validator id to stake POL rewards
-	function stakeRewardsAndDistributeFeesPOL(
-		uint256 _validatorId
-	) external override nonReentrant whenNotPaused onlyRole(BOT) {
-		_stakeRewardsAndDistributeFees(_validatorId, true);
+		_stakeRewardsAndDistributeFees(_validatorId);
 	}
 
 	/// @dev Stake rewards and distribute fees to the treasury if any.
 	/// @param _validatorId - Validator id to stake rewards
-	/// @param _pol - If the POL flow must be used
-	function _stakeRewardsAndDistributeFees(
-		uint256 _validatorId,
-		bool _pol
-	) private {
+	function _stakeRewardsAndDistributeFees(uint256 _validatorId) private {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_validatorId
@@ -424,25 +412,22 @@ contract MaticX is
 			"Doesn't exist in validator registry"
 		);
 
-		address token = _getToken(_pol);
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
 		// TODO Consider this case: `- instantPoolMatic_deprecated`;
-		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this));
+		uint256 rewards = IERC20Upgradeable(polToken).balanceOf(address(this));
 		require(rewards > 0, "Reward is zero");
 
 		uint256 treasuryFees = (rewards * feePercent) / 100;
 
 		if (treasuryFees > 0) {
-			IERC20Upgradeable(token).safeTransfer(treasury, treasuryFees);
+			IERC20Upgradeable(polToken).safeTransfer(treasury, treasuryFees);
 			emit DistributeFees(treasury, treasuryFees);
 		}
 
 		uint256 amountStaked = rewards - treasuryFees;
-		_pol
-			? IValidatorShare(validatorShare).buyVoucherPOL(amountStaked, 0)
-			: IValidatorShare(validatorShare).buyVoucher(amountStaked, 0);
+		IValidatorShare(validatorShare).buyVoucherPOL(amountStaked, 0);
 
 		uint256 totalShares = totalSupply();
 		uint256 totalPooledStakeTokens = getTotalStakeAcrossAllValidators();
@@ -745,11 +730,5 @@ contract MaticX is
 		_maticToken = maticToken;
 		_validatorRegistry = validatorRegistry;
 		_polToken = polToken;
-	}
-
-	/// @dev Returns the POL or Matic token depending on a used flow.
-	/// @return _token - Address of the token
-	function _getToken(bool pol) private view returns (address) {
-		return pol ? polToken : maticToken;
 	}
 }
