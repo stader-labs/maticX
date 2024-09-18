@@ -354,59 +354,40 @@ contract MaticX is
 		emit ClaimWithdrawal(_to, _idx, amountToClaim);
 	}
 
-	/// @notice Withdraws Matic rewards from a given validator.
+	/// @notice Withdraws POL rewards from a given validator.
 	/// @custom:deprecated
 	/// @param _validatorId - Validator id to withdraw Matic rewards
 	function withdrawRewards(
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused returns (uint256) {
-		return _withdrawRewards(_validatorId, false);
+		return _withdrawRewards(_validatorId);
 	}
 
-	/// @notice Withdraws Matic rewards from given validators.
-	/// @param _validatorIds - Array of validator ids to withdraw Matic rewards
+	/// @notice Withdraws POL rewards from the given validators.
+	/// @param _validatorIds - Array of validator ids
 	function withdrawValidatorsReward(
 		uint256[] calldata _validatorIds
 	) external override nonReentrant whenNotPaused returns (uint256[] memory) {
 		uint256[] memory rewards = new uint256[](_validatorIds.length);
 		for (uint256 i = 0; i < _validatorIds.length; i++) {
-			rewards[i] = _withdrawRewards(_validatorIds[i], false);
+			rewards[i] = _withdrawRewards(_validatorIds[i]);
 		}
 		return rewards;
 	}
 
-	/// @notice Withdraw POL rewards from given validators.
-	/// @param _validatorIds - Array of validator ids to withdraw POL rewards
-	function withdrawValidatorsRewardPOL(
-		uint256[] calldata _validatorIds
-	) external override nonReentrant whenNotPaused returns (uint256[] memory) {
-		uint256[] memory rewards = new uint256[](_validatorIds.length);
-		for (uint256 i = 0; i < _validatorIds.length; i++) {
-			rewards[i] = _withdrawRewards(_validatorIds[i], true);
-		}
-		return rewards;
-	}
-
-	/// @dev Withdraw stake token rewards from a given validator.
-	/// @param _validatorId - Validator id to withdraw stake token rewards
-	/// @param _pol - If the POL flow must be used
-	function _withdrawRewards(
-		uint256 _validatorId,
-		bool _pol
-	) private returns (uint256) {
+	/// @dev Withdraw stake token rewards from the given validator.
+	/// @param _validatorId - Validator id
+	function _withdrawRewards(uint256 _validatorId) private returns (uint256) {
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
-		address token = _getToken(_pol);
-		uint256 balanceBeforeRewards = IERC20Upgradeable(token).balanceOf(
+		uint256 balanceBeforeRewards = IERC20Upgradeable(polToken).balanceOf(
 			address(this)
 		);
 
-		_pol
-			? IValidatorShare(validatorShare).withdrawRewardsPOL()
-			: IValidatorShare(validatorShare).withdrawRewards();
+		IValidatorShare(validatorShare).withdrawRewardsPOL();
 
-		uint256 rewards = IERC20Upgradeable(token).balanceOf(address(this)) -
+		uint256 rewards = IERC20Upgradeable(polToken).balanceOf(address(this)) -
 			balanceBeforeRewards;
 
 		emit WithdrawRewards(_validatorId, rewards);
