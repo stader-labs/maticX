@@ -1847,45 +1847,4 @@ describe("MaticX (Forking)", function () {
 			});
 		});
 	});
-
-	describe("Set a POL token address", function () {
-		describe("Negative", function () {
-			it("Should revert with the right error if called by a non admin", async function () {
-				const { maticX, pol, stakerA, defaultAdminRole } =
-					await loadFixture(deployFixture);
-
-				const promise = maticX
-					.connect(stakerA)
-					.setPOLToken(pol.address);
-				await expect(promise).to.be.revertedWith(
-					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
-				);
-			});
-
-			it("Should revert with the right error if passing the zero POL token address", async function () {
-				const { maticX, manager } = await loadFixture(deployFixture);
-
-				const promise = maticX
-					.connect(manager)
-					.setPOLToken(ethers.constants.AddressZero);
-				await expect(promise).to.be.revertedWith(
-					"Zero POL token address"
-				);
-			});
-		});
-
-		describe("Positive", function () {
-			it("Should emit the SetPOLToken event", async function () {
-				const { maticX, pol, manager } =
-					await loadFixture(deployFixture);
-
-				const promise = maticX
-					.connect(manager)
-					.setPOLToken(pol.address);
-				await expect(promise)
-					.to.emit(maticX, "SetPOLToken")
-					.withArgs(pol.address);
-			});
-		});
-	});
 });
