@@ -157,13 +157,13 @@ contract MaticX is
 	/// @dev Sends stake tokens to the current contract and mints MaticX shares
 	/// shares to the sender. It requires that the sender has a preliminary
 	/// approved amount of stake tokens to this contract.
-	/// @param depositSender - Address of the sender who is depositing
+	/// @param sender - Address of the sender who is depositing
 	/// @param _amount - Amount of stake tokens sent to this contract
 	/// @param _pol - If the POL flow must be used
 	/// @return Amount of MaticX shares generated
 	// slither-disable-next-line reentrancy-benign
 	function _submit(
-		address depositSender,
+		address sender,
 		uint256 _amount,
 		bool _pol
 	) private returns (uint256) {
@@ -171,7 +171,7 @@ contract MaticX is
 
 		address token = _pol ? polToken : maticToken;
 		IERC20Upgradeable(token).safeTransferFrom(
-			msg.sender,
+			sender,
 			address(this),
 			_amount
 		);
@@ -182,8 +182,8 @@ contract MaticX is
 			uint256 totalPooledStakeTokens
 		) = _convertStakeTokenToMaticX(_amount);
 
-		_mint(depositSender, mintedAmount);
-		emit Submit(depositSender, _amount);
+		_mint(sender, mintedAmount);
+		emit Submit(sender, _amount);
 
 		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
 			.preferredDepositValidatorId();
@@ -207,16 +207,10 @@ contract MaticX is
 
 	/// @notice Registers a user's request to withdraw POL tokens.
 	/// @param _amount - Amount of POL tokens to be withdrawn
+	// slither-disable-next-line reentrancy-no-eth
 	function requestWithdraw(
 		uint256 _amount
 	) external override nonReentrant whenNotPaused {
-		_requestWithdraw(msg.sender, _amount);
-	}
-
-	/// @dev Registers a user's request to withdraw POL tokens.
-	/// @param _amount - Amount of POL tokens to be withdrawn
-	// slither-disable-next-line reentrancy-no-eth
-	function _requestWithdraw(address claimer, uint256 _amount) private {
 		require(_amount > 0, "Invalid amount");
 
 		(
@@ -225,7 +219,7 @@ contract MaticX is
 			uint256 totalPooledStakeTokens
 		) = _convertMaticXToStakeToken(_amount);
 
-		_burn(claimer, _amount);
+		_burn(msg.sender, _amount);
 
 		uint256 leftAmountToWithdraw = totalAmountToWithdrawInStakeToken;
 		uint256 totalDelegated = getTotalStakeAcrossAllValidators();
@@ -305,7 +299,7 @@ contract MaticX is
 		);
 
 		emit RequestWithdraw(
-			claimer,
+			msg.sender,
 			_amount,
 			totalAmountToWithdrawInStakeToken
 		);
@@ -317,18 +311,13 @@ contract MaticX is
 	function claimWithdrawal(
 		uint256 _idx
 	) external override nonReentrant whenNotPaused {
-		_claimWithdrawal(msg.sender, _idx);
-	}
-
-	/// @dev Claims POL tokens from a validator share and sends them to the user.
-	/// @param _to - Address of the user
-	/// @param _idx - Array index of the user's withdrawal request
-	function _claimWithdrawal(address _to, uint256 _idx) private {
 		uint256 balanceBeforeClaim = IERC20Upgradeable(polToken).balanceOf(
 			address(this)
 		);
 
-		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[_to];
+		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[
+			msg.sender
+		];
 		require(_idx < userRequests.length, "Request not exists");
 
 		WithdrawalRequest memory userRequest = userRequests[_idx];
@@ -341,7 +330,6 @@ contract MaticX is
 				userRequest.validatorNonce
 			);
 
-		// swap with the last item and pop it.
 		userRequests[_idx] = userRequests[userRequests.length - 1];
 		userRequests.pop();
 
@@ -349,9 +337,9 @@ contract MaticX is
 			address(this)
 		) - balanceBeforeClaim;
 
-		IERC20Upgradeable(polToken).safeTransfer(_to, amountToClaim);
+		IERC20Upgradeable(polToken).safeTransfer(msg.sender, amountToClaim);
 
-		emit ClaimWithdrawal(_to, _idx, amountToClaim);
+		emit ClaimWithdrawal(msg.sender, _idx, amountToClaim);
 	}
 
 	/// @notice Withdraws POL rewards from a given validator.
@@ -399,12 +387,6 @@ contract MaticX is
 	function stakeRewardsAndDistributeFees(
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused onlyRole(BOT) {
-		_stakeRewardsAndDistributeFees(_validatorId);
-	}
-
-	/// @dev Stake rewards and distribute fees to the treasury if any.
-	/// @param _validatorId - Validator id to stake rewards
-	function _stakeRewardsAndDistributeFees(uint256 _validatorId) private {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_validatorId
@@ -447,13 +429,7 @@ contract MaticX is
 		uint256 _fromValidatorId,
 		uint256 _toValidatorId,
 		uint256 _amount
-	)
-		external
-		override
-		nonReentrant
-		whenNotPaused
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	) external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_fromValidatorId
@@ -467,13 +443,13 @@ contract MaticX is
 			"To validator id does not exist in our registry"
 		);
 
+		emit MigrateDelegation(_fromValidatorId, _toValidatorId, _amount);
+
 		IStakeManager(stakeManager).migrateDelegation(
 			_fromValidatorId,
 			_toValidatorId,
 			_amount
 		);
-
-		emit MigrateDelegation(_fromValidatorId, _toValidatorId, _amount);
 	}
 
 	/// @notice Toggles the paused status of this contract.
