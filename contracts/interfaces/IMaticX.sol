@@ -97,22 +97,22 @@ interface IMaticX is IERC20Upgradeable {
 	event SetPOLToken(address _address);
 
 	/// @notice Sends Matic tokens to the current contract and mints MaticX
-	/// shares to the sender. It requires that the sender has a preliminary
-	/// approved amount of Matic to this contract.
+	/// shares in return. It requires that the sender has a preliminary approved
+	/// amount of Matic to this contract.
 	/// @custom:deprecated
-	/// @param _amount - Amount of Matic tokens sent to this contract
-	/// @return Amount of generated MaticX shares
+	/// @param _amount - Amount of Matic tokens
+	/// @return Amount of minted MaticX shares
 	function submit(uint256 _amount) external returns (uint256);
 
 	/// @notice Sends POL tokens to the current contract and mints MaticX shares
-	/// to the sender. It requires that the sender has a preliminary approved
-	/// _amount of POL to this contract.
-	/// @param _amount - Amount of POL tokens sent to this contract
-	/// @return Amount of generated MaticX shares
+	/// in return. It requires that the sender has a preliminary approved amount
+	/// of POL to this contract.
+	/// @param _amount - Amount of POL tokens
+	/// @return Amount of minted MaticX shares
 	function submitPOL(uint256 _amount) external returns (uint256);
 
-	/// @notice Registers a user's request to withdraw pol tokens.
-	/// @param _amount - Amount of stake tokens to be withdrawn
+	/// @notice Registers a user's request to withdraw an amount of POL tokens.
+	/// @param _amount - Amount of POL tokens
 	function requestWithdraw(uint256 _amount) external;
 
 	/// @notice Claims POL tokens from a validator share and sends them to the
