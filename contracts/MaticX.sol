@@ -385,7 +385,6 @@ contract MaticX is
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
 
-		// TODO Consider this case: `- instantPoolMatic_deprecated`;
 		uint256 rewards = IERC20Upgradeable(polToken).balanceOf(address(this));
 		require(rewards > 0, "Reward is zero");
 
@@ -458,6 +457,18 @@ contract MaticX is
 		return _convertMaticXToPOL(_balance);
 	}
 
+	/// @notice Converts an amount of MaticX shares to POL tokens.
+	/// @custom:deprecated
+	/// @param _balance - Balance in MaticX
+	/// @return Balance in POL tokens
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertMaticXToMatic(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
+		return _convertMaticXToPOL(_balance);
+	}
+
 	/// @dev Converts an amount of MaticX shares to POL tokens.
 	/// @param _balance - Balance in MaticX
 	/// @return Balance in POL tokens
@@ -483,6 +494,18 @@ contract MaticX is
 	/// @return Balance in POL tokens
 	/// @return Total pooled POL tokens
 	function convertPOLToMaticX(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
+		return _convertPOLToMaticX(_balance);
+	}
+
+	/// @notice Converts an amount of POL tokens to MaticX shares.
+	/// @custom:deprecated
+	/// @param _balance - Balance in POL
+	/// @return Total MaticX shares
+	/// @return Balance in POL tokens
+	/// @return Total pooled POL tokens
+	function convertMaticToMaticX(
 		uint256 _balance
 	) external view override returns (uint256, uint256, uint256) {
 		return _convertPOLToMaticX(_balance);
