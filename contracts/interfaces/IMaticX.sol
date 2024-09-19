@@ -72,8 +72,6 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 _amount
 	);
 
-	event MintFromPolygon(address indexed _user, uint256 _amount);
-
 	/// @notice Emitted when the fee percent is set.
 	/// @param _feePercent - Fee percent
 	event SetFeePercent(uint8 _feePercent);
@@ -187,8 +185,6 @@ interface IMaticX is IERC20Upgradeable {
 	function convertMaticToMaticX(
 		uint256 _balance
 	) external view returns (uint256, uint256, uint256);
-
-	function mint(address _user, uint256 _amount) external;
 
 	/// @notice Sets a fee percent.
 	/// @param _feePercent - Fee percent (10 = 10%)

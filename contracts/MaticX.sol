@@ -549,14 +549,6 @@ contract MaticX is
 		return (balanceInMaticX, totalShares, totalPooledStakeTokens);
 	}
 
-	// TODO: Add logic and enable it in V2
-	function mint(
-		address _user,
-		uint256 _amount
-	) external override whenNotPaused onlyRole(PREDICATE_ROLE) {
-		emit MintFromPolygon(_user, _amount);
-	}
-
 	/// ------------------------------ Setters ---------------------------------
 
 	/// @notice Sets a fee percent.
