@@ -15,7 +15,7 @@ import { IMaticX } from "./interfaces/IMaticX.sol";
 
 /// @title MaticX contract
 /// @notice MaticX is the main contract that manages staking and unstaking of
-/// the Matic and POL tokens for users.
+/// POL tokens for users.
 contract MaticX is
 	IMaticX,
 	ERC20Upgradeable,
@@ -25,7 +25,6 @@ contract MaticX is
 	using SafeERC20Upgradeable for IERC20Upgradeable;
 	using StringsUpgradeable for string;
 
-	bytes32 public constant PREDICATE_ROLE = keccak256("PREDICATE_ROLE");
 	bytes32 public constant BOT = keccak256("BOT");
 	uint256 private constant NOT_ENTERED = 1;
 	uint256 private constant ENTERED = 2;
@@ -33,15 +32,12 @@ contract MaticX is
 	address private validatorRegistry;
 	address private stakeManager;
 	address private maticToken;
-
 	address public override treasury;
 	string public override version;
 	uint8 public override feePercent;
-
 	address private instantPoolOwner_deprecated;
 	uint256 private instantPoolMatic_deprecated;
 	uint256 private instantPoolMaticX_deprecated;
-
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 	address public override fxStateRootTunnel;
 	address private polToken;
@@ -119,9 +115,9 @@ contract MaticX is
 		require(_polToken != address(0), "Zero POL token address");
 		polToken = _polToken;
 
-		reentrancyGuardStatus = NOT_ENTERED;
-
 		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
+
+		reentrancyGuardStatus = NOT_ENTERED;
 
 		IERC20Upgradeable(_polToken).safeApprove(
 			stakeManager,
@@ -132,11 +128,11 @@ contract MaticX is
 	/// ----------------------------- API --------------------------------------
 
 	/// @notice Sends Matic tokens to the current contract and mints MaticX
-	/// shares to the sender. It requires that the sender has a preliminary
-	/// approved amount of Matic to this contract.
+	/// shares in return. It requires that the sender has a preliminary approved
+	/// amount of Matic to this contract.
 	/// @custom:deprecated
-	/// @param _amount - Amount of Matic tokens sent to this contract
-	/// @return Amount of generated MaticX shares
+	/// @param _amount - Amount of Matic tokens
+	/// @return Amount of minted MaticX shares
 	function submit(
 		uint256 _amount
 	) external override nonReentrant whenNotPaused returns (uint256) {
@@ -144,10 +140,10 @@ contract MaticX is
 	}
 
 	/// @notice Sends POL tokens to the current contract and mints MaticX shares
-	/// to the sender. It requires that the sender has a preliminary approved
-	/// amount of POL to this contract.
-	/// @param _amount - Amount of POL tokens sent to this contract
-	/// @return Amount of generated MaticX shares
+	/// in return. It requires that the sender has a preliminary approved amount
+	/// of POL to this contract.
+	/// @param _amount - Amount of POL tokens
+	/// @return Amount of minted MaticX shares
 	function submitPOL(
 		uint256 _amount
 	) external override nonReentrant whenNotPaused returns (uint256) {
@@ -155,12 +151,12 @@ contract MaticX is
 	}
 
 	/// @dev Sends stake tokens to the current contract and mints MaticX shares
-	/// shares to the sender. It requires that the sender has a preliminary
-	/// approved amount of stake tokens to this contract.
-	/// @param sender - Address of the sender who is depositing
-	/// @param _amount - Amount of stake tokens sent to this contract
-	/// @param _pol - If the POL flow must be used
-	/// @return Amount of MaticX shares generated
+	/// in return. It requires that the sender has a preliminary approved amount
+	/// of stake tokens to this contract.
+	/// @param sender - Address of the sender
+	/// @param _amount - Amount of stake tokens
+	/// @param _pol - If the POL tokens are submitted
+	/// @return Amount of minted MaticX shares
 	// slither-disable-next-line reentrancy-benign
 	function _submit(
 		address sender,
@@ -205,8 +201,8 @@ contract MaticX is
 		return mintedAmount;
 	}
 
-	/// @notice Registers a user's request to withdraw POL tokens.
-	/// @param _amount - Amount of POL tokens to be withdrawn
+	/// @notice Registers a user's request to withdraw an amount of POL tokens.
+	/// @param _amount - Amount of POL tokens
 	// slither-disable-next-line reentrancy-no-eth
 	function requestWithdraw(
 		uint256 _amount
@@ -214,18 +210,15 @@ contract MaticX is
 		require(_amount > 0, "Invalid amount");
 
 		(
-			uint256 totalAmountToWithdrawInStakeToken,
+			uint256 totalStakeTokensToWithdraw,
 			uint256 totalShares,
 			uint256 totalPooledStakeTokens
 		) = _convertMaticXToStakeToken(_amount);
 
 		_burn(msg.sender, _amount);
 
-		uint256 leftAmountToWithdraw = totalAmountToWithdrawInStakeToken;
-		uint256 totalDelegated = getTotalStakeAcrossAllValidators();
-
 		require(
-			totalDelegated >= totalAmountToWithdrawInStakeToken,
+			getTotalStakeAcrossAllValidators() >= totalStakeTokensToWithdraw,
 			"Too much to withdraw"
 		);
 
@@ -236,7 +229,6 @@ contract MaticX is
 
 		uint256 currentIdx = 0;
 		uint256 validatorIdCount = validatorIds.length;
-		uint256 totalAttempts = validatorIdCount;
 
 		for (; currentIdx < validatorIdCount; ) {
 			if (preferredValidatorId == validatorIds[currentIdx]) {
@@ -247,7 +239,10 @@ contract MaticX is
 			}
 		}
 
-		while (leftAmountToWithdraw > 0 && totalAttempts > 0) {
+		uint256 leftStakeTokensToWithdraw = totalStakeTokensToWithdraw;
+		uint256 totalAttempts = validatorIdCount;
+
+		while (leftStakeTokensToWithdraw > 0 && totalAttempts > 0) {
 			uint256 validatorId = validatorIds[currentIdx];
 			address validatorShare = IStakeManager(stakeManager)
 				.getValidatorContract(validatorId);
@@ -256,9 +251,9 @@ contract MaticX is
 			);
 
 			uint256 amountToWithdrawFromValidator = (validatorBalance <=
-				leftAmountToWithdraw)
+				leftStakeTokensToWithdraw)
 				? validatorBalance
-				: leftAmountToWithdraw;
+				: leftStakeTokensToWithdraw;
 
 			if (amountToWithdrawFromValidator > 0) {
 				IValidatorShare(validatorShare).sellVoucher_newPOL(
@@ -279,7 +274,7 @@ contract MaticX is
 					)
 				);
 
-				leftAmountToWithdraw -= amountToWithdrawFromValidator;
+				leftStakeTokensToWithdraw -= amountToWithdrawFromValidator;
 			}
 
 			--totalAttempts;
@@ -287,21 +282,21 @@ contract MaticX is
 		}
 
 		require(
-			leftAmountToWithdraw == 0,
-			"Extra amount left to withdraw from validators"
+			leftStakeTokensToWithdraw == 0,
+			"Extra amount of stake tokens left to be withdrawn"
 		);
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
 			abi.encode(
 				totalShares - _amount,
-				totalPooledStakeTokens - totalAmountToWithdrawInStakeToken
+				totalPooledStakeTokens - totalStakeTokensToWithdraw
 			)
 		);
 
 		emit RequestWithdraw(
 			msg.sender,
 			_amount,
-			totalAmountToWithdrawInStakeToken
+			totalStakeTokensToWithdraw
 		);
 	}
 
