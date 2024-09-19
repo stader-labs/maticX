@@ -148,41 +148,21 @@ interface IMaticX is IERC20Upgradeable {
 	/// @notice Toggles the paused status of this contract.
 	function togglePause() external;
 
-	/// @notice Converts an arbitrary amount of MaticX shares to stake tokens.
+	/// @notice Converts an amount of MaticX shares to POL tokens.
 	/// @param _balance - Balance in MaticX
-	/// @return Balance in stake tokens
+	/// @return Balance in POL tokens
 	/// @return Total MaticX shares
-	/// @return Total pooled stake tokens
-	function convertMaticXToStakeToken(
+	/// @return Total pooled POL tokens
+	function convertMaticXToPOL(
 		uint256 _balance
 	) external view returns (uint256, uint256, uint256);
 
-	/// @notice Converts an arbitrary amount of MaticX shares to stake tokens.
-	/// @custom:deprecated
-	/// @param _balance - Balance in MaticX
-	/// @return Balance in stake tokens
-	/// @return Total shares
-	/// @return Total pooled stake tokens
-	function convertMaticXToMatic(
-		uint256 _balance
-	) external view returns (uint256, uint256, uint256);
-
-	/// @notice Converts an arbritrary amount of stake tokens to MaticX shares.
-	/// @param _balance - Balance in a stake token
-	/// @return Balance in MaticX
-	/// @return Total shares
-	/// @return Total pooled stake tokens
-	function convertStakeTokenToMaticX(
-		uint256 _balance
-	) external view returns (uint256, uint256, uint256);
-
-	/// @notice Converts an arbritrary amount of stake tokens to MaticX shares.
-	/// @custom:deprecated
-	/// @param _balance - Balance in a stake token
-	/// @return Balance in MaticX
-	/// @return Total shares
-	/// @return Total pooled stake tokens
-	function convertMaticToMaticX(
+	/// @notice Converts an amount of POL tokens to MaticX shares.
+	/// @param _balance - Balance in POL
+	/// @return Total MaticX shares
+	/// @return Balance in POL tokens
+	/// @return Total pooled POL tokens
+	function convertPOLToMaticX(
 		uint256 _balance
 	) external view returns (uint256, uint256, uint256);
 
