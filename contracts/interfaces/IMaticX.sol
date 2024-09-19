@@ -157,12 +157,32 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 _balance
 	) external view returns (uint256, uint256, uint256);
 
+	/// @notice Converts an amount of MaticX shares to POL tokens.
+	/// @custom:deprecated
+	/// @param _balance - Balance in MaticX
+	/// @return Balance in POL tokens
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertMaticXToMatic(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
+
 	/// @notice Converts an amount of POL tokens to MaticX shares.
 	/// @param _balance - Balance in POL
 	/// @return Total MaticX shares
 	/// @return Balance in POL tokens
 	/// @return Total pooled POL tokens
 	function convertPOLToMaticX(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
+
+	/// @notice Converts an amount of POL tokens to MaticX shares.
+	/// @custom:deprecated
+	/// @param _balance - Balance in POL
+	/// @return Total MaticX shares
+	/// @return Balance in POL tokens
+	/// @return Total pooled POL tokens
+	function convertMaticToMaticX(
 		uint256 _balance
 	) external view returns (uint256, uint256, uint256);
 
