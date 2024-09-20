@@ -173,12 +173,12 @@ contract MaticX is
 		);
 
 		(
-			uint256 mintedAmount,
+			uint256 amountToMint,
 			uint256 totalShares,
-			uint256 totalPooledPOL
+			uint256 totalPooledAmount
 		) = _convertPOLToMaticX(_amount);
 
-		_mint(sender, mintedAmount);
+		_mint(sender, amountToMint);
 		emit Submit(sender, _amount);
 
 		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
@@ -191,11 +191,11 @@ contract MaticX is
 			: IValidatorShare(validatorShare).buyVoucher(_amount, 0);
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
-			abi.encode(totalShares + mintedAmount, totalPooledPOL + _amount)
+			abi.encode(totalShares + amountToMint, totalPooledAmount + _amount)
 		);
 
 		emit Delegate(preferredValidatorId, _amount);
-		return mintedAmount;
+		return amountToMint;
 	}
 
 	/// @notice Registers a user's request to withdraw an amount of POL tokens.
@@ -207,15 +207,15 @@ contract MaticX is
 		require(_amount > 0, "Invalid amount");
 
 		(
-			uint256 totalPOLToWithdraw,
+			uint256 amountToWithdraw,
 			uint256 totalShares,
-			uint256 totalPooledPOL
+			uint256 totalPooledAmount
 		) = _convertMaticXToPOL(_amount);
 
 		_burn(msg.sender, _amount);
 
 		require(
-			getTotalStakeAcrossAllValidators() >= totalPOLToWithdraw,
+			getTotalStakeAcrossAllValidators() >= amountToWithdraw,
 			"Too much to withdraw"
 		);
 
@@ -236,10 +236,10 @@ contract MaticX is
 			}
 		}
 
-		uint256 leftPOLToWithdraw = totalPOLToWithdraw;
+		uint256 leftAmountToWithdraw = amountToWithdraw;
 		uint256 totalAttempts = validatorIdCount;
 
-		while (leftPOLToWithdraw > 0 && totalAttempts > 0) {
+		while (leftAmountToWithdraw > 0 && totalAttempts > 0) {
 			uint256 validatorId = validatorIds[currentIdx];
 			address validatorShare = IStakeManager(stakeManager)
 				.getValidatorContract(validatorId);
@@ -247,14 +247,14 @@ contract MaticX is
 				IValidatorShare(validatorShare)
 			);
 
-			uint256 validatorPOLToWithdraw = (validatorBalance <=
-				leftPOLToWithdraw)
+			uint256 amountToWithdrawFromValidator = (validatorBalance <=
+				leftAmountToWithdraw)
 				? validatorBalance
-				: leftPOLToWithdraw;
+				: leftAmountToWithdraw;
 
-			if (validatorPOLToWithdraw > 0) {
+			if (amountToWithdrawFromValidator > 0) {
 				IValidatorShare(validatorShare).sellVoucher_newPOL(
-					validatorPOLToWithdraw,
+					amountToWithdrawFromValidator,
 					type(uint256).max
 				);
 
@@ -271,26 +271,23 @@ contract MaticX is
 					)
 				);
 
-				leftPOLToWithdraw -= validatorPOLToWithdraw;
+				leftAmountToWithdraw -= amountToWithdrawFromValidator;
 			}
 
 			--totalAttempts;
 			currentIdx = currentIdx + 1 < validatorIdCount ? currentIdx + 1 : 0;
 		}
 
-		require(
-			leftPOLToWithdraw == 0,
-			"Extra amount of stake tokens left to be withdrawn"
-		);
+		require(leftAmountToWithdraw == 0, "Extra amount left to withdraw");
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
 			abi.encode(
 				totalShares - _amount,
-				totalPooledPOL - totalPOLToWithdraw
+				totalPooledAmount - amountToWithdraw
 			)
 		);
 
-		emit RequestWithdraw(msg.sender, _amount, totalPOLToWithdraw);
+		emit RequestWithdraw(msg.sender, _amount, amountToWithdraw);
 	}
 
 	/// @notice Claims POL tokens from a validator share and sends them to the
@@ -382,27 +379,26 @@ contract MaticX is
 			"Doesn't exist in validator registry"
 		);
 
-		address validatorShare = IStakeManager(stakeManager)
-			.getValidatorContract(_validatorId);
+		uint256 reward = IERC20Upgradeable(polToken).balanceOf(address(this));
+		require(reward > 0, "Reward is zero");
 
-		uint256 rewards = IERC20Upgradeable(polToken).balanceOf(address(this));
-		require(rewards > 0, "Reward is zero");
+		uint256 treasuryFee = (reward * feePercent) / 100;
 
-		uint256 treasuryFees = (rewards * feePercent) / 100;
-
-		if (treasuryFees > 0) {
-			IERC20Upgradeable(polToken).safeTransfer(treasury, treasuryFees);
-			emit DistributeFees(treasury, treasuryFees);
+		if (treasuryFee > 0) {
+			IERC20Upgradeable(polToken).safeTransfer(treasury, treasuryFee);
+			emit DistributeFees(treasury, treasuryFee);
 		}
 
-		uint256 amountStaked = rewards - treasuryFees;
+		uint256 amountStaked = reward - treasuryFee;
+		address validatorShare = IStakeManager(stakeManager)
+			.getValidatorContract(_validatorId);
 		IValidatorShare(validatorShare).buyVoucherPOL(amountStaked, 0);
 
 		uint256 totalShares = totalSupply();
-		uint256 totalPooledPOL = getTotalStakeAcrossAllValidators();
+		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
 
 		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
-			abi.encode(totalShares, totalPooledPOL)
+			abi.encode(totalShares, totalPooledAmount)
 		);
 
 		emit StakeRewards(_validatorId, amountStaked);
@@ -442,92 +438,6 @@ contract MaticX is
 	/// @notice Toggles the paused status of this contract.
 	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		paused() ? _unpause() : _pause();
-	}
-
-	/// ------------------------------ Helpers ---------------------------------
-
-	/// @notice Converts an amount of MaticX shares to POL tokens.
-	/// @param _balance - Balance in MaticX
-	/// @return Balance in POL tokens
-	/// @return Total MaticX shares
-	/// @return Total pooled POL tokens
-	function convertMaticXToPOL(
-		uint256 _balance
-	) external view override returns (uint256, uint256, uint256) {
-		return _convertMaticXToPOL(_balance);
-	}
-
-	/// @notice Converts an amount of MaticX shares to POL tokens.
-	/// @custom:deprecated
-	/// @param _balance - Balance in MaticX
-	/// @return Balance in POL tokens
-	/// @return Total MaticX shares
-	/// @return Total pooled POL tokens
-	function convertMaticXToMatic(
-		uint256 _balance
-	) external view override returns (uint256, uint256, uint256) {
-		return _convertMaticXToPOL(_balance);
-	}
-
-	/// @dev Converts an amount of MaticX shares to POL tokens.
-	/// @param _balance - Balance in MaticX
-	/// @return Balance in POL tokens
-	/// @return Total MaticX shares
-	/// @return Total pooled POL tokens
-	function _convertMaticXToPOL(
-		uint256 _balance
-	) private view returns (uint256, uint256, uint256) {
-		uint256 totalShares = totalSupply();
-		totalShares = totalShares == 0 ? 1 : totalShares;
-
-		uint256 totalPooledPOL = getTotalStakeAcrossAllValidators();
-		totalPooledPOL = totalPooledPOL == 0 ? 1 : totalPooledPOL;
-
-		uint256 balanceInPOL = (_balance * (totalPooledPOL)) / totalShares;
-
-		return (balanceInPOL, totalShares, totalPooledPOL);
-	}
-
-	/// @notice Converts an amount of POL tokens to MaticX shares.
-	/// @param _balance - Balance in POL
-	/// @return Total MaticX shares
-	/// @return Balance in POL tokens
-	/// @return Total pooled POL tokens
-	function convertPOLToMaticX(
-		uint256 _balance
-	) external view override returns (uint256, uint256, uint256) {
-		return _convertPOLToMaticX(_balance);
-	}
-
-	/// @notice Converts an amount of POL tokens to MaticX shares.
-	/// @custom:deprecated
-	/// @param _balance - Balance in POL
-	/// @return Total MaticX shares
-	/// @return Balance in POL tokens
-	/// @return Total pooled POL tokens
-	function convertMaticToMaticX(
-		uint256 _balance
-	) external view override returns (uint256, uint256, uint256) {
-		return _convertPOLToMaticX(_balance);
-	}
-
-	/// @dev Converts an arbritrary amount of stake tokens to MaticX shares.
-	/// @param _balance - Balance in a stake token
-	/// @return Balance in MaticX
-	/// @return Total shares
-	/// @return Total pooled POL tokens
-	function _convertPOLToMaticX(
-		uint256 _balance
-	) private view returns (uint256, uint256, uint256) {
-		uint256 totalShares = totalSupply();
-		totalShares = totalShares == 0 ? 1 : totalShares;
-
-		uint256 totalPooledPOL = getTotalStakeAcrossAllValidators();
-		totalPooledPOL = totalPooledPOL == 0 ? 1 : totalPooledPOL;
-
-		uint256 balanceInMaticX = (_balance * totalShares) / totalPooledPOL;
-
-		return (balanceInMaticX, totalShares, totalPooledPOL);
 	}
 
 	/// ------------------------------ Setters ---------------------------------
@@ -588,6 +498,90 @@ contract MaticX is
 	}
 
 	/// ------------------------------ Getters ---------------------------------
+
+	/// @notice Converts an amount of MaticX shares to POL tokens.
+	/// @param _balance - Balance in MaticX shares
+	/// @return Balance in POL tokens
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertMaticXToPOL(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
+		return _convertMaticXToPOL(_balance);
+	}
+
+	/// @notice Converts an amount of MaticX shares to POL tokens.
+	/// @custom:deprecated
+	/// @param _balance - Balance in MaticX shares
+	/// @return Balance in POL tokens
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertMaticXToMatic(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
+		return _convertMaticXToPOL(_balance);
+	}
+
+	/// @dev Converts an amount of MaticX shares to POL tokens.
+	/// @param _balance - Balance in MaticX shares
+	/// @return Balance in POL tokens
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function _convertMaticXToPOL(
+		uint256 _balance
+	) private view returns (uint256, uint256, uint256) {
+		uint256 totalShares = totalSupply();
+		totalShares = totalShares == 0 ? 1 : totalShares;
+
+		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
+		totalPooledAmount = totalPooledAmount == 0 ? 1 : totalPooledAmount;
+
+		uint256 balanceInPOL = (_balance * (totalPooledAmount)) / totalShares;
+
+		return (balanceInPOL, totalShares, totalPooledAmount);
+	}
+
+	/// @notice Converts an amount of POL tokens to MaticX shares.
+	/// @param _balance - Balance in POL tokens
+	/// @return Balance in MaticX shares
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertPOLToMaticX(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
+		return _convertPOLToMaticX(_balance);
+	}
+
+	/// @notice Converts an amount of POL tokens to MaticX shares.
+	/// @custom:deprecated
+	/// @param _balance - Balance in POL tokens
+	/// @return Balance in MaticX shares
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertMaticToMaticX(
+		uint256 _balance
+	) external view override returns (uint256, uint256, uint256) {
+		return _convertPOLToMaticX(_balance);
+	}
+
+	/// @dev Converts an arbritrary amount of POL tokens to MaticX shares.
+	/// @param _balance - Balance in POL tokens
+	/// @return Balance in MaticX shares
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function _convertPOLToMaticX(
+		uint256 _balance
+	) private view returns (uint256, uint256, uint256) {
+		uint256 totalShares = totalSupply();
+		totalShares = totalShares == 0 ? 1 : totalShares;
+
+		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
+		totalPooledAmount = totalPooledAmount == 0 ? 1 : totalPooledAmount;
+
+		uint256 balanceInMaticX = (_balance * totalShares) / totalPooledAmount;
+
+		return (balanceInMaticX, totalShares, totalPooledAmount);
+	}
 
 	/// @notice Returns total pooled stake tokens from all registered validators.
 	/// @return Total pooled stake tokens

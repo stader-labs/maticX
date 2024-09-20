@@ -148,44 +148,6 @@ interface IMaticX is IERC20Upgradeable {
 	/// @notice Toggles the paused status of this contract.
 	function togglePause() external;
 
-	/// @notice Converts an amount of MaticX shares to POL tokens.
-	/// @param _balance - Balance in MaticX
-	/// @return Balance in POL tokens
-	/// @return Total MaticX shares
-	/// @return Total pooled POL tokens
-	function convertMaticXToPOL(
-		uint256 _balance
-	) external view returns (uint256, uint256, uint256);
-
-	/// @notice Converts an amount of MaticX shares to POL tokens.
-	/// @custom:deprecated
-	/// @param _balance - Balance in MaticX
-	/// @return Balance in POL tokens
-	/// @return Total MaticX shares
-	/// @return Total pooled POL tokens
-	function convertMaticXToMatic(
-		uint256 _balance
-	) external view returns (uint256, uint256, uint256);
-
-	/// @notice Converts an amount of POL tokens to MaticX shares.
-	/// @param _balance - Balance in POL
-	/// @return Total MaticX shares
-	/// @return Balance in POL tokens
-	/// @return Total pooled POL tokens
-	function convertPOLToMaticX(
-		uint256 _balance
-	) external view returns (uint256, uint256, uint256);
-
-	/// @notice Converts an amount of POL tokens to MaticX shares.
-	/// @custom:deprecated
-	/// @param _balance - Balance in POL
-	/// @return Total MaticX shares
-	/// @return Balance in POL tokens
-	/// @return Total pooled POL tokens
-	function convertMaticToMaticX(
-		uint256 _balance
-	) external view returns (uint256, uint256, uint256);
-
 	/// @notice Sets a fee percent.
 	/// @param _feePercent - Fee percent (10 = 10%)
 	function setFeePercent(uint8 _feePercent) external;
@@ -205,6 +167,44 @@ interface IMaticX is IERC20Upgradeable {
 	/// @notice Sets a new version of this contract
 	/// @param _version - New version of this contract
 	function setVersion(string calldata _version) external;
+
+	/// @notice Converts an amount of MaticX shares to POL tokens.
+	/// @param _balance - Balance in MaticX shares
+	/// @return Balance in POL tokens
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertMaticXToPOL(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
+
+	/// @notice Converts an amount of MaticX shares to POL tokens.
+	/// @custom:deprecated
+	/// @param _balance - Balance in MaticX shares
+	/// @return Balance in POL tokens
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertMaticXToMatic(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
+
+	/// @notice Converts an amount of POL tokens to MaticX shares.
+	/// @param _balance - Balance in POL tokens
+	/// @return Balance in MaticX shares
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertPOLToMaticX(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
+
+	/// @notice Converts an amount of POL tokens to MaticX shares.
+	/// @custom:deprecated
+	/// @param _balance - Balance in POL tokens
+	/// @return Balance in MaticX shares
+	/// @return Total MaticX shares
+	/// @return Total pooled POL tokens
+	function convertMaticToMaticX(
+		uint256 _balance
+	) external view returns (uint256, uint256, uint256);
 
 	/// @notice Returns total pooled stake tokens from all registered validators.
 	/// @return Total pooled stake tokens
