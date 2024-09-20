@@ -7,8 +7,10 @@ import { Merkle } from "../lib/Merkle.sol";
 import "../lib/ExitPayloadReader.sol";
 
 interface IFxStateSender {
-	function sendMessageToChild(address _receiver, bytes calldata _data)
-		external;
+	function sendMessageToChild(
+		address _receiver,
+		bytes calldata _data
+	) external;
 }
 
 contract ICheckpointManager {
@@ -69,10 +71,9 @@ abstract contract FxBaseRootTunnel {
 		fxRoot.sendMessageToChild(fxChildTunnel, message);
 	}
 
-	function _validateAndExtractMessage(bytes memory inputData)
-		internal
-		returns (bytes memory)
-	{
+	function _validateAndExtractMessage(
+		bytes memory inputData
+	) internal returns (bytes memory) {
 		ExitPayloadReader.ExitPayload memory payload = inputData
 			.toExitPayload();
 

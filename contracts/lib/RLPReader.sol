@@ -49,11 +49,9 @@ library RLPReader {
 	/*
 	 * @param item RLP encoded bytes
 	 */
-	function toRlpItem(bytes memory item)
-		internal
-		pure
-		returns (RLPItem memory)
-	{
+	function toRlpItem(
+		bytes memory item
+	) internal pure returns (RLPItem memory) {
 		uint256 memPtr;
 		assembly {
 			memPtr := add(item, 0x20)
@@ -67,11 +65,9 @@ library RLPReader {
 	 * @param self The RLP item.
 	 * @return An 'Iterator' over the item.
 	 */
-	function iterator(RLPItem memory self)
-		internal
-		pure
-		returns (Iterator memory)
-	{
+	function iterator(
+		RLPItem memory self
+	) internal pure returns (Iterator memory) {
 		require(isList(self));
 
 		uint256 ptr = self.memPtr + _payloadOffset(self.memPtr);
@@ -95,11 +91,9 @@ library RLPReader {
 	/*
 	 * @param item RLP encoded list in bytes
 	 */
-	function toList(RLPItem memory item)
-		internal
-		pure
-		returns (RLPItem[] memory)
-	{
+	function toList(
+		RLPItem memory item
+	) internal pure returns (RLPItem[] memory) {
 		require(isList(item));
 
 		uint256 items = numItems(item);
@@ -134,11 +128,9 @@ library RLPReader {
 	 * @dev A cheaper version of keccak256(toRlpBytes(item)) that avoids copying memory.
 	 * @return keccak256 hash of RLP encoded bytes.
 	 */
-	function rlpBytesKeccak256(RLPItem memory item)
-		internal
-		pure
-		returns (bytes32)
-	{
+	function rlpBytesKeccak256(
+		RLPItem memory item
+	) internal pure returns (bytes32) {
 		uint256 ptr = item.memPtr;
 		uint256 len = item.len;
 		bytes32 result;
@@ -148,11 +140,9 @@ library RLPReader {
 		return result;
 	}
 
-	function payloadLocation(RLPItem memory item)
-		internal
-		pure
-		returns (uint256, uint256)
-	{
+	function payloadLocation(
+		RLPItem memory item
+	) internal pure returns (uint256, uint256) {
 		uint256 offset = _payloadOffset(item.memPtr);
 		uint256 memPtr = item.memPtr + offset;
 		uint256 len = item.len - offset; // data length
@@ -163,11 +153,9 @@ library RLPReader {
 	 * @dev A cheaper version of keccak256(toBytes(item)) that avoids copying memory.
 	 * @return keccak256 hash of the item payload.
 	 */
-	function payloadKeccak256(RLPItem memory item)
-		internal
-		pure
-		returns (bytes32)
-	{
+	function payloadKeccak256(
+		RLPItem memory item
+	) internal pure returns (bytes32) {
 		(uint256 memPtr, uint256 len) = payloadLocation(item);
 		bytes32 result;
 		assembly {
@@ -179,11 +167,9 @@ library RLPReader {
 	/** RLPItem conversions into data types **/
 
 	// @returns raw rlp encoding in bytes
-	function toRlpBytes(RLPItem memory item)
-		internal
-		pure
-		returns (bytes memory)
-	{
+	function toRlpBytes(
+		RLPItem memory item
+	) internal pure returns (bytes memory) {
 		bytes memory result = new bytes(item.len);
 		if (result.length == 0) return result;
 
@@ -341,11 +327,7 @@ library RLPReader {
 	 * @param dest Pointer to destination
 	 * @param len Amount of memory to copy from the source
 	 */
-	function copy(
-		uint256 src,
-		uint256 dest,
-		uint256 len
-	) private pure {
+	function copy(uint256 src, uint256 dest, uint256 len) private pure {
 		if (len == 0) return;
 
 		// copy as many word sizes as possible
@@ -361,7 +343,7 @@ library RLPReader {
 		if (len == 0) return;
 
 		// left over bytes. Mask is used to remove unwanted bytes from the word
-		uint256 mask = 256**(WORD_SIZE - len) - 1;
+		uint256 mask = 256 ** (WORD_SIZE - len) - 1;
 
 		assembly {
 			let srcpart := and(mload(src), not(mask)) // zero out src

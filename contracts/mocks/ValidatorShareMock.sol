@@ -7,7 +7,7 @@ import "../interfaces/IValidatorShare.sol";
 import "../interfaces/IStakeManager.sol";
 
 contract ValidatorShareMock is IValidatorShare {
-	uint256 constant REWARD_PRECISION = 10**25;
+	uint256 constant REWARD_PRECISION = 10 ** 25;
 
 	address public token;
 
@@ -29,30 +29,24 @@ contract ValidatorShareMock is IValidatorShare {
 	IStakeManager stakeManager;
 	address public override stakingLogger;
 
-	constructor(
-		address _token,
-		address _stakeManager,
-		uint256 _id
-	) {
+	constructor(address _token, address _stakeManager, uint256 _id) {
 		token = _token;
 		stakeManager = IStakeManager(_stakeManager);
 		validatorId = _id;
 		delegation = true;
 	}
 
-	function buyVoucher(uint256 _amount, uint256)
-		external
-		override
-		returns (uint256)
-	{
+	function buyVoucher(
+		uint256 _amount,
+		uint256
+	) external override returns (uint256) {
 		return _buyVoucher(_amount);
 	}
 
-	function buyVoucherPOL(uint256 _amount, uint256)
-		external
-		override
-		returns (uint256)
-	{
+	function buyVoucherPOL(
+		uint256 _amount,
+		uint256
+	) external override returns (uint256) {
 		return _buyVoucher(_amount);
 	}
 
@@ -60,7 +54,10 @@ contract ValidatorShareMock is IValidatorShare {
 		_sellVoucher_new(_claimAmount);
 	}
 
-	function sellVoucher_newPOL(uint256 _claimAmount, uint256) external override {
+	function sellVoucher_newPOL(
+		uint256 _claimAmount,
+		uint256
+	) external override {
 		_sellVoucher_new(_claimAmount);
 	}
 
@@ -93,12 +90,9 @@ contract ValidatorShareMock is IValidatorShare {
 		_withdrawReward(msg.sender);
 	}
 
-	function getTotalStake(address)
-		external
-		view
-		override
-		returns (uint256, uint256)
-	{
+	function getTotalStake(
+		address
+	) external view override returns (uint256, uint256) {
 		//getTotalStake returns totalStake of msg.sender but we need withdrawPool
 		return (totalStaked, 1);
 	}
@@ -119,12 +113,10 @@ contract ValidatorShareMock is IValidatorShare {
 		return reward;
 	}
 
-	function unbonds_new(address _address, uint256 _unbondNonce)
-		external
-		view
-		override
-		returns (DelegatorUnbond memory)
-	{
+	function unbonds_new(
+		address _address,
+		uint256 _unbondNonce
+	) external view override returns (DelegatorUnbond memory) {
 		DelegatorUnbond memory unbond = DelegatorUnbond(
 			user2WithdrawPoolShare[_address][_unbondNonce],
 			2

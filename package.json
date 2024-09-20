@@ -4,8 +4,7 @@
 	"description": "MaticX contracts",
 	"scripts": {
 		"prepare": "husky",
-		"format:sol": "prettier --write 'contracts/**/*.sol'",
-		"format:ts": "prettier --write 'scripts/**/*.ts' 'test/**/*.ts'",
+		"format": "prettier --write 'contracts/**/*.sol' 'scripts/**/*.ts' 'test/**/*.ts'",
 		"lint": "eslint --ext .js,.ts .",
 		"compile": "hardhat compile",
 		"check": "hardhat check",

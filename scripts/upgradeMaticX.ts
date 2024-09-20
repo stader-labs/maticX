@@ -12,9 +12,8 @@ const upgradeMaticX = async () => {
 	)) as MaticX__factory;
 
 	await upgrades.upgradeProxy(MaticXAddress, MaticXFactory);
-	const MaticXImplAddress = await upgrades.erc1967.getImplementationAddress(
-		MaticXAddress
-	);
+	const MaticXImplAddress =
+		await upgrades.erc1967.getImplementationAddress(MaticXAddress);
 
 	console.log("MaticX upgraded");
 	console.log("proxy:", MaticXAddress);

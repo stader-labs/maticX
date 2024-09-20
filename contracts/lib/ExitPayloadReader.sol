@@ -28,11 +28,7 @@ library ExitPayloadReader {
 	}
 
 	// copy paste of private copy() from RLPReader to avoid changing of existing contracts
-	function copy(
-		uint256 src,
-		uint256 dest,
-		uint256 len
-	) private pure {
+	function copy(uint256 src, uint256 dest, uint256 len) private pure {
 		if (len == 0) return;
 
 		// copy as many word sizes as possible
@@ -46,7 +42,7 @@ library ExitPayloadReader {
 		}
 
 		// left over bytes. Mask is used to remove unwanted bytes from the word
-		uint256 mask = 256**(WORD_SIZE - len) - 1;
+		uint256 mask = 256 ** (WORD_SIZE - len) - 1;
 		assembly {
 			let srcpart := and(mload(src), not(mask)) // zero out src
 			let destpart := and(mload(dest), mask) // retrieve the bytes
@@ -54,69 +50,53 @@ library ExitPayloadReader {
 		}
 	}
 
-	function toExitPayload(bytes memory data)
-		internal
-		pure
-		returns (ExitPayload memory)
-	{
+	function toExitPayload(
+		bytes memory data
+	) internal pure returns (ExitPayload memory) {
 		RLPReader.RLPItem[] memory payloadData = data.toRlpItem().toList();
 
 		return ExitPayload(payloadData);
 	}
 
-	function getHeaderNumber(ExitPayload memory payload)
-		internal
-		pure
-		returns (uint256)
-	{
+	function getHeaderNumber(
+		ExitPayload memory payload
+	) internal pure returns (uint256) {
 		return payload.data[0].toUint();
 	}
 
-	function getBlockProof(ExitPayload memory payload)
-		internal
-		pure
-		returns (bytes memory)
-	{
+	function getBlockProof(
+		ExitPayload memory payload
+	) internal pure returns (bytes memory) {
 		return payload.data[1].toBytes();
 	}
 
-	function getBlockNumber(ExitPayload memory payload)
-		internal
-		pure
-		returns (uint256)
-	{
+	function getBlockNumber(
+		ExitPayload memory payload
+	) internal pure returns (uint256) {
 		return payload.data[2].toUint();
 	}
 
-	function getBlockTime(ExitPayload memory payload)
-		internal
-		pure
-		returns (uint256)
-	{
+	function getBlockTime(
+		ExitPayload memory payload
+	) internal pure returns (uint256) {
 		return payload.data[3].toUint();
 	}
 
-	function getTxRoot(ExitPayload memory payload)
-		internal
-		pure
-		returns (bytes32)
-	{
+	function getTxRoot(
+		ExitPayload memory payload
+	) internal pure returns (bytes32) {
 		return bytes32(payload.data[4].toUint());
 	}
 
-	function getReceiptRoot(ExitPayload memory payload)
-		internal
-		pure
-		returns (bytes32)
-	{
+	function getReceiptRoot(
+		ExitPayload memory payload
+	) internal pure returns (bytes32) {
 		return bytes32(payload.data[5].toUint());
 	}
 
-	function getReceipt(ExitPayload memory payload)
-		internal
-		pure
-		returns (Receipt memory receipt)
-	{
+	function getReceipt(
+		ExitPayload memory payload
+	) internal pure returns (Receipt memory receipt) {
 		receipt.raw = payload.data[6].toBytes();
 		RLPReader.RLPItem memory receiptItem = receipt.raw.toRlpItem();
 
@@ -142,44 +122,34 @@ library ExitPayloadReader {
 		return receipt;
 	}
 
-	function getReceiptProof(ExitPayload memory payload)
-		internal
-		pure
-		returns (bytes memory)
-	{
+	function getReceiptProof(
+		ExitPayload memory payload
+	) internal pure returns (bytes memory) {
 		return payload.data[7].toBytes();
 	}
 
-	function getBranchMaskAsBytes(ExitPayload memory payload)
-		internal
-		pure
-		returns (bytes memory)
-	{
+	function getBranchMaskAsBytes(
+		ExitPayload memory payload
+	) internal pure returns (bytes memory) {
 		return payload.data[8].toBytes();
 	}
 
-	function getBranchMaskAsUint(ExitPayload memory payload)
-		internal
-		pure
-		returns (uint256)
-	{
+	function getBranchMaskAsUint(
+		ExitPayload memory payload
+	) internal pure returns (uint256) {
 		return payload.data[8].toUint();
 	}
 
-	function getReceiptLogIndex(ExitPayload memory payload)
-		internal
-		pure
-		returns (uint256)
-	{
+	function getReceiptLogIndex(
+		ExitPayload memory payload
+	) internal pure returns (uint256) {
 		return payload.data[9].toUint();
 	}
 
 	// Receipt methods
-	function toBytes(Receipt memory receipt)
-		internal
-		pure
-		returns (bytes memory)
-	{
+	function toBytes(
+		Receipt memory receipt
+	) internal pure returns (bytes memory) {
 		return receipt.raw;
 	}
 
@@ -195,11 +165,9 @@ library ExitPayloadReader {
 		return RLPReader.toAddress(log.list[0]);
 	}
 
-	function getTopics(Log memory log)
-		internal
-		pure
-		returns (LogTopics memory)
-	{
+	function getTopics(
+		Log memory log
+	) internal pure returns (LogTopics memory) {
 		return LogTopics(log.list[1].toList());
 	}
 
@@ -212,11 +180,10 @@ library ExitPayloadReader {
 	}
 
 	// LogTopics methods
-	function getField(LogTopics memory topics, uint256 index)
-		internal
-		pure
-		returns (RLPReader.RLPItem memory)
-	{
+	function getField(
+		LogTopics memory topics,
+		uint256 index
+	) internal pure returns (RLPReader.RLPItem memory) {
 		return topics.data[index];
 	}
 }
