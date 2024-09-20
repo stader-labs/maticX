@@ -312,8 +312,8 @@ contract MaticX is
 		);
 
 		IValidatorShare(userRequest.validatorAddress).unstakeClaimTokens_newPOL(
-				userRequest.validatorNonce
-			);
+			userRequest.validatorNonce
+		);
 
 		userRequests[_idx] = userRequests[userRequests.length - 1];
 		userRequests.pop();

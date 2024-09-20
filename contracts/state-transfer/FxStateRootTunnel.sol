@@ -35,11 +35,9 @@ contract FxStateRootTunnel is FxBaseRootTunnel, AccessControl {
 		maticX = _maticX;
 	}
 
-	function setFxChildTunnel(address _fxChildTunnel)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setFxChildTunnel(
+		address _fxChildTunnel
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		fxChildTunnel = _fxChildTunnel;
 	}
 }

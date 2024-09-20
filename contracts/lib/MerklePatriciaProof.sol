@@ -121,11 +121,9 @@ library MerklePatriciaProof {
 	}
 
 	// bytes b must be hp encoded
-	function _getNibbleArray(bytes memory b)
-		internal
-		pure
-		returns (bytes memory)
-	{
+	function _getNibbleArray(
+		bytes memory b
+	) internal pure returns (bytes memory) {
 		bytes memory nibbles = "";
 		if (b.length > 0) {
 			uint8 offset;
@@ -147,11 +145,10 @@ library MerklePatriciaProof {
 		return nibbles;
 	}
 
-	function _getNthNibbleOfBytes(uint256 n, bytes memory str)
-		private
-		pure
-		returns (bytes1)
-	{
+	function _getNthNibbleOfBytes(
+		uint256 n,
+		bytes memory str
+	) private pure returns (bytes1) {
 		return
 			bytes1(
 				n % 2 == 0 ? uint8(str[n / 2]) / 0x10 : uint8(str[n / 2]) % 0x10

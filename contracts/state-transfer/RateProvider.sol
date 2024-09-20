@@ -22,11 +22,9 @@ contract RateProvider is IRateProvider, AccessControl {
 		return IFxStateChildTunnel(fxChild).getRate();
 	}
 
-	function setFxChild(address _fxChild)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setFxChild(
+		address _fxChild
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		fxChild = _fxChild;
 	}
 }
