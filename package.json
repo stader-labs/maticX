@@ -78,6 +78,8 @@
 		"rimraf": "^6.0.1",
 		"solc": "^0.8.27",
 		"solhint": "^5.0.3",
+		"solhint-community": "^4.0.0",
+		"solhint-plugin-prettier": "^0.1.0",
 		"solidity-coverage": "^0.8.13",
 		"ts-node": "^10.2.1",
 		"typechain": "^6.1.0",

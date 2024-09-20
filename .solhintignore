@@ -4,6 +4,8 @@
 artifacts/
 cache/
 coverage/
+contracts/ChildPool.sol
+contracts/interfaces/IChildPool.sol
 contracts/lib
 contracts/mocks
 contracts/state-transfer
