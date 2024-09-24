@@ -37,8 +37,8 @@ describe("MaticX (Forking)", function () {
 		const stakeManagerGovernance = await impersonateAccount(
 			"0x6e7a5820baD6cebA8Ef5ea69c0C92EbbDAc9CE48"
 		);
-		const treasury = manager;
-		const [executor, bot, stakerA, stakerB, polHolder] =
+
+		const [executor, bot, treasury, stakerA, stakerB, polHolder] =
 			await ethers.getSigners();
 		const stakers = [stakerA, stakerB];
 
@@ -91,7 +91,7 @@ describe("MaticX (Forking)", function () {
 			preferredDepositValidatorId
 		);
 
-		const preferredWithdrawalValidatorId = validatorIds[0];
+		const preferredWithdrawalValidatorId = validatorIds[1];
 		validatorRegistry.setPreferredWithdrawalValidatorId(
 			preferredWithdrawalValidatorId
 		);
@@ -864,7 +864,7 @@ describe("MaticX (Forking)", function () {
 				);
 			});
 
-			it("Should the right Matic and POL token balances", async function () {
+			it("Should return the right Matic and POL token balances", async function () {
 				const { maticX, stakeManager, matic, pol, stakerA } =
 					await loadFixture(deployFixture);
 
@@ -885,6 +885,90 @@ describe("MaticX (Forking)", function () {
 				);
 			});
 
+			it("Should return the right MaticX to POL conversion", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticXToPOL(stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticXToPOL(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right MaticX to POL conversion in a backward compatible manner", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticXToMatic(stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticXToMatic(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right POL to MaticX conversion", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertPOLToMaticX(stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertPOLToMaticX(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right POL to MaticX conversion in a backward compatible manner", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticToMaticX(stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticToMaticX(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
 			it("Should return the right total pooled stake tokens", async function () {
 				const { maticX, matic, stakers } =
 					await loadFixture(deployFixture);
@@ -901,6 +985,27 @@ describe("MaticX (Forking)", function () {
 
 				const totalPooledStakeTokens =
 					await maticX.getTotalStakeAcrossAllValidators();
+				expect(totalPooledStakeTokens).to.equal(
+					tripleStakeAmount.mul(2)
+				);
+			});
+
+			it("Should return the right total pooled stake tokens in a backward compatible manner", async function () {
+				const { maticX, matic, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, tripleStakeAmount);
+
+					for (let i = 0; i < 3; i++) {
+						await maticX.connect(staker).submit(stakeAmount);
+					}
+				}
+
+				const totalPooledStakeTokens =
+					await maticX.getTotalPooledMatic();
 				expect(totalPooledStakeTokens).to.equal(
 					tripleStakeAmount.mul(2)
 				);
@@ -1059,7 +1164,7 @@ describe("MaticX (Forking)", function () {
 				);
 			});
 
-			it("Should the right POL token balances", async function () {
+			it("Should return the right POL token balances", async function () {
 				const { maticX, stakeManager, pol, stakerA } =
 					await loadFixture(deployFixture);
 
@@ -1071,6 +1176,82 @@ describe("MaticX (Forking)", function () {
 					[stakerA, maticX, stakeManager],
 					[stakeAmount.mul(-1), 0, stakeAmount]
 				);
+			});
+
+			it("Should return the right MaticX to POL conversion", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticXToPOL(stakeAmount);
+
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticXToPOL(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right MaticX to POL conversion in a backward compatible manner", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticXToMatic(stakeAmount);
+
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticXToMatic(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right POL to MaticX conversion", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertPOLToMaticX(stakeAmount);
+
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertPOLToMaticX(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right POL to MaticX conversion in a backward compatible manner", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticToMaticX(stakeAmount);
+
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticToMaticX(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
 			});
 
 			it("Should return the right total pooled stake tokens", async function () {
@@ -1089,6 +1270,27 @@ describe("MaticX (Forking)", function () {
 
 				const totalPooledStakeTokens =
 					await maticX.getTotalStakeAcrossAllValidators();
+				expect(totalPooledStakeTokens).to.equal(
+					tripleStakeAmount.mul(2)
+				);
+			});
+
+			it("Should return the right total pooled stake tokens in a backward compatible manner", async function () {
+				const { maticX, pol, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, tripleStakeAmount);
+
+					for (let i = 0; i < 3; i++) {
+						await maticX.connect(staker).submitPOL(stakeAmount);
+					}
+				}
+
+				const totalPooledStakeTokens =
+					await maticX.getTotalPooledMatic();
 				expect(totalPooledStakeTokens).to.equal(
 					tripleStakeAmount.mul(2)
 				);
@@ -1793,6 +1995,123 @@ describe("MaticX (Forking)", function () {
 					[stakeAmount.mul(-1), netStakeAmount, feeAmount]
 				);
 			});
+		});
+	});
+
+	describe("Migrate a delegation", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						stakeAmount
+					);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if called by a non admin", async function () {
+				const {
+					maticX,
+					executor,
+					defaultAdminRole,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(executor)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						stakeAmount
+					);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing an unregistered source validator id", async function () {
+				const { maticX, manager, preferredWithdrawalValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						0,
+						preferredWithdrawalValidatorId,
+						stakeAmount
+					);
+				await expect(promise).to.be.revertedWith(
+					"From validator id does not exist in our registry"
+				);
+			});
+
+			it("Should revert with the right error if passing an unregistered destination validator id", async function () {
+				const { maticX, manager, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						0,
+						stakeAmount
+					);
+				await expect(promise).to.be.revertedWith(
+					"To validator id does not exist in our registry"
+				);
+			});
+
+			it("Should revert with the right error if passing zero amount", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						0
+					);
+				await expect(promise).to.be.revertedWith("Amount is zero");
+			});
+
+			it("Should revert with the right error if migrating a too much amount", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						1
+					);
+				await expect(promise).to.be.revertedWith("Migrating too much");
+			});
+		});
+
+		describe("Positive", function () {
+			// TODO Add tests
 		});
 	});
 
