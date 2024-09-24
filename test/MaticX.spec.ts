@@ -13,7 +13,7 @@ import {
 	FxStateRootTunnel,
 	FxStateChildTunnel,
 	RateProvider,
-} from "../typechain";
+} from "../typechain-types";
 
 describe("MaticX", function () {
 	let deployer: SignerWithAddress;

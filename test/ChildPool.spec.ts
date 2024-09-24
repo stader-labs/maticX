@@ -14,7 +14,7 @@ import {
 	RateProvider,
 	StakeManagerMock,
 	ValidatorRegistry,
-} from "../typechain";
+} from "../typechain-types";
 
 describe("ChildPool", () => {
 	let childPool: ChildPool;
