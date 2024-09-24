@@ -9,7 +9,7 @@ import {
 	PolygonMock,
 	ValidatorRegistry,
 	StakeManagerMock,
-} from "../typechain";
+} from "../typechain-types";
 
 describe("ValidatorRegistry", function () {
 	let deployer: SignerWithAddress;

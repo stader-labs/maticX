@@ -14,7 +14,7 @@ import {
 	IValidatorShare,
 	MaticX,
 	ValidatorRegistry,
-} from "../typechain";
+} from "../typechain-types";
 import { extractEnvironmentVariables } from "../utils/environment";
 import { generateRandomAddress } from "../utils/account";
 

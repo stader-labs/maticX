@@ -7,7 +7,7 @@ coverage/
 crytic-corpus/
 crytic-export/
 node_modules/
-typechain/
+typechain-types/
 .DS_Store
 .env
 .env.test
