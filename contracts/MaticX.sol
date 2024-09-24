@@ -412,6 +412,7 @@ contract MaticX is
 		uint256 _toValidatorId,
 		uint256 _amount
 	) external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
+		require(_amount > 0, "Amount is zero");
 		require(
 			IValidatorRegistry(validatorRegistry).validatorIdExists(
 				_fromValidatorId
@@ -590,9 +591,10 @@ contract MaticX is
 		override
 		returns (uint256)
 	{
-		uint256 totalStake;
 		uint256[] memory validators = IValidatorRegistry(validatorRegistry)
 			.getValidators();
+
+		uint256 totalStake;
 		for (uint256 i = 0; i < validators.length; ++i) {
 			address validatorShare = IStakeManager(stakeManager)
 				.getValidatorContract(validators[i]);
