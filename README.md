@@ -2,8 +2,8 @@
 
 ## Github Workflows
 
-- ![CI](https://github.com/stader-labs/maticX/actions/workflows/ci.yaml/badge.svg)
-- ![Wiki](https://github.com/stader-labs/maticX/actions/workflows/wiki.yaml/badge.svg)
+-   ![CI](https://github.com/stader-labs/maticX/actions/workflows/ci.yaml/badge.svg)
+-   ![Wiki](https://github.com/stader-labs/maticX/actions/workflows/wiki.yaml/badge.svg)
 
 ## Configuration
 
