@@ -35,7 +35,7 @@ describe("MaticX", function () {
 		signer: SignerWithAddress,
 		amount: BigNumberish
 	) => Promise<void>;
-	let maticApprove: (
+	let approveMatic: (
 		signer: SignerWithAddress,
 		amount: BigNumberish
 	) => Promise<void>;
@@ -77,7 +77,7 @@ describe("MaticX", function () {
 			await signerERC.mint(amount);
 		};
 
-		maticApprove = async (signer, amount) => {
+		approveMatic = async (signer, amount) => {
 			const signerERC20 = maticMock.connect(signer);
 			await signerERC20.approve(maticX.address, amount);
 		};
@@ -95,7 +95,7 @@ describe("MaticX", function () {
 		};
 
 		submit = async (signer, amount) => {
-			await maticApprove(signer, amount);
+			await approveMatic(signer, amount);
 
 			const signerMaticX = maticX.connect(signer);
 			return signerMaticX.submit(amount);
@@ -229,7 +229,7 @@ describe("MaticX", function () {
 
 		const approveAmount = ethers.utils.parseEther("0.4");
 		// Approve & Submit individually 0.4
-		await maticApprove(user, approveAmount);
+		await approveMatic(user, approveAmount);
 		await submitWithoutApprove(user, approveAmount);
 
 		let userBalance = await maticX.balanceOf(user.address);
@@ -399,7 +399,7 @@ describe("MaticX", function () {
 
 		const instantPoolMatic = ethers.utils.parseEther("10");
 		await mintMatic(deployer, instantPoolMatic);
-		await maticApprove(deployer, instantPoolMatic);
+		await approveMatic(deployer, instantPoolMatic);
 		// await provideInstantPoolMatic(deployer, instantPoolMatic);
 		expect(await maticMock.balanceOf(maticX.address)).to.equal(
 			instantPoolMatic
@@ -543,7 +543,7 @@ describe("MaticX", function () {
 		}
 		const instantPoolMatic = ethers.utils.parseEther("10");
 		await mintMatic(deployer, instantPoolMatic);
-		await maticApprove(deployer, instantPoolMatic);
+		await approveMatic(deployer, instantPoolMatic);
 		// await provideInstantPoolMatic(deployer, instantPoolMatic);
 		const rewards = 1000000;
 		const feePercent = await maticX.feePercent();

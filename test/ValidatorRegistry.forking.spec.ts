@@ -20,16 +20,16 @@ const envVars = extractEnvironmentVariables();
 describe("ValidatorRegistry (Forking)", function () {
 	const validatorIds = [128, 72];
 
-	async function deployFixture(callInitializeV2 = true) {
+	async function deployFixture(fullMaticXInitialization = true) {
 		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
 
-		// EOAs
+		// EOA definitions
 		const manager = await impersonateAccount(
 			"0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67"
 		);
 		const [executor, bot] = await ethers.getSigners();
 
-		// Contracts
+		// Contract definitions
 		const stakeManager = (await ethers.getContractAt(
 			"IStakeManager",
 			"0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908"
@@ -63,13 +63,14 @@ describe("ValidatorRegistry (Forking)", function () {
 		)) as ValidatorRegistry;
 
 		// Contract initializations
-		if (callInitializeV2) {
+		if (fullMaticXInitialization) {
 			await validatorRegistry.connect(manager).initializeV2(pol.address);
 		}
-		validatorRegistry.connect(manager).setMaticX(maticX.address);
 
 		const defaultAdminRole = await validatorRegistry.DEFAULT_ADMIN_ROLE();
 		const botRole = await validatorRegistry.BOT();
+
+		await validatorRegistry.connect(manager).setMaticX(maticX.address);
 		await validatorRegistry
 			.connect(manager)
 			.grantRole(botRole, bot.address);

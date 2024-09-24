@@ -22,12 +22,12 @@ const envVars = extractEnvironmentVariables();
 
 describe("MaticX (Forking)", function () {
 	const stakeAmount = ethers.utils.parseUnits("100", 18);
-	const totalStakeAmount = stakeAmount.mul(3);
+	const tripleStakeAmount = stakeAmount.mul(3);
 
-	async function deployFixture(callInitializeV2 = true) {
+	async function deployFixture(fullMaticXInitialization = true) {
 		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
 
-		// EOAs
+		// EOA definitions
 		const manager = await impersonateAccount(
 			"0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67"
 		);
@@ -38,10 +38,11 @@ describe("MaticX (Forking)", function () {
 			"0x6e7a5820baD6cebA8Ef5ea69c0C92EbbDAc9CE48"
 		);
 		const treasury = manager;
-		const [executor, stakerA, stakerB] = await ethers.getSigners();
+		const [executor, bot, stakerA, stakerB, polHolder] =
+			await ethers.getSigners();
 		const stakers = [stakerA, stakerB];
 
-		// Contracts
+		// Contract definitions
 		const validatorRegistry = (await ethers.getContractAt(
 			"ValidatorRegistry",
 			"0xf556442D5B77A4B0252630E15d8BbE2160870d77",
@@ -97,35 +98,41 @@ describe("MaticX (Forking)", function () {
 
 		await fxStateRootTunnel.connect(manager).setMaticX(maticX.address);
 
+		if (fullMaticXInitialization) {
+			await maticX.connect(manager).initializeV2(pol.address);
+		}
+
 		await maticX
 			.connect(manager)
 			.setFxStateRootTunnel(fxStateRootTunnel.address);
 
-		if (callInitializeV2) {
-			await maticX.connect(manager).initializeV2(pol.address);
-		}
-
 		const defaultAdminRole = await maticX.DEFAULT_ADMIN_ROLE();
 		const botRole = await maticX.BOT();
 
+		await maticX.connect(manager).grantRole(botRole, bot.address);
+
 		// ERC20 transfers
-		for (const staker of stakers) {
+		const recipients = stakers.concat(polHolder);
+		for (const recipient of recipients) {
 			await matic
 				.connect(maticHolder)
-				.transfer(staker.address, totalStakeAmount);
+				.transfer(recipient.address, tripleStakeAmount);
 		}
 
 		await matic
 			.connect(maticHolder)
-			.approve(polygonMigration.address, totalStakeAmount.mul(2));
+			.approve(
+				polygonMigration.address,
+				tripleStakeAmount.mul(recipients.length)
+			);
 		await polygonMigration
 			.connect(maticHolder)
-			.migrate(totalStakeAmount.mul(2));
+			.migrate(tripleStakeAmount.mul(recipients.length));
 
-		for (const staker of stakers) {
+		for (const recipient of recipients) {
 			await pol
 				.connect(maticHolder)
-				.transfer(staker.address, totalStakeAmount);
+				.transfer(recipient.address, tripleStakeAmount);
 		}
 
 		return {
@@ -138,9 +145,11 @@ describe("MaticX (Forking)", function () {
 			fxStateRootTunnel,
 			manager,
 			treasury,
-			maticHolder,
 			stakeManagerGovernance,
 			executor,
+			maticHolder,
+			polHolder,
+			bot,
 			stakerA,
 			stakerB,
 			stakers,
@@ -883,7 +892,7 @@ describe("MaticX (Forking)", function () {
 				for (const staker of stakers) {
 					await matic
 						.connect(staker)
-						.approve(maticX.address, totalStakeAmount);
+						.approve(maticX.address, tripleStakeAmount);
 
 					for (let i = 0; i < 3; i++) {
 						await maticX.connect(staker).submit(stakeAmount);
@@ -893,7 +902,7 @@ describe("MaticX (Forking)", function () {
 				const totalPooledStakeTokens =
 					await maticX.getTotalStakeAcrossAllValidators();
 				expect(totalPooledStakeTokens).to.equal(
-					totalStakeAmount.mul(2)
+					tripleStakeAmount.mul(2)
 				);
 			});
 
@@ -1071,7 +1080,7 @@ describe("MaticX (Forking)", function () {
 				for (const staker of stakers) {
 					await pol
 						.connect(staker)
-						.approve(maticX.address, totalStakeAmount);
+						.approve(maticX.address, tripleStakeAmount);
 
 					for (let i = 0; i < 3; i++) {
 						await maticX.connect(staker).submitPOL(stakeAmount);
@@ -1081,7 +1090,7 @@ describe("MaticX (Forking)", function () {
 				const totalPooledStakeTokens =
 					await maticX.getTotalStakeAcrossAllValidators();
 				expect(totalPooledStakeTokens).to.equal(
-					totalStakeAmount.mul(2)
+					tripleStakeAmount.mul(2)
 				);
 			});
 
@@ -1198,8 +1207,8 @@ describe("MaticX (Forking)", function () {
 					.to.emit(maticX, "RequestWithdraw")
 					.withArgs(
 						stakerA.address,
-						totalStakeAmount,
-						totalStakeAmount
+						tripleStakeAmount,
+						tripleStakeAmount
 					)
 					.and.to.emit(maticX, "Transfer")
 					.withArgs(
@@ -1223,17 +1232,17 @@ describe("MaticX (Forking)", function () {
 				await maticX
 					.connect(stakerB)
 					.transfer(stakerA.address, stakeAmount);
-				const totalStakeAmount = stakeAmount.mul(2);
+				const tripleStakeAmount = stakeAmount.mul(2);
 
 				const promise = maticX
 					.connect(stakerA)
-					.requestWithdraw(totalStakeAmount);
+					.requestWithdraw(tripleStakeAmount);
 				await expect(promise)
 					.to.emit(maticX, "RequestWithdraw")
 					.withArgs(
 						stakerA.address,
-						totalStakeAmount,
-						totalStakeAmount
+						tripleStakeAmount,
+						tripleStakeAmount
 					);
 			});
 
@@ -1648,6 +1657,142 @@ describe("MaticX (Forking)", function () {
 
 		describe("Positive", function () {
 			// TODO Add tests
+		});
+	});
+
+	describe("Stake rewards and distribute fees", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, bot, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if called by a non bot", async function () {
+				const {
+					maticX,
+					executor,
+					botRole,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(executor)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${botRole}`
+				);
+			});
+
+			it("Should revert with the right error if having an unregistered validator id", async function () {
+				const { maticX, bot } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(0);
+				await expect(promise).to.be.revertedWith(
+					"Doesn't exist in validator registry"
+				);
+			});
+
+			it("Should revert with the right error if having the zero reward", async function () {
+				const { maticX, bot, preferredWithdrawalValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(
+						preferredWithdrawalValidatorId
+					);
+				await expect(promise).to.be.revertedWith("Reward is zero");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the StakeRewards and DistributeFees events if having a positive fee amount", async function () {
+				const {
+					maticX,
+					pol,
+					polHolder,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol
+					.connect(polHolder)
+					.transfer(maticX.address, stakeAmount);
+
+				const feeAmount = stakeAmount.mul(5).div(100);
+				const netStakeAmount = stakeAmount.sub(feeAmount);
+				const treasuryAddress = await maticX.treasury();
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise)
+					.to.emit(maticX, "StakeRewards")
+					.withArgs(preferredDepositValidatorId, netStakeAmount)
+					.and.to.emit(maticX, "DistributeFees")
+					.withArgs(treasuryAddress, feeAmount);
+			});
+
+			it("Should emit the StakeRewards if having the zero fee amount", async function () {
+				const {
+					maticX,
+					pol,
+					polHolder,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const stakeAmount = 19;
+				await pol
+					.connect(polHolder)
+					.transfer(maticX.address, stakeAmount);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise)
+					.to.emit(maticX, "StakeRewards")
+					.withArgs(preferredDepositValidatorId, stakeAmount)
+					.and.not.to.emit(maticX, "DistributeFees");
+			});
+
+			it("Should return the right POL balances", async function () {
+				const {
+					maticX,
+					stakeManager,
+					pol,
+					polHolder,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol
+					.connect(polHolder)
+					.transfer(maticX.address, stakeAmount);
+
+				const treasuryAddress = await maticX.treasury();
+
+				const feeAmount = stakeAmount.mul(5).div(100);
+				const netStakeAmount = stakeAmount.sub(feeAmount);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise).to.changeTokenBalances(
+					pol,
+					[maticX, stakeManager, treasuryAddress],
+					[stakeAmount.mul(-1), netStakeAmount, feeAmount]
+				);
+			});
 		});
 	});
 
