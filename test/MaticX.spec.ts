@@ -51,10 +51,6 @@ describe("MaticX", function () {
 		signer: SignerWithAddress,
 		amount: BigNumberish
 	) => Promise<Transaction>;
-	let claimWithdrawal: (
-		signer: SignerWithAddress,
-		idx: BigNumberish
-	) => Promise<Transaction>;
 	let migrateDelegation: (
 		signer: SignerWithAddress,
 		fromValidatorId: BigNumberish,
@@ -109,11 +105,6 @@ describe("MaticX", function () {
 			const signerMaticX = maticX.connect(signer);
 			await signerMaticX.approve(maticX.address, amount);
 			return signerMaticX.requestWithdraw(amount);
-		};
-
-		claimWithdrawal = async (signer, idx) => {
-			const signerMaticX = maticX.connect(signer);
-			return signerMaticX.claimWithdrawal(idx);
 		};
 
 		migrateDelegation = async (

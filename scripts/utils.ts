@@ -57,6 +57,7 @@ export const exportAddresses = (fullFilePath: string, addresses: object) => {
 export const getUpgradeContext = (hre: HardhatRuntimeEnvironment) => {
 	const network = hre.network.name;
 	const filePath = `${network}-deployment-info.json`;
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
 	const deployDetails: DeployDetails = require(path.join("..", filePath));
 
 	return {

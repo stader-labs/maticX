@@ -1,18 +1,18 @@
 {
-  "compilerOptions": {
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "lib": ["es6"],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "noImplicitAny": true,
-    "outDir": "dist",
-    "resolveJsonModule": true,
-    "sourceMap": true,
-    "strict": true,
-    "target": "es6"
-  },
-  "exclude": ["node_modules"],
-  "include": ["./scripts", "./test", ".eslintrc.js", ".solcover.js"],
-  "files": ["hardhat.config.ts"]
+	"compilerOptions": {
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"lib": ["es6"],
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"noImplicitAny": true,
+		"outDir": "dist",
+		"resolveJsonModule": true,
+		"sourceMap": true,
+		"strict": true,
+		"target": "es6"
+	},
+	"exclude": ["node_modules"],
+	"include": ["./scripts", "./test", ".eslintrc.js", ".solcover.js"],
+	"files": ["hardhat.config.ts"]
 }

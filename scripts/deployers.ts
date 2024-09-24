@@ -4,15 +4,15 @@ import { Contract, Wallet } from "ethers";
 import { ethers, network, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { predictContractAddress } from "./utils";
-import { ValidatorRegistry, MaticX } from "../typechain";
+import { ValidatorRegistry, MaticX } from "../typechain-types";
 import { extractEnvironmentVariables } from "../utils/environment";
 
-type DeploymentData = {
+interface DeploymentData {
 	Network: string;
 	Signer: string;
 	MaticX: string;
 	ValidatorRegistry: string;
-};
+}
 
 type ContractNames =
 	| "ProxyAdmin"
@@ -169,7 +169,7 @@ export class MaticXDeployer
 	};
 
 	private calculateRootContractAddresses = () => {
-		(Object.keys(deploymentOrder) as Array<ContractNames>).forEach((k) => {
+		(Object.keys(deploymentOrder) as ContractNames[]).forEach((k) => {
 			this.data[k] = predictContractAddress(
 				this.rootDeployer.signer.address,
 				this.rootDeployer.nonce + deploymentOrder[k]
