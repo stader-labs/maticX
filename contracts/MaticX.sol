@@ -367,8 +367,8 @@ contract MaticX is
 		return rewards;
 	}
 
-	/// @notice Stake Matic rewards and distribute fees to the treasury if any.
-	/// @param _validatorId - Validator id to stake Matic rewards
+	/// @notice Stake POL rewards and distribute fees to the treasury if any.
+	/// @param _validatorId - Validator id to stake POL rewards
 	function stakeRewardsAndDistributeFees(
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused onlyRole(BOT) {
@@ -383,16 +383,15 @@ contract MaticX is
 		require(reward > 0, "Reward is zero");
 
 		uint256 treasuryFee = (reward * feePercent) / 100;
-
 		if (treasuryFee > 0) {
 			IERC20Upgradeable(polToken).safeTransfer(treasury, treasuryFee);
 			emit DistributeFees(treasury, treasuryFee);
 		}
 
-		uint256 amountStaked = reward - treasuryFee;
+		uint256 amountToStake = reward - treasuryFee;
 		address validatorShare = IStakeManager(stakeManager)
 			.getValidatorContract(_validatorId);
-		IValidatorShare(validatorShare).buyVoucherPOL(amountStaked, 0);
+		IValidatorShare(validatorShare).buyVoucherPOL(amountToStake, 0);
 
 		uint256 totalShares = totalSupply();
 		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
@@ -401,7 +400,7 @@ contract MaticX is
 			abi.encode(totalShares, totalPooledAmount)
 		);
 
-		emit StakeRewards(_validatorId, amountStaked);
+		emit StakeRewards(_validatorId, amountToStake);
 	}
 
 	/// @notice Migrate all stake tokens to another validator.
