@@ -1,0 +1,18 @@
+testMode: assertion
+testLimit: 10000
+cryticArgs:
+  - --compile-force-framework
+  - hardhat
+  - --solc-remaps
+  - "@openzeppelin/=/share/node_modules/@openzeppelin/"
+deployer: "0x10000"
+sender:
+  - "0x10000"
+  - "0x20000"
+  - "0x30000"
+corpusDir: crytic-corpus
+stopOnFail: true
+filterBlacklist: false
+filterFunctions:
+  - MaticXFuzz.testSubmit(uint256)
+  - MaticXFuzz.testRequestWithdraw(uint256)
