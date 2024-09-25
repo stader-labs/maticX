@@ -150,11 +150,11 @@ contract MaticX is
 		return _submit(msg.sender, _amount, true);
 	}
 
-	/// @dev Sends stake tokens to the current contract and mints MaticX shares
-	/// in return. It requires that the sender has a preliminary approved amount
-	/// of stake tokens to this contract.
+	/// @dev Sends POL or Matic tokens to the current contract and mints MaticX
+	/// shares in return. It requires that the sender has a preliminary approved
+	/// amount of stake tokens to this contract.
 	/// @param sender - Address of the sender
-	/// @param _amount - Amount of stake tokens
+	/// @param _amount - Amount of POL or Matic tokens
 	/// @param _pol - If POL tokens are submitted
 	/// @return Amount of minted MaticX shares
 	// slither-disable-next-line reentrancy-benign
@@ -403,10 +403,10 @@ contract MaticX is
 		emit StakeRewards(_validatorId, amountToStake);
 	}
 
-	/// @notice Migrate all stake tokens to another validator.
-	/// @param _fromValidatorId - Validator id to migrate stake tokens from
-	/// @param _toValidatorId - Validator id to migrate stake tokens to
-	/// @param _amount - Amount of stake tokens
+	/// @notice Migrate all POL tokens to another validator.
+	/// @param _fromValidatorId - Validator id to migrate POL tokens from
+	/// @param _toValidatorId - Validator id to migrate POL tokens to
+	/// @param _amount - Amount of POL tokens
 	function migrateDelegation(
 		uint256 _fromValidatorId,
 		uint256 _toValidatorId,
@@ -584,7 +584,7 @@ contract MaticX is
 	}
 
 	/// @notice Returns total pooled stake tokens from all registered validators.
-	/// @return Total pooled stake tokens
+	/// @return Total pooled POL tokens
 	function getTotalStakeAcrossAllValidators()
 		public
 		view
@@ -608,9 +608,9 @@ contract MaticX is
 		return totalStake;
 	}
 
-	/// @notice Returns total pooled stake tokens from all registered validators.
+	/// @notice Returns total pooled POL tokens from all registered validators.
 	/// @custom:deprecated
-	/// @return Total pooled stake tokens
+	/// @return Total pooled POL tokens
 	function getTotalPooledMatic() external view override returns (uint256) {
 		return getTotalStakeAcrossAllValidators();
 	}

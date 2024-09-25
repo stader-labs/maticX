@@ -16,12 +16,12 @@ interface IMaticX is IERC20Upgradeable {
 		address validatorAddress;
 	}
 
-	/// @notice Emitted when the user submits her stake tokens.
+	/// @notice Emitted when the user submits her POL or Matic tokens.
 	/// @param _from - User who stakes
 	/// @param _amount - Stake amount
 	event Submit(address indexed _from, uint256 _amount);
 
-	/// @notice Emitted when the user submits her stake tokens.
+	/// @notice Emitted when the user submits her POL or Matic tokens.
 	/// @param _validatorId - Validator which accepted the user's stake
 	/// @param _amountDelegated - Stake amount
 	event Delegate(uint256 indexed _validatorId, uint256 _amountDelegated);
@@ -30,7 +30,7 @@ interface IMaticX is IERC20Upgradeable {
 	// staked tokens.
 	/// @param _from - User who requests a withdrawal
 	/// @param _amountInMaticX - Requested amount in MaticX shares
-	/// @param _amountInStakeTokens - Requested amount in stake tokens
+	/// @param _amountInStakeTokens - Requested amount in POL tokens
 	event RequestWithdraw(
 		address indexed _from,
 		uint256 _amountInMaticX,
@@ -40,7 +40,7 @@ interface IMaticX is IERC20Upgradeable {
 	/// @notice Emitted when the user claims a previously requested withdrawal.
 	/// @param _from - User who claims a withdrawal
 	/// @param _idx - Withdrawal index
-	/// @param _claimedAmount - Claimed amount in stake tokens
+	/// @param _claimedAmount - Claimed amount in POL tokens
 	event ClaimWithdrawal(
 		address indexed _from,
 		uint256 indexed _idx,
@@ -62,10 +62,10 @@ interface IMaticX is IERC20Upgradeable {
 	/// @param _feeAmount - Fee amount
 	event DistributeFees(address indexed _treasury, uint256 _feeAmount);
 
-	/// @notice Emitted when stake tokens are delegated to a new validator.
-	/// @param _fromValidatorId - Validator id to migrate stake tokens from
-	/// @param _toValidatorId - Validator id to migrate stake tokens to
-	/// @param _amount - Amount of stake tokens
+	/// @notice Emitted when POL tokens are delegated to another validator.
+	/// @param _fromValidatorId - Validator id to migrate POL tokens from
+	/// @param _toValidatorId - Validator id to migrate POL tokens to
+	/// @param _amount - Amount of POL tokens
 	event MigrateDelegation(
 		uint256 indexed _fromValidatorId,
 		uint256 indexed _toValidatorId,
@@ -135,10 +135,10 @@ interface IMaticX is IERC20Upgradeable {
 	/// @param _validatorId - Validator id to stake POL rewards
 	function stakeRewardsAndDistributeFees(uint256 _validatorId) external;
 
-	/// @notice Migrate all stake tokens to another validator.
-	/// @param _fromValidatorId - Validator id to migrate stake tokens from
-	/// @param _toValidatorId - Validator id to migrate stake tokens to
-	/// @param _amount - Amount of stake tokens
+	/// @notice Migrate all POL tokens to another validator.
+	/// @param _fromValidatorId - Validator id to migrate POL tokens from
+	/// @param _toValidatorId - Validator id to migrate POL tokens to
+	/// @param _amount - Amount of POL tokens
 	function migrateDelegation(
 		uint256 _fromValidatorId,
 		uint256 _toValidatorId,
@@ -206,13 +206,13 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 _balance
 	) external view returns (uint256, uint256, uint256);
 
-	/// @notice Returns total pooled stake tokens from all registered validators.
-	/// @return Total pooled stake tokens
+	/// @notice Returns total pooled POL tokens from all registered validators.
+	/// @return Total pooled POL tokens
 	function getTotalStakeAcrossAllValidators() external view returns (uint256);
 
-	/// @notice Returns total pooled stake tokens from all registered validators.
+	/// @notice Returns total pooled POL tokens from all registered validators.
 	/// @custom:deprecated
-	/// @return Total pooled stake tokens
+	/// @return Total pooled POL tokens
 	function getTotalPooledMatic() external view returns (uint256);
 
 	/// @notice Returns the total stake of this contract for the given validator
