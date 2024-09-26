@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.7;
 
+import { IStakeManager } from "./IStakeManager.sol";
+
 /// @title IValidatorRegistry
 /// @notice Defines a public interface for the ValidatorRegistry contract.
 interface IValidatorRegistry {
@@ -80,7 +82,7 @@ interface IValidatorRegistry {
 		external
 		view
 		returns (
-			address _stakeManager,
+			IStakeManager _stakeManager,
 			address _maticToken,
 			address _maticX,
 			address _polToken

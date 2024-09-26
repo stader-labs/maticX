@@ -4,6 +4,7 @@ pragma solidity 0.8.7;
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { StringsUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import { IStakeManager } from "./interfaces/IStakeManager.sol";
 import { IValidatorShare } from "./interfaces/IValidatorShare.sol";
 import { IValidatorRegistry } from "./interfaces/IValidatorRegistry.sol";
@@ -16,21 +17,27 @@ contract ValidatorRegistry is
 	AccessControlUpgradeable,
 	ReentrancyGuardUpgradeable
 {
+	using StringsUpgradeable for string;
+
 	bytes32 public constant BOT = keccak256("BOT");
 
-	address private stakeManager;
+	IStakeManager private stakeManager;
 	address private maticToken;
 	address private maticX;
-
 	string public override version;
 	uint256 public override preferredDepositValidatorId;
 	uint256 public override preferredWithdrawalValidatorId;
 	mapping(uint256 => bool) public override validatorIdExists;
-
 	uint256[] private validators;
 	address private polToken;
 
 	/// ------------------------------ Modifiers -------------------------------
+
+	/// @notice Checks if the given validator id is not zero.
+	modifier validatoIdIsZero(uint256 _validatorId) {
+		require(_validatorId != 0, "Zero validator id");
+		_;
+	}
 
 	/// @notice Checks if the given validator id exists in the registry.
 	/// @param _validatorId - Validator id
@@ -75,7 +82,7 @@ contract ValidatorRegistry is
 		PausableUpgradeable.__Pausable_init();
 
 		require(_stakeManager != address(0), "Zero stake manager address");
-		stakeManager = _stakeManager;
+		stakeManager = IStakeManager(_stakeManager);
 
 		require(_maticToken != address(0), "Zero matic token address");
 		maticToken = _maticToken;
@@ -111,19 +118,20 @@ contract ValidatorRegistry is
 		external
 		override
 		whenNotPaused
-		whenValidatorIdDoesNotExist(_validatorId)
 		onlyRole(DEFAULT_ADMIN_ROLE)
+		validatoIdIsZero(_validatorId)
+		whenValidatorIdDoesNotExist(_validatorId)
 	{
-		IStakeManager.Validator memory smValidator = IStakeManager(stakeManager)
-			.validators(_validatorId);
-
+		IStakeManager.Validator memory validator = stakeManager.validators(
+			_validatorId
+		);
 		require(
-			smValidator.contractAddress != address(0),
+			validator.contractAddress != address(0),
 			"Validator has no validator share"
 		);
 		require(
-			(smValidator.status == IStakeManager.Status.Active) &&
-				smValidator.deactivationEpoch == 0,
+			(validator.status == IStakeManager.Status.Active) &&
+				validator.deactivationEpoch == 0,
 			"Validator isn't active"
 		);
 
@@ -142,8 +150,9 @@ contract ValidatorRegistry is
 		external
 		override
 		whenNotPaused
-		whenValidatorIdExists(_validatorId)
 		onlyRole(DEFAULT_ADMIN_ROLE)
+		validatoIdIsZero(_validatorId)
+		whenValidatorIdExists(_validatorId)
 	{
 		require(
 			preferredDepositValidatorId != _validatorId,
@@ -154,8 +163,9 @@ contract ValidatorRegistry is
 			"Can't remove a preferred validator for withdrawals"
 		);
 
-		address validatorShare = IStakeManager(stakeManager)
-			.getValidatorContract(_validatorId);
+		address validatorShare = stakeManager.getValidatorContract(
+			_validatorId
+		);
 		(uint256 validatorBalance, ) = IValidatorShare(validatorShare)
 			.getTotalStake(maticX);
 		require(validatorBalance == 0, "Validator has some shares left");
@@ -166,6 +176,7 @@ contract ValidatorRegistry is
 				validators[i] = validators[iterationCount];
 				break;
 			}
+
 			unchecked {
 				++i;
 			}
@@ -187,8 +198,9 @@ contract ValidatorRegistry is
 		external
 		override
 		whenNotPaused
-		whenValidatorIdExists(_validatorId)
 		onlyRole(BOT)
+		validatoIdIsZero(_validatorId)
+		whenValidatorIdExists(_validatorId)
 	{
 		preferredDepositValidatorId = _validatorId;
 
@@ -203,8 +215,9 @@ contract ValidatorRegistry is
 		external
 		override
 		whenNotPaused
-		whenValidatorIdExists(_validatorId)
 		onlyRole(BOT)
+		validatoIdIsZero(_validatorId)
+		whenValidatorIdExists(_validatorId)
 	{
 		preferredWithdrawalValidatorId = _validatorId;
 
@@ -227,6 +240,7 @@ contract ValidatorRegistry is
 	function setVersion(
 		string memory _version
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+		require(!_version.equal(""), "Empty version");
 		version = _version;
 
 		emit SetVersion(_version);
@@ -249,7 +263,7 @@ contract ValidatorRegistry is
 		view
 		override
 		returns (
-			address _stakeManager,
+			IStakeManager _stakeManager,
 			address _maticToken,
 			address _maticX,
 			address _polToken

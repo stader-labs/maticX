@@ -19,8 +19,9 @@ const envVars = extractEnvironmentVariables();
 
 describe("ValidatorRegistry (Forking)", function () {
 	const validatorIds = [128, 72];
+	const version = "1";
 
-	async function deployFixture(fullMaticXInitialization = true) {
+	async function deployFixture(fullValidatorRegistryInitialization = true) {
 		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
 
 		// EOA definitions
@@ -63,7 +64,7 @@ describe("ValidatorRegistry (Forking)", function () {
 		)) as ValidatorRegistry;
 
 		// Contract initializations
-		if (fullMaticXInitialization) {
+		if (fullValidatorRegistryInitialization) {
 			await validatorRegistry.connect(manager).initializeV2(pol.address);
 		}
 
@@ -465,119 +466,89 @@ describe("ValidatorRegistry (Forking)", function () {
 		});
 	});
 
-	describe("Toggle pause", function () {
+	describe("Initialize V2", function () {
 		describe("Negative", function () {
+			it("Should revert with the right error if reinitializing", async function () {
+				const { validatorRegistry, pol, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
+
+				await validatorRegistry
+					.connect(manager)
+					.initializeV2(pol.address);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.initializeV2(pol.address);
+				await expect(promise).to.be.revertedWith(
+					"Initializable: contract is already initialized"
+				);
+			});
+
 			it("Should revert with the right error if called by a non admin", async function () {
-				const { validatorRegistry, executor, defaultAdminRole } =
-					await loadFixture(deployFixture);
+				const { validatorRegistry, pol, executor, defaultAdminRole } =
+					await loadFixture(deployFixture.bind(null, false));
 
 				const promise = validatorRegistry
 					.connect(executor)
-					.togglePause();
+					.initializeV2(pol.address);
 				await expect(promise).to.be.revertedWith(
 					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero pol token address", async function () {
+				const { validatorRegistry, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.initializeV2(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero POL token address"
 				);
 			});
 		});
 
 		describe("Positive", function () {
-			it("Should emit the Paused event if pausing", async function () {
-				const { validatorRegistry, manager } =
-					await loadFixture(deployFixture);
-
-				const promise = validatorRegistry
-					.connect(manager)
-					.togglePause();
-				await expect(promise)
-					.to.emit(validatorRegistry, "Paused")
-					.withArgs(manager.address);
-			});
-
-			it("Should emit the Unpaused event if pausing", async function () {
-				const { validatorRegistry, manager } =
-					await loadFixture(deployFixture);
-
-				await validatorRegistry.connect(manager).togglePause();
-
-				const promise = validatorRegistry
-					.connect(manager)
-					.togglePause();
-				await expect(promise)
-					.to.emit(validatorRegistry, "Unpaused")
-					.withArgs(manager.address);
-			});
-
-			it("Should return the right paused status if toggling once", async function () {
-				const { validatorRegistry, manager } =
-					await loadFixture(deployFixture);
-
-				await validatorRegistry.connect(manager).togglePause();
-
-				const paused = await validatorRegistry.paused();
-				expect(paused).to.be.true;
-			});
-
-			it("Should return the right paused status if toggling twice", async function () {
-				const { validatorRegistry, manager } =
-					await loadFixture(deployFixture);
-
-				await validatorRegistry.connect(manager).togglePause();
-				await validatorRegistry.connect(manager).togglePause();
-
-				const paused = await validatorRegistry.paused();
-				expect(paused).to.be.false;
-			});
-		});
-	});
-
-	describe("Set the MaticX address", function () {
-		const maticXAddress = generateRandomAddress();
-
-		describe("Negative", function () {
-			it("Should revert with the right error if called by a non admin", async function () {
-				const { validatorRegistry, executor, defaultAdminRole } =
-					await loadFixture(deployFixture);
-
-				const promise = validatorRegistry
-					.connect(executor)
-					.setMaticX(maticXAddress);
-				await expect(promise).to.be.revertedWith(
-					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+			it("Should emit the Initialized event", async function () {
+				const { validatorRegistry, pol, manager } = await loadFixture(
+					deployFixture.bind(null, false)
 				);
-			});
-		});
-
-		describe("Positive", function () {
-			it("Should emit the SetMaticX event", async function () {
-				const { validatorRegistry, manager } =
-					await loadFixture(deployFixture);
 
 				const promise = validatorRegistry
 					.connect(manager)
-					.setMaticX(maticXAddress);
+					.initializeV2(pol.address);
 				await expect(promise)
-					.to.emit(validatorRegistry, "SetMaticX")
-					.withArgs(maticXAddress);
+					.to.emit(validatorRegistry, "Initialized")
+					.withArgs(2);
 			});
 
-			it("Should return the right MaticX address", async function () {
-				const { validatorRegistry, manager } =
-					await loadFixture(deployFixture);
+			it("Should return the right contract addresses", async function () {
+				const {
+					validatorRegistry,
+					stakeManager,
+					matic,
+					maticX,
+					pol,
+					manager,
+				} = await loadFixture(deployFixture.bind(null, false));
 
-				const [, , initialMaticXAddress] =
-					await validatorRegistry.getContracts();
 				await validatorRegistry
 					.connect(manager)
-					.setMaticX(maticXAddress);
+					.initializeV2(pol.address);
 
-				await validatorRegistry
-					.connect(manager)
-					.setMaticX(maticXAddress);
-
-				const [, , currentMaticXAddress] =
-					await validatorRegistry.getContracts();
-				expect(currentMaticXAddress).not.to.equal(initialMaticXAddress);
-				expect(currentMaticXAddress).to.equal(maticXAddress);
+				const [
+					stakeManagerAddress,
+					maticAddress,
+					maticXAddress,
+					polAddress,
+				] = await validatorRegistry.getContracts();
+				expect(stakeManagerAddress).to.equal(stakeManager.address);
+				expect(maticAddress).to.equal(matic.address);
+				expect(maticXAddress).to.equal(maticX.address);
+				expect(polAddress).to.equal(pol.address);
 			});
 		});
 	});
@@ -608,6 +579,16 @@ describe("ValidatorRegistry (Forking)", function () {
 				);
 			});
 
+			it("Should revert with the right error if passing the zero validator id", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.addValidator(0);
+				await expect(promise).to.revertedWith("Zero validator id");
+			});
+
 			it("Should revert with the right error if having an already existing validator", async function () {
 				const { validatorRegistry, manager } =
 					await loadFixture(deployFixture);
@@ -630,7 +611,7 @@ describe("ValidatorRegistry (Forking)", function () {
 
 				const promise = validatorRegistry
 					.connect(manager)
-					.addValidator(0);
+					.addValidator(10_000);
 				await expect(promise).to.be.revertedWith(
 					"Validator has no validator share"
 				);
@@ -766,6 +747,20 @@ describe("ValidatorRegistry (Forking)", function () {
 				);
 			});
 
+			it("Should revert with the right error if passing the zero validator id", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				await validatorRegistry
+					.connect(manager)
+					.addValidator(validatorIds[0]);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.removeValidator(0);
+				await expect(promise).to.revertedWith("Zero validator id");
+			});
+
 			it("Should revert with the right error if having no existing validator", async function () {
 				const { validatorRegistry, manager } =
 					await loadFixture(deployFixture);
@@ -858,18 +853,6 @@ describe("ValidatorRegistry (Forking)", function () {
 				await expect(promise).to.be.revertedWith("Pausable: paused");
 			});
 
-			it("Should revert with the right error if having no existing validator", async function () {
-				const { validatorRegistry, bot } =
-					await loadFixture(deployFixture);
-
-				const promise = validatorRegistry
-					.connect(bot)
-					.setPreferredDepositValidatorId(validatorIds[0]);
-				await expect(promise).to.be.revertedWith(
-					"Validator id doesn't exist in our registry"
-				);
-			});
-
 			it("Should revert with the right error if called by a non admin", async function () {
 				const { validatorRegistry, executor, manager, botRole } =
 					await loadFixture(deployFixture);
@@ -883,6 +866,32 @@ describe("ValidatorRegistry (Forking)", function () {
 					.setPreferredDepositValidatorId(validatorIds[0]);
 				await expect(promise).to.be.revertedWith(
 					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${botRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero validator id", async function () {
+				const { validatorRegistry, manager, bot } =
+					await loadFixture(deployFixture);
+
+				await validatorRegistry
+					.connect(manager)
+					.addValidator(validatorIds[0]);
+
+				const promise = validatorRegistry
+					.connect(bot)
+					.setPreferredDepositValidatorId(0);
+				await expect(promise).to.revertedWith("Zero validator id");
+			});
+
+			it("Should revert with the right error if having no existing validator", async function () {
+				const { validatorRegistry, bot } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(bot)
+					.setPreferredDepositValidatorId(validatorIds[0]);
+				await expect(promise).to.be.revertedWith(
+					"Validator id doesn't exist in our registry"
 				);
 			});
 		});
@@ -943,6 +952,20 @@ describe("ValidatorRegistry (Forking)", function () {
 				);
 			});
 
+			it("Should revert with the right error if passing the zero validator id", async function () {
+				const { validatorRegistry, manager, bot } =
+					await loadFixture(deployFixture);
+
+				await validatorRegistry
+					.connect(manager)
+					.addValidator(validatorIds[0]);
+
+				const promise = validatorRegistry
+					.connect(bot)
+					.setPreferredWithdrawalValidatorId(0);
+				await expect(promise).to.revertedWith("Zero validator id");
+			});
+
 			it("Should revert with the right error if having no existing validator", async function () {
 				const { validatorRegistry, bot } =
 					await loadFixture(deployFixture);
@@ -974,6 +997,173 @@ describe("ValidatorRegistry (Forking)", function () {
 						"SetPreferredWithdrawalValidatorId"
 					)
 					.withArgs(validatorIds[1]);
+			});
+		});
+	});
+
+	describe("Set the MaticX address", function () {
+		const maticXAddress = generateRandomAddress();
+
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { validatorRegistry, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(executor)
+					.setMaticX(maticXAddress);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero MaticX address", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.setMaticX(ethers.constants.AddressZero);
+				await expect(promise).to.revertedWith("Zero MaticX address");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetMaticX event", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.setMaticX(maticXAddress);
+				await expect(promise)
+					.to.emit(validatorRegistry, "SetMaticX")
+					.withArgs(maticXAddress);
+			});
+
+			it("Should return the right MaticX address", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				const [, , initialMaticXAddress] =
+					await validatorRegistry.getContracts();
+				await validatorRegistry
+					.connect(manager)
+					.setMaticX(maticXAddress);
+
+				await validatorRegistry
+					.connect(manager)
+					.setMaticX(maticXAddress);
+
+				const [, , currentMaticXAddress] =
+					await validatorRegistry.getContracts();
+				expect(currentMaticXAddress).not.to.equal(initialMaticXAddress);
+				expect(currentMaticXAddress).to.equal(maticXAddress);
+			});
+		});
+	});
+
+	describe("Set a version", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { validatorRegistry, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(executor)
+					.setVersion(version);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing an empty version", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.setVersion("");
+				await expect(promise).to.be.revertedWith("Empty version");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetVersion event", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.setVersion(version);
+				await expect(promise)
+					.to.emit(validatorRegistry, "SetVersion")
+					.withArgs(version);
+			});
+		});
+	});
+
+	describe("Toggle a pause", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { validatorRegistry, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(executor)
+					.togglePause();
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the Paused event if pausing", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.togglePause();
+				await expect(promise)
+					.to.emit(validatorRegistry, "Paused")
+					.withArgs(manager.address);
+			});
+
+			it("Should emit the Unpaused event if pausing", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				await validatorRegistry.connect(manager).togglePause();
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.togglePause();
+				await expect(promise)
+					.to.emit(validatorRegistry, "Unpaused")
+					.withArgs(manager.address);
+			});
+
+			it("Should return the right paused status if toggling once", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				await validatorRegistry.connect(manager).togglePause();
+
+				const paused = await validatorRegistry.paused();
+				expect(paused).to.be.true;
+			});
+
+			it("Should return the right paused status if toggling twice", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				await validatorRegistry.connect(manager).togglePause();
+				await validatorRegistry.connect(manager).togglePause();
+
+				const paused = await validatorRegistry.paused();
+				expect(paused).to.be.false;
 			});
 		});
 	});
