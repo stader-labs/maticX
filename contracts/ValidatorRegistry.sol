@@ -84,7 +84,7 @@ contract ValidatorRegistry is
 		require(_stakeManager != address(0), "Zero stake manager address");
 		stakeManager = IStakeManager(_stakeManager);
 
-		require(_maticToken != address(0), "Zero matic token address");
+		require(_maticToken != address(0), "Zero Matic token address");
 		maticToken = _maticToken;
 
 		// slither-disable-next-line missing-zero-check

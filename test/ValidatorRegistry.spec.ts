@@ -116,6 +116,40 @@ describe("ValidatorRegistry", function () {
 				);
 			});
 
+			it("Should revert with the right error if passing the zero Matic token address", async function () {
+				const { stakeManager, maticX, manager } =
+					await loadFixture(deployFixture);
+
+				const ValidatorRegistry =
+					await ethers.getContractFactory("ValidatorRegistry");
+				const promise = upgrades.deployProxy(ValidatorRegistry, [
+					stakeManager.address,
+					ethers.constants.AddressZero,
+					maticX.address,
+					manager.address,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero Matic token address"
+				);
+			});
+
+			it("Should revert with the right error if passing the zero Matic token address", async function () {
+				const { stakeManager, maticX, matic } =
+					await loadFixture(deployFixture);
+
+				const ValidatorRegistry =
+					await ethers.getContractFactory("ValidatorRegistry");
+				const promise = upgrades.deployProxy(ValidatorRegistry, [
+					stakeManager.address,
+					matic.address,
+					maticX.address,
+					ethers.constants.AddressZero,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero manager address"
+				);
+			});
+
 			it("Should revert with the right error if reinitializing", async function () {
 				const {
 					validatorRegistry,
