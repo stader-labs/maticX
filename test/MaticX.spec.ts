@@ -205,7 +205,7 @@ describe("MaticX", function () {
 				);
 			});
 
-			it("Should revert with the right error if passing the zero matic token address", async function () {
+			it("Should revert with the right error if passing the zero Matic token address", async function () {
 				const { validatorRegistry, stakeManager, manager, treasury } =
 					await loadFixture(deployFixture);
 
@@ -218,7 +218,7 @@ describe("MaticX", function () {
 					treasury.address,
 				]);
 				await expect(promise).to.be.revertedWith(
-					"Zero matic token address"
+					"Zero Matic token address"
 				);
 			});
 
