@@ -1,676 +1,2317 @@
-import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
-import { reset } from "@nomicfoundation/hardhat-network-helpers";
+import {
+	loadFixture,
+	reset,
+	setBalance,
+} from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Transaction } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import {
+	IERC20,
+	IFxStateRootTunnel,
+	IPolygonMigration,
+	IStakeManager,
+	IValidatorShare,
 	MaticX,
-	PolygonMock,
 	ValidatorRegistry,
-	StakeManagerMock,
-	FxRootMock,
-	FxStateRootTunnel,
-	FxStateChildTunnel,
-	RateProvider,
 } from "../typechain-types";
+import { extractEnvironmentVariables } from "../utils/environment";
+import { generateRandomAddress } from "../utils/account";
+
+const envVars = extractEnvironmentVariables();
 
 describe("MaticX", function () {
-	let deployer: SignerWithAddress;
-	let manager: SignerWithAddress;
-	let instantPoolOwner: SignerWithAddress;
-	let treasury: SignerWithAddress;
-	let users: SignerWithAddress[] = [];
-	let maticX: MaticX;
-	let maticMock: PolygonMock;
-	let polMock: PolygonMock;
-	let validatorRegistry: ValidatorRegistry;
-	let stakeManagerMock: StakeManagerMock;
-	let fxRootMock: FxRootMock;
-	let fxStateRootTunnel: FxStateRootTunnel;
-	let fxStateChildTunnel: FxStateChildTunnel;
-	let rateProvider: RateProvider;
+	const stakeAmount = ethers.utils.parseUnits("100", 18);
+	const tripleStakeAmount = stakeAmount.mul(3);
+	const version = "1";
 
-	let mintMatic: (
-		signer: SignerWithAddress,
-		amount: BigNumberish
-	) => Promise<void>;
-	let approveMatic: (
-		signer: SignerWithAddress,
-		amount: BigNumberish
-	) => Promise<void>;
-	let submitWithoutApprove: (
-		signer: SignerWithAddress,
-		amount: BigNumberish
-	) => Promise<void>;
-	let submit: (
-		signer: SignerWithAddress,
-		amount: BigNumberish
-	) => Promise<Transaction>;
-	let requestWithdraw: (
-		signer: SignerWithAddress,
-		amount: BigNumberish
-	) => Promise<Transaction>;
-	let migrateDelegation: (
-		signer: SignerWithAddress,
-		fromValidatorId: BigNumberish,
-		toValidatorId: BigNumberish,
-		amount: BigNumberish
-	) => Promise<Transaction>;
-	let stakeRewardsAndDistributeFees: (
-		signer: SignerWithAddress,
-		validatorId: BigNumberish
-	) => Promise<Transaction>;
-	let setFeePercent: (
-		signer: SignerWithAddress,
-		feePercent: BigNumberish
-	) => Promise<Transaction>;
-	let mintAndTransferMatic: (
-		signer: SignerWithAddress,
-		amount: BigNumber,
-		to: string
-	) => Promise<Transaction>;
+	async function deployFixture(fullMaticXInitialization = true) {
+		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
 
-	before(() => {
-		mintMatic = async (signer, amount) => {
-			const signerERC = maticMock.connect(signer);
-			await signerERC.mint(amount);
-		};
+		// EOA definitions
+		const manager = await impersonateAccount(
+			"0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67"
+		);
+		const maticHolder = await impersonateAccount(
+			"0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0"
+		);
+		const stakeManagerGovernance = await impersonateAccount(
+			"0x6e7a5820baD6cebA8Ef5ea69c0C92EbbDAc9CE48"
+		);
 
-		approveMatic = async (signer, amount) => {
-			const signerERC20 = maticMock.connect(signer);
-			await signerERC20.approve(maticX.address, amount);
-		};
+		const [executor, bot, treasury, stakerA, stakerB, polHolder] =
+			await ethers.getSigners();
+		const stakers = [stakerA, stakerB];
 
-		mintAndTransferMatic = async (signer, amount, to) => {
-			const signerERC = maticMock.connect(signer);
-			await signerERC.mint(amount);
-			await signerERC.approve(to, amount);
-			return await signerERC.transfer(to, amount);
-		};
-
-		submitWithoutApprove = async (signer, amount) => {
-			const signerMaticX = maticX.connect(signer);
-			await signerMaticX.submit(amount);
-		};
-
-		submit = async (signer, amount) => {
-			await approveMatic(signer, amount);
-
-			const signerMaticX = maticX.connect(signer);
-			return signerMaticX.submit(amount);
-		};
-
-		requestWithdraw = async (signer, amount) => {
-			const signerMaticX = maticX.connect(signer);
-			await signerMaticX.approve(maticX.address, amount);
-			return signerMaticX.requestWithdraw(amount);
-		};
-
-		migrateDelegation = async (
-			signer,
-			fromValidatorId,
-			toValidatorId,
-			amount
-		) => {
-			const signerMaticX = maticX.connect(signer);
-			return await signerMaticX.migrateDelegation(
-				fromValidatorId,
-				toValidatorId,
-				amount
-			);
-		};
-
-		stakeRewardsAndDistributeFees = async (signer, validatorId) => {
-			const signerMaticX = maticX.connect(signer);
-			return signerMaticX.stakeRewardsAndDistributeFees(validatorId);
-		};
-
-		setFeePercent = async (signer, feePercent) => {
-			const signerMaticX = maticX.connect(signer);
-			return signerMaticX.setFeePercent(feePercent);
-		};
-	});
-
-	beforeEach(async () => {
-		await reset();
-
-		[deployer, ...users] = await ethers.getSigners();
-		manager = deployer;
-		treasury = users[1];
-		instantPoolOwner = deployer;
-
-		maticMock = (await (
-			await ethers.getContractFactory("PolygonMock")
-		).deploy()) as PolygonMock;
-		await maticMock.deployed();
-
-		polMock = (await (
-			await ethers.getContractFactory("PolygonMock")
-		).deploy()) as PolygonMock;
-		await polMock.deployed();
-
-		fxRootMock = (await (
-			await ethers.getContractFactory("FxRootMock")
-		).deploy()) as FxRootMock;
-		await fxRootMock.deployed();
-
-		fxStateChildTunnel = (await (
-			await ethers.getContractFactory("FxStateChildTunnel")
-		).deploy(fxRootMock.address)) as FxStateChildTunnel;
-		await fxStateChildTunnel.deployed();
-
-		fxStateRootTunnel = (await (
-			await ethers.getContractFactory("FxStateRootTunnel")
-		).deploy(
-			manager.address,
-			fxRootMock.address,
-			manager.address
-		)) as FxStateRootTunnel;
-		await fxStateRootTunnel.deployed();
-
-		rateProvider = (await (
-			await ethers.getContractFactory("RateProvider")
-		).deploy(fxStateChildTunnel.address)) as RateProvider;
-		await rateProvider.deployed();
-
-		stakeManagerMock = (await (
-			await ethers.getContractFactory("StakeManagerMock")
-		).deploy(maticMock.address, maticMock.address)) as StakeManagerMock;
-		await stakeManagerMock.deployed();
-
-		validatorRegistry = (await upgrades.deployProxy(
-			await ethers.getContractFactory("ValidatorRegistry"),
-			[
-				stakeManagerMock.address,
-				maticMock.address,
-				ethers.constants.AddressZero,
-				manager.address,
-			]
+		// Contract definitions
+		const validatorRegistry = (await ethers.getContractAt(
+			"ValidatorRegistry",
+			"0xf556442D5B77A4B0252630E15d8BbE2160870d77",
+			manager
 		)) as ValidatorRegistry;
-		await validatorRegistry.deployed();
 
-		maticX = (await upgrades.deployProxy(
-			await ethers.getContractFactory("MaticX"),
-			[
-				validatorRegistry.address,
-				stakeManagerMock.address,
-				maticMock.address,
-				manager.address,
-				treasury.address,
-			]
-		)) as MaticX;
-		await maticX.deployed();
+		const fxStateRootTunnel = (await ethers.getContractAt(
+			"IFxStateRootTunnel",
+			"0x40FB804Cc07302b89EC16a9f8d040506f64dFe29",
+			manager
+		)) as IFxStateRootTunnel;
 
-		await validatorRegistry.setMaticX(maticX.address);
-		await stakeManagerMock.createValidator(1);
-		await validatorRegistry.addValidator(1);
-		await validatorRegistry.grantRole(
-			await validatorRegistry.BOT(),
-			manager.address
-		);
-		await validatorRegistry.setPreferredDepositValidatorId(1);
-		await validatorRegistry.setPreferredWithdrawalValidatorId(1);
-		await stakeManagerMock.createValidator(2);
-		await validatorRegistry.addValidator(2);
-		await maticX.setFxStateRootTunnel(fxStateRootTunnel.address);
-		await fxStateRootTunnel.setMaticX(maticX.address);
-		await fxStateRootTunnel.setFxChildTunnel(fxStateChildTunnel.address);
-		await fxStateChildTunnel.setFxRootTunnel(fxStateRootTunnel.address);
-		await maticX.grantRole(await maticX.BOT(), instantPoolOwner.address);
-		await maticX.initializeV2(polMock.address);
-	});
+		const stakeManager = (await ethers.getContractAt(
+			"IStakeManager",
+			"0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908"
+		)) as IStakeManager;
 
-	it("Should submit successfully", async () => {
-		const totalAmount = ethers.utils.parseEther("1");
-		const user = users[0];
+		const matic = (await ethers.getContractAt(
+			"IERC20",
+			"0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0"
+		)) as IERC20;
 
-		await mintMatic(user, totalAmount);
+		const pol = (await ethers.getContractAt(
+			"IERC20",
+			"0x455e53CBB86018Ac2B8092FdCd39d8444aFFC3F6"
+		)) as IERC20;
 
-		const approveAmount = ethers.utils.parseEther("0.4");
-		// Approve & Submit individually 0.4
-		await approveMatic(user, approveAmount);
-		await submitWithoutApprove(user, approveAmount);
+		const polygonMigration = (await ethers.getContractAt(
+			"IPolygonMigration",
+			"0x29e7DF7b6A1B2b07b731457f499E1696c60E2C4e"
+		)) as IPolygonMigration;
 
-		let userBalance = await maticX.balanceOf(user.address);
-		expect(userBalance).to.equal(approveAmount);
+		const MaticX = await ethers.getContractFactory("MaticX");
+		const maticX = (await upgrades.deployProxy(MaticX, [
+			validatorRegistry.address,
+			stakeManager.address,
+			matic.address,
+			manager.address,
+			treasury.address,
+		])) as MaticX;
 
-		// Approve & Submit individually 0.6
-		const remainingAmount = ethers.utils.parseEther("0.6");
-		const submitTx = await submit(user, remainingAmount);
-		await expect(submitTx)
-			.emit(maticX, "Submit")
-			.withArgs(user.address, remainingAmount);
-		await expect(submitTx)
-			.emit(maticX, "Delegate")
-			.withArgs(1, remainingAmount);
-
-		userBalance = await maticX.balanceOf(user.address);
-		expect(userBalance).to.equal(totalAmount);
-	});
-
-	it("fails when submit amount is greater than signer balance", async () => {
-		const user = users[0];
-		let userMaticXBalance = await maticX.balanceOf(user.address);
-		expect(userMaticXBalance).to.equal(0);
-
-		const amount = ethers.utils.parseEther("1");
-		await mintMatic(user, amount);
-
-		await expect(submitWithoutApprove(user, amount)).to.be.revertedWith(
-			"ERC20: insufficient allowance"
+		// Contract initializations
+		const validatorIds = await validatorRegistry.getValidators();
+		const preferredDepositValidatorId = validatorIds[0];
+		validatorRegistry.setPreferredDepositValidatorId(
+			preferredDepositValidatorId
 		);
 
-		await expect(
-			submit(user, ethers.utils.parseEther("2"))
-		).to.be.revertedWith("ERC20: transfer amount exceeds balance");
-
-		userMaticXBalance = await maticX.balanceOf(user.address);
-		expect(userMaticXBalance).to.equal(0);
-	});
-
-	it("Should request withdraw from the contract successfully", async () => {
-		const amount = ethers.utils.parseEther("1");
-		const user = users[0];
-
-		await mintMatic(user, amount);
-
-		const submitTx = await submit(user, amount);
-		await expect(submitTx)
-			.emit(maticX, "Submit")
-			.withArgs(user.address, amount);
-		await expect(submitTx).emit(maticX, "Delegate").withArgs(1, amount);
-
-		await expect(await requestWithdraw(user, amount))
-			.emit(maticX, "RequestWithdraw")
-			.withArgs(user.address, amount, amount);
-
-		const userBalance = await maticX.balanceOf(user.address);
-		expect(userBalance).to.equal(0);
-	});
-
-	it("WithdrawalRequest should have correct share amount", async () => {
-		const expectedAmount = ethers.utils.parseEther("1");
-		const user = users[0];
-
-		await mintMatic(user, expectedAmount);
-
-		const submitTx = await submit(user, expectedAmount);
-		await expect(submitTx)
-			.emit(maticX, "Submit")
-			.withArgs(user.address, expectedAmount);
-		await expect(submitTx)
-			.emit(maticX, "Delegate")
-			.withArgs(1, expectedAmount);
-
-		await expect(await requestWithdraw(user, expectedAmount))
-			.emit(maticX, "RequestWithdraw")
-			.withArgs(user.address, expectedAmount, expectedAmount);
-
-		const amount = await maticX.getSharesAmountOfUserWithdrawalRequest(
-			user.address,
-			0
+		const preferredWithdrawalValidatorId = validatorIds[1];
+		validatorRegistry.setPreferredWithdrawalValidatorId(
+			preferredWithdrawalValidatorId
 		);
-		expect(expectedAmount).to.equal(amount);
-	});
 
-	it("Should claim withdrawals after submitting to contract successfully", async () => {
-		const submitAmounts: string[] = [];
-		const withdrawAmounts: string[] = [];
+		await fxStateRootTunnel.connect(manager).setMaticX(maticX.address);
 
-		const [minAmount, maxAmount] = [0.005, 0.01];
-		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
-
-		for (let i = 0; i < delegatorsAmount; i++) {
-			submitAmounts.push(
-				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
-			);
-			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
-
-			await mintMatic(users[i], submitAmountWei);
-
-			const submitTx = submit(users[i], submitAmountWei);
-			await expect(submitTx)
-				.emit(maticX, "Submit")
-				.withArgs(users[i].address, submitAmountWei);
-			await expect(submitTx)
-				.emit(maticX, "Delegate")
-				.withArgs(1, submitAmountWei);
+		if (fullMaticXInitialization) {
+			await maticX.connect(manager).initializeV2(pol.address);
 		}
 
-		await stakeManagerMock.setEpoch(1);
+		await maticX
+			.connect(manager)
+			.setFxStateRootTunnel(fxStateRootTunnel.address);
 
-		for (let i = 0; i < delegatorsAmount; i++) {
-			withdrawAmounts.push(
-				(
-					Math.random() * (Number(submitAmounts[i]) - minAmount) +
-					minAmount
-				).toFixed(3)
-			);
-			const withdrawAmountWei = ethers.utils.parseEther(
-				withdrawAmounts[i]
-			);
+		const defaultAdminRole = await maticX.DEFAULT_ADMIN_ROLE();
+		const botRole = await maticX.BOT();
 
-			await expect(await requestWithdraw(users[i], withdrawAmountWei))
-				.emit(maticX, "RequestWithdraw")
-				.withArgs(
-					users[i].address,
-					withdrawAmountWei,
-					withdrawAmountWei
+		await maticX.connect(manager).grantRole(botRole, bot.address);
+
+		// ERC20 transfers
+		const recipients = stakers.concat(polHolder);
+		for (const recipient of recipients) {
+			await matic
+				.connect(maticHolder)
+				.transfer(recipient.address, tripleStakeAmount);
+		}
+
+		await matic
+			.connect(maticHolder)
+			.approve(
+				polygonMigration.address,
+				tripleStakeAmount.mul(recipients.length)
+			);
+		await polygonMigration
+			.connect(maticHolder)
+			.migrate(tripleStakeAmount.mul(recipients.length));
+
+		for (const recipient of recipients) {
+			await pol
+				.connect(maticHolder)
+				.transfer(recipient.address, tripleStakeAmount);
+		}
+
+		return {
+			maticX,
+			stakeManager,
+			validatorRegistry,
+			matic,
+			pol,
+			polygonMigration,
+			fxStateRootTunnel,
+			manager,
+			treasury,
+			stakeManagerGovernance,
+			executor,
+			maticHolder,
+			polHolder,
+			bot,
+			stakerA,
+			stakerB,
+			stakers,
+			defaultAdminRole,
+			botRole,
+			validatorIds,
+			preferredDepositValidatorId,
+			preferredWithdrawalValidatorId,
+		};
+	}
+
+	async function impersonateAccount(
+		address: string
+	): Promise<SignerWithAddress> {
+		setBalance(address, ethers.utils.parseEther("10000"));
+		return await ethers.getImpersonatedSigner(address);
+	}
+
+	describe("Deploy the contract", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if passing the zero validator registry address", async function () {
+				const { stakeManager, matic, manager, treasury } =
+					await loadFixture(deployFixture);
+
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					ethers.constants.AddressZero,
+					stakeManager.address,
+					matic.address,
+					manager.address,
+					treasury.address,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero validator registry address"
 				);
-		}
+			});
 
-		const withdrawalDelay = await stakeManagerMock.withdrawalDelay();
-		const currentEpoch = await stakeManagerMock.epoch();
+			it("Should revert with the right error if passing the zero stake manager address", async function () {
+				const { validatorRegistry, matic, manager, treasury } =
+					await loadFixture(deployFixture);
 
-		await stakeManagerMock.setEpoch(withdrawalDelay.add(currentEpoch));
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					validatorRegistry.address,
+					ethers.constants.AddressZero,
+					matic.address,
+					manager.address,
+					treasury.address,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero stake manager address"
+				);
+			});
 
-		// for (let i = 0; i < delegatorsAmount; i++) {
-		// 	await expect(await claimWithdrawal(users[i], 0))
-		// 		.emit(maticX, "ClaimWithdrawal")
-		// 		.withArgs(
-		// 			users[i].address,
-		// 			0,
-		// 			ethers.utils.parseEther(withdrawAmounts[i])
-		// 		);
+			it("Should revert with the right error if passing the zero matic token address", async function () {
+				const { validatorRegistry, stakeManager, manager, treasury } =
+					await loadFixture(deployFixture);
 
-		// 	const balanceAfter = await maticMock.balanceOf(users[i].address);
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					validatorRegistry.address,
+					stakeManager.address,
+					ethers.constants.AddressZero,
+					manager.address,
+					treasury.address,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero matic token address"
+				);
+			});
 
-		// 	expect(balanceAfter).to.equal(
-		// 		ethers.utils.parseEther(withdrawAmounts[i])
-		// 	);
-		// }
+			it("Should revert with the right error if passing the zero manager address", async function () {
+				const { validatorRegistry, stakeManager, matic, treasury } =
+					await loadFixture(deployFixture);
+
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					validatorRegistry.address,
+					stakeManager.address,
+					matic.address,
+					ethers.constants.AddressZero,
+					treasury.address,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero manager address"
+				);
+			});
+
+			it("Should revert with the right error if passing the zero treasury address", async function () {
+				const { validatorRegistry, stakeManager, matic, manager } =
+					await loadFixture(deployFixture);
+
+				const MaticX = await ethers.getContractFactory("MaticX");
+				const promise = upgrades.deployProxy(MaticX, [
+					validatorRegistry.address,
+					stakeManager.address,
+					matic.address,
+					manager.address,
+					ethers.constants.AddressZero,
+				]);
+				await expect(promise).to.be.revertedWith(
+					"Zero treasury address"
+				);
+			});
+
+			it("Should revert with the right error if reinitializing", async function () {
+				const {
+					maticX,
+					validatorRegistry,
+					stakeManager,
+					matic,
+					manager,
+					treasury,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX.initialize(
+					validatorRegistry.address,
+					stakeManager.address,
+					matic.address,
+					manager.address,
+					treasury.address
+				);
+				await expect(promise).to.be.revertedWith(
+					"Initializable: contract is already initialized"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should return the default admin role set for the manager", async function () {
+				const { maticX, manager, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const hasRole = await maticX.hasRole(
+					defaultAdminRole,
+					manager.address
+				);
+				expect(hasRole).to.be.true;
+			});
+
+			it("Should return the right paused status", async function () {
+				const { maticX } = await loadFixture(deployFixture);
+
+				const paused = await maticX.paused();
+				expect(paused).to.be.false;
+			});
+
+			it("Should return the right treasury", async function () {
+				const { maticX, treasury } = await loadFixture(deployFixture);
+
+				const currentTreasuryAddress = await maticX.treasury();
+				expect(currentTreasuryAddress).to.equal(treasury.address);
+			});
+
+			it("Should return the right version", async function () {
+				const { maticX } = await loadFixture(deployFixture);
+
+				const currentVersion = await maticX.version();
+				expect(currentVersion).to.equal("");
+			});
+
+			it("Should return the right fee percent", async function () {
+				const { maticX } = await loadFixture(deployFixture);
+
+				const currentFeePercent = await maticX.feePercent();
+				expect(currentFeePercent).to.equal(5);
+			});
+
+			it("Should return the fx state root tunnel address", async function () {
+				const { maticX, fxStateRootTunnel } =
+					await loadFixture(deployFixture);
+
+				const currentFxStateRootTunnel =
+					await maticX.fxStateRootTunnel();
+				expect(currentFxStateRootTunnel).to.equal(
+					fxStateRootTunnel.address
+				);
+			});
+
+			it("Should return the right contract addresses", async function () {
+				const { maticX, stakeManager, matic, validatorRegistry, pol } =
+					await loadFixture(deployFixture);
+
+				const [
+					stakeManagerAddress,
+					maticAddress,
+					validatorRegistryAddress,
+					polAddress,
+				] = await maticX.getContracts();
+				expect(stakeManagerAddress).to.equal(stakeManager.address);
+				expect(maticAddress).to.equal(matic.address);
+				expect(validatorRegistryAddress).to.equal(
+					validatorRegistry.address
+				);
+				expect(polAddress).to.equal(pol.address);
+			});
+		});
 	});
 
-	it.skip("Should stake rewards to a validator successfully without using instant pool matic", async () => {
-		const submitAmounts: string[] = [];
+	describe("Upgrade the contract", function () {
+		describe("Checks", function () {
+			it("Should return a new address of the implementation if extended", async function () {
+				const { maticX } = await loadFixture(deployFixture);
 
-		const [minAmount, maxAmount] = [0.005, 0.01];
-		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
+				const initialImplementationAddress =
+					await upgrades.erc1967.getImplementationAddress(
+						maticX.address
+					);
 
-		for (let i = 0; i < delegatorsAmount; i++) {
-			submitAmounts.push(
-				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
-			);
-			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
-			await mintMatic(users[i], submitAmountWei);
-			await submit(users[i], submitAmountWei);
-		}
+				const ExtendedMaticXMock =
+					await ethers.getContractFactory("ExtendedMaticXMock");
+				await upgrades.upgradeProxy(maticX, ExtendedMaticXMock);
 
-		const instantPoolMatic = ethers.utils.parseEther("10");
-		await mintMatic(deployer, instantPoolMatic);
-		await approveMatic(deployer, instantPoolMatic);
-		// await provideInstantPoolMatic(deployer, instantPoolMatic);
-		expect(await maticMock.balanceOf(maticX.address)).to.equal(
-			instantPoolMatic
-		);
+				const currentImplementationAddress =
+					await upgrades.erc1967.getImplementationAddress(
+						maticX.address
+					);
+				expect(initialImplementationAddress).not.to.equal(
+					currentImplementationAddress
+				);
+			});
 
-		await expect(await setFeePercent(manager, 10))
-			.emit(maticX, "SetFeePercent")
-			.withArgs(10);
-		const rewards = 1000000;
-		const feePercent = await maticX.feePercent();
-		const treasuryFee = (rewards * feePercent) / 100;
-		const stakedAmount = rewards - treasuryFee;
-		await maticMock.mintTo(maticX.address, rewards);
+			it("Should return the same address of the implementation if not extended", async function () {
+				const { maticX } = await loadFixture(deployFixture);
 
-		const stakeRewardsAndDistributeFeesTx =
-			await stakeRewardsAndDistributeFees(manager, 1);
-		await expect(stakeRewardsAndDistributeFeesTx)
-			.emit(maticX, "StakeRewards")
-			.withArgs(1, stakedAmount);
-		await expect(stakeRewardsAndDistributeFeesTx)
-			.emit(maticX, "DistributeFees")
-			.withArgs(treasury.address, treasuryFee);
+				const initialImplementationAddress =
+					await upgrades.erc1967.getImplementationAddress(
+						maticX.address
+					);
 
-		expect(await maticMock.balanceOf(maticX.address)).to.equal(
-			instantPoolMatic
-		);
+				const MaticX = await ethers.getContractFactory("MaticX");
+				await upgrades.upgradeProxy(maticX, MaticX);
+
+				const currentImplementationAddress =
+					await upgrades.erc1967.getImplementationAddress(
+						maticX.address
+					);
+				expect(currentImplementationAddress).to.equal(
+					initialImplementationAddress
+				);
+			});
+		});
 	});
 
-	it("Should migrate validator stake to another validator successfully", async () => {
-		const user = users[0];
+	describe("Fallback", function () {
+		describe("Negative", function () {
+			it("Should revert if calling a non existing method", async function () {
+				const { maticX, executor } = await loadFixture(deployFixture);
 
-		await mintMatic(user, 100);
-		await submit(user, 100);
+				const iface = new ethers.utils.Interface([
+					"function foobar(uint256)",
+				]);
+				const promise = executor.sendTransaction({
+					to: maticX.address,
+					data: iface.encodeFunctionData("foobar", [1]),
+				});
+				await expect(promise).to.be.reverted;
+			});
 
-		await stakeManagerMock.createValidator(123);
-		await validatorRegistry.addValidator(123);
+			it("Should revert if sending arbitrary data", async function () {
+				const { maticX, executor } = await loadFixture(deployFixture);
 
-		await expect(await migrateDelegation(manager, 1, 123, 100))
-			.emit(maticX, "MigrateDelegation")
-			.withArgs(1, 123, 100);
+				const promise = executor.sendTransaction({
+					to: maticX.address,
+					data: "0x01",
+				});
+				await expect(promise).to.be.reverted;
+			});
+
+			it("Should revert if sending no data", async function () {
+				const { maticX, executor } = await loadFixture(deployFixture);
+
+				const promise = executor.sendTransaction({
+					to: maticX.address,
+				});
+				await expect(promise).to.be.reverted;
+			});
+		});
 	});
 
-	it.skip("Should send correct message from L1 to L2", async () => {
-		const user = users[0];
-		const mintAmount = 1000000;
-		const withdrawAmount = 400000;
-		const rewardsAmount = 300000;
+	describe("Grant a role", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
 
-		await mintMatic(user, mintAmount);
-		// Submitting twice to skip the edge case that occurs when there is only 0 deposit at the beginning
-		await submit(user, 1000000 - 200000);
-		await submit(user, 1000000 - 800000);
+				const promise = maticX
+					.connect(executor)
+					.grantRole(defaultAdminRole, executor.address);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+		});
 
-		const [totalSharesAfterDeposit, totalPooledMaticAfterDeposit] =
-			await fxStateChildTunnel.getReserves();
-		const rateAfterDeposit = await rateProvider.getRate();
-		expect(totalSharesAfterDeposit).to.equal(mintAmount);
-		expect(totalPooledMaticAfterDeposit).to.equal(mintAmount);
-		const expectedRateAfterDeposit: BigNumberish = BigNumber.from(
-			"1000000000000000000"
-		)
-			.mul(totalPooledMaticAfterDeposit)
-			.div(totalSharesAfterDeposit);
-		expect(rateAfterDeposit).to.equal(expectedRateAfterDeposit);
+		describe("Positive", function () {
+			it("Should emit the RoleGranted event", async function () {
+				const { maticX, manager, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
 
-		await requestWithdraw(user, withdrawAmount);
+				const promise = maticX
+					.connect(manager)
+					.grantRole(defaultAdminRole, executor.address);
+				await expect(promise)
+					.to.emit(maticX, "RoleGranted")
+					.withArgs(
+						defaultAdminRole,
+						executor.address,
+						manager.address
+					);
+			});
 
-		const [totalSharesAfterWithdraw, totalPooledMaticAfterWithdraw] =
-			await fxStateChildTunnel.getReserves();
-		const rateAfterWithdraw = await rateProvider.getRate();
-		expect(totalSharesAfterWithdraw).to.equal(mintAmount - withdrawAmount);
-		expect(totalPooledMaticAfterWithdraw).to.equal(
-			mintAmount - withdrawAmount
-		);
-		const expectedRateAfterWithdraw: BigNumberish = BigNumber.from(
-			"1000000000000000000"
-		)
-			.mul(totalPooledMaticAfterWithdraw)
-			.div(totalSharesAfterWithdraw);
-		expect(rateAfterWithdraw).to.equal(expectedRateAfterWithdraw);
+			it("Should return the right status of the granted role", async function () {
+				const { maticX, manager, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
 
-		await maticMock.mintTo(maticX.address, rewardsAmount);
-		await stakeRewardsAndDistributeFees(manager, 1);
+				await maticX
+					.connect(manager)
+					.grantRole(defaultAdminRole, executor.address);
 
-		const rewardsAfterFee =
-			(rewardsAmount * (100 - (await maticX.feePercent()))) / 100;
-		const [totalSharesAfterRewards, totalPooledMaticAfterRewards] =
-			await fxStateChildTunnel.getReserves();
-		const rateAfterRewards = await rateProvider.getRate();
-		expect(totalSharesAfterRewards).to.equal(mintAmount - withdrawAmount);
-		expect(totalPooledMaticAfterRewards).to.equal(
-			mintAmount - withdrawAmount + rewardsAfterFee
-		);
-		const expectedRateAfterRewards: BigNumberish = BigNumber.from(
-			"1000000000000000000"
-		)
-			.mul(totalPooledMaticAfterRewards)
-			.div(totalSharesAfterRewards);
-		expect(rateAfterRewards).to.equal(expectedRateAfterRewards);
-
-		await requestWithdraw(user, totalSharesAfterRewards);
-
-		const [totalSharesAfterWithdrawAll, totalPooledMaticAfterWithdrawAll] =
-			await fxStateChildTunnel.getReserves();
-		const rateAfterWithdrawAll = await rateProvider.getRate();
-		expect(totalSharesAfterWithdrawAll).to.equal(0);
-		expect(totalPooledMaticAfterWithdrawAll).to.equal(0);
-		expect(rateAfterWithdrawAll).to.equal(ethers.utils.parseEther("1"));
+				const hasRole = await maticX.hasRole(
+					defaultAdminRole,
+					executor.address
+				);
+				expect(hasRole).to.be.true;
+			});
+		});
 	});
 
-	it("it should add and then remove a bot address", async () => {
-		const botRole = await maticX.BOT();
-		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(false);
-		const tx = await maticX.grantRole(botRole, users[0].address);
-		await expect(tx)
-			.to.emit(maticX, "RoleGranted")
-			.withArgs(botRole, users[0].address, instantPoolOwner.address);
-		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(true);
+	describe("Revoke a role", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
 
-		const tx2 = await maticX.revokeRole(botRole, users[0].address);
-		await expect(tx2)
-			.to.emit(maticX, "RoleRevoked")
-			.withArgs(botRole, users[0].address, instantPoolOwner.address);
-		expect(await maticX.hasRole(botRole, users[0].address)).to.eql(false);
+				const promise = maticX
+					.connect(executor)
+					.revokeRole(defaultAdminRole, executor.address);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the RoleRevoked event", async function () {
+				const { maticX, manager, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				await maticX
+					.connect(manager)
+					.grantRole(defaultAdminRole, executor.address);
+
+				const promise = maticX
+					.connect(manager)
+					.revokeRole(defaultAdminRole, executor.address);
+				await expect(promise)
+					.to.emit(maticX, "RoleRevoked")
+					.withArgs(
+						defaultAdminRole,
+						executor.address,
+						manager.address
+					);
+			});
+
+			it("Should return the right status of the revoked role", async function () {
+				const { maticX, manager, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				await maticX
+					.connect(manager)
+					.grantRole(defaultAdminRole, executor.address);
+
+				await maticX
+					.connect(manager)
+					.revokeRole(defaultAdminRole, executor.address);
+
+				const hasRole = await maticX.hasRole(
+					defaultAdminRole,
+					executor.address
+				);
+				expect(hasRole).to.be.false;
+			});
+		});
 	});
 
-	it.skip("it should stakeRewards - accesscontrol check", async () => {
-		const botRole = await maticX.BOT();
-		await maticX.grantRole(botRole, users[1].address);
+	describe("Renounce a role", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, manager, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
 
-		const submitAmounts: string[] = [];
-		const [minAmount, maxAmount] = [0.005, 0.01];
-		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
-		for (let i = 0; i < delegatorsAmount; i++) {
-			submitAmounts.push(
-				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
-			);
-			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
-			await mintMatic(users[i], submitAmountWei);
-			await submit(users[i], submitAmountWei);
-		}
-		const instantPoolMatic = ethers.utils.parseEther("10");
-		await mintMatic(deployer, instantPoolMatic);
-		await approveMatic(deployer, instantPoolMatic);
-		// await provideInstantPoolMatic(deployer, instantPoolMatic);
-		const rewards = 1000000;
-		const feePercent = await maticX.feePercent();
-		const treasuryFee = (rewards * feePercent) / 100;
-		const stakedAmount = rewards - treasuryFee;
-		await maticMock.mintTo(maticX.address, rewards);
+				const promise = maticX
+					.connect(manager)
+					.renounceRole(defaultAdminRole, executor.address);
+				await expect(promise).to.be.revertedWith(
+					"AccessControl: can only renounce roles for self"
+				);
+			});
+		});
 
-		// fails for non-bot
-		await expect(stakeRewardsAndDistributeFees(users[0], 1)).to.be.reverted;
+		describe("Positive", function () {
+			it("Should emit the RoleRevoked event", async function () {
+				const { maticX, manager, defaultAdminRole } =
+					await loadFixture(deployFixture);
 
-		// succeeds for bot
-		const stakeRewardsAndDistributeFeesTx =
-			await stakeRewardsAndDistributeFees(users[1], 1);
-		await expect(stakeRewardsAndDistributeFeesTx)
-			.emit(maticX, "StakeRewards")
-			.withArgs(1, stakedAmount);
-		await expect(stakeRewardsAndDistributeFeesTx)
-			.emit(maticX, "DistributeFees")
-			.withArgs(treasury.address, treasuryFee);
+				const promise = maticX
+					.connect(manager)
+					.renounceRole(defaultAdminRole, manager.address);
+				await expect(promise)
+					.to.emit(maticX, "RoleRevoked")
+					.withArgs(
+						defaultAdminRole,
+						manager.address,
+						manager.address
+					);
+			});
+
+			it("Should return the right status of the revoked role", async function () {
+				const { maticX, manager, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				await maticX
+					.connect(manager)
+					.renounceRole(defaultAdminRole, manager.address);
+
+				const hasRole = await maticX.hasRole(
+					defaultAdminRole,
+					manager.address
+				);
+				expect(hasRole).to.be.false;
+			});
+		});
 	});
 
-	it.skip("should call the withdraw rewards on multiple validators", async () => {
-		const submitAmounts: string[] = [];
+	describe("Initialize V2", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if reinitializing", async function () {
+				const { maticX, pol, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
 
-		const [minAmount, maxAmount] = [0.005, 0.01];
-		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
+				await maticX.connect(manager).initializeV2(pol.address);
 
-		for (let i = 0; i < delegatorsAmount; i++) {
-			submitAmounts.push(
-				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
-			);
-			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
-			await mintMatic(users[i], submitAmountWei);
-			await submit(users[i], submitAmountWei);
-		}
+				const promise = maticX
+					.connect(manager)
+					.initializeV2(pol.address);
+				await expect(promise).to.be.revertedWith(
+					"Initializable: contract is already initialized"
+				);
+			});
 
-		const validatorsAddress = [];
-		validatorsAddress[0] = await stakeManagerMock.getValidatorContract(
-			BigNumber.from(1)
-		);
-		validatorsAddress[1] = await stakeManagerMock.getValidatorContract(
-			BigNumber.from(2)
-		);
-		await mintAndTransferMatic(
-			deployer,
-			ethers.utils.parseEther("15"),
-			validatorsAddress[0]
-		);
-		await mintAndTransferMatic(
-			deployer,
-			ethers.utils.parseEther("17"),
-			validatorsAddress[1]
-		);
-		/*
-		const iFace = new ethers.utils.Interface([
-			"event WithdrawRewards(uint256 indexed _validatorId, uint256 _rewards)",
-		]);
-		const tx1 = await maticX.withdrawRewards(BigNumber.from(1));
-		const receipt = await ethers.provider.getTransactionReceipt(tx1.hash);
-		console.log(
-			iFace.decodeEventLog(
-				"WithdrawRewards",
-				receipt.logs[1].data,
-				receipt.logs[1].topics
-			)
-		);*/
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, pol, executor, defaultAdminRole } =
+					await loadFixture(deployFixture.bind(null, false));
 
-		const oldBalance = await maticMock.balanceOf(maticX.address);
-		const tx = await maticX.withdrawValidatorsReward([
-			BigNumber.from(1),
-			BigNumber.from(2),
-		]);
+				const promise = maticX
+					.connect(executor)
+					.initializeV2(pol.address);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
 
-		await expect(tx)
-			.to.emit(maticX, "WithdrawRewards")
-			.withArgs(BigNumber.from(1), ethers.utils.parseEther("15"));
-		await expect(tx)
-			.to.emit(maticX, "WithdrawRewards")
-			.withArgs(BigNumber.from(2), ethers.utils.parseEther("17"));
-		const newBalance = await maticMock.balanceOf(maticX.address);
-		expect(newBalance.sub(oldBalance)).to.eql(
-			ethers.utils.parseEther("32")
-		);
+			it("Should revert with the right error if passing the zero pol token address", async function () {
+				const { maticX, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
+
+				const promise = maticX
+					.connect(manager)
+					.initializeV2(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero POL token address"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the Initialized and RoleAdminChanged events", async function () {
+				const { maticX, pol, manager, botRole, defaultAdminRole } =
+					await loadFixture(deployFixture.bind(null, false));
+
+				const promise = maticX
+					.connect(manager)
+					.initializeV2(pol.address);
+				await expect(promise)
+					.to.emit(maticX, "Initialized")
+					.withArgs(2)
+					.and.to.emit(maticX, "RoleAdminChanged")
+					.withArgs(botRole, defaultAdminRole, defaultAdminRole);
+			});
+
+			it("Should return the right contract addresses", async function () {
+				const {
+					maticX,
+					stakeManager,
+					matic,
+					validatorRegistry,
+					pol,
+					manager,
+				} = await loadFixture(deployFixture.bind(null, false));
+
+				await maticX.connect(manager).initializeV2(pol.address);
+
+				const [
+					stakeManagerAddress,
+					maticAddress,
+					validatorRegistryAddress,
+					polAddress,
+				] = await maticX.getContracts();
+				expect(stakeManagerAddress).to.equal(stakeManager.address);
+				expect(maticAddress).to.equal(matic.address);
+				expect(validatorRegistryAddress).to.equal(
+					validatorRegistry.address
+				);
+				expect(polAddress).to.equal(pol.address);
+			});
+
+			it("Should return the right allowance of the POL token for the StakeManager contract", async function () {
+				const { maticX, stakeManager, pol, manager } =
+					await loadFixture(deployFixture.bind(null, false));
+
+				await maticX.connect(manager).initializeV2(pol.address);
+
+				const currentAllowance = await pol.allowance(
+					maticX.address,
+					stakeManager.address
+				);
+				expect(currentAllowance).to.equal(ethers.constants.MaxUint256);
+			});
+		});
 	});
 
-	it("should call the withdraw rewards on multiple validators - wrong validator Id", async () => {
-		const submitAmounts: string[] = [];
+	describe("Submit Matic", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
 
-		const [minAmount, maxAmount] = [0.005, 0.01];
-		const delegatorsAmount = Math.floor(Math.random() * (10 - 1)) + 1;
+				await maticX.connect(manager).togglePause();
 
-		for (let i = 0; i < delegatorsAmount; i++) {
-			submitAmounts.push(
-				(Math.random() * (maxAmount - minAmount) + minAmount).toFixed(3)
-			);
-			const submitAmountWei = ethers.utils.parseEther(submitAmounts[i]);
-			await mintMatic(users[i], submitAmountWei);
-			await submit(users[i], submitAmountWei);
-		}
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
 
-		const validatorsAddress = [];
-		validatorsAddress[0] = await stakeManagerMock.getValidatorContract(
-			BigNumber.from(1)
-		);
-		validatorsAddress[1] = await stakeManagerMock.getValidatorContract(
-			BigNumber.from(2)
-		);
-		await mintAndTransferMatic(
-			deployer,
-			ethers.utils.parseEther("15"),
-			validatorsAddress[0]
-		);
-		await mintAndTransferMatic(
-			deployer,
-			ethers.utils.parseEther("17"),
-			validatorsAddress[1]
-		);
+			it("Should revert with the right error if passing the zero amount", async function () {
+				const { maticX, stakerA } = await loadFixture(deployFixture);
 
-		const oldBalance = await maticMock.balanceOf(maticX.address);
-		const tx = maticX.withdrawValidatorsReward([
-			BigNumber.from(1),
-			BigNumber.from(4),
-		]);
-		await expect(tx).to.be.revertedWith(
-			"function call to a non-contract account"
-		);
-		const newBalance = await maticMock.balanceOf(maticX.address);
-		expect(newBalance.sub(oldBalance)).to.eql(BigNumber.from(0));
+				const promise = maticX.connect(stakerA).submit(0);
+				await expect(promise).to.be.revertedWith("Invalid amount");
+			});
+
+			it("Should revert with the right error if having insufficient token approval from the user", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount.sub(1));
+
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
+				await expect(promise).to.be.revertedWith(
+					"SafeERC20: low-level call failed"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the Submit and Delegate events", async function () {
+				const { maticX, matic, stakerA, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "Submit")
+					.withArgs(stakerA.address, stakeAmount)
+					.and.to.emit(maticX, "Delegate")
+					.withArgs(preferredDepositValidatorId, stakeAmount);
+			});
+
+			it("Should emit the Transfer event", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "Transfer")
+					.withArgs(
+						ethers.constants.AddressZero,
+						stakerA.address,
+						stakeAmount
+					);
+			});
+
+			it("Should emit the ShareMinted event on the StakingInfo contract", async function () {
+				const {
+					maticX,
+					stakeManager,
+					matic,
+					stakerA,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+				const validatorShare = (await ethers.getContractAt(
+					"IValidatorShare",
+					validatorShareAddress
+				)) as IValidatorShare;
+
+				const stakingLoggerAddress =
+					await validatorShare.stakingLogger();
+				const stakingLogger = await ethers.getContractAt(
+					"IStakingInfo",
+					stakingLoggerAddress
+				);
+
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
+				await expect(promise)
+					.to.emit(stakingLogger, "ShareMinted")
+					.withArgs(
+						preferredDepositValidatorId,
+						maticX.address,
+						stakeAmount,
+						stakeAmount
+					);
+			});
+
+			it("Should return the right MaticX balance", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
+				await expect(promise).to.changeTokenBalance(
+					maticX,
+					stakerA,
+					stakeAmount
+				);
+			});
+
+			it("Should return the right Matic and POL token balances", async function () {
+				const { maticX, stakeManager, matic, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
+				await expect(promise).to.changeTokenBalances(
+					matic,
+					[stakerA, maticX],
+					[stakeAmount.mul(-1), 0]
+				);
+				await expect(promise).to.changeTokenBalances(
+					pol,
+					[stakeManager],
+					[stakeAmount]
+				);
+			});
+
+			it("Should return the right MaticX to POL conversion", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticXToPOL(stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticXToPOL(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right MaticX to POL conversion in a backward compatible manner", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticXToMatic(stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticXToMatic(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right POL to MaticX conversion", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertPOLToMaticX(stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertPOLToMaticX(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right POL to MaticX conversion in a backward compatible manner", async function () {
+				const { maticX, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticToMaticX(stakeAmount);
+
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticToMaticX(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right total pooled stake tokens", async function () {
+				const { maticX, matic, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, tripleStakeAmount);
+
+					for (let i = 0; i < 3; i++) {
+						await maticX.connect(staker).submit(stakeAmount);
+					}
+				}
+
+				const totalPooledStakeTokens =
+					await maticX.getTotalStakeAcrossAllValidators();
+				expect(totalPooledStakeTokens).to.equal(
+					tripleStakeAmount.mul(2)
+				);
+			});
+
+			it("Should return the right total pooled stake tokens in a backward compatible manner", async function () {
+				const { maticX, matic, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, tripleStakeAmount);
+
+					for (let i = 0; i < 3; i++) {
+						await maticX.connect(staker).submit(stakeAmount);
+					}
+				}
+
+				const totalPooledStakeTokens =
+					await maticX.getTotalPooledMatic();
+				expect(totalPooledStakeTokens).to.equal(
+					tripleStakeAmount.mul(2)
+				);
+			});
+
+			it("Should return the right total stake from a validator share", async function () {
+				const {
+					maticX,
+					stakeManager,
+					matic,
+					stakers,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+				const initialTotalStake = await maticX.getTotalStake(
+					validatorShareAddress
+				);
+
+				for (const staker of stakers) {
+					await matic
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submit(stakeAmount);
+				}
+
+				const currentTotalStake = await maticX.getTotalStake(
+					validatorShareAddress
+				);
+				expect(currentTotalStake).not.to.equal(initialTotalStake);
+				expect(currentTotalStake[0]).to.equal(stakeAmount.mul(2));
+				expect(currentTotalStake[1]).to.equal(
+					ethers.utils.parseUnits("100000000000", 18)
+				);
+			});
+		});
+	});
+
+	describe("Submit POL", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if passing the zero amount", async function () {
+				const { maticX, stakerA } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(stakerA).submitPOL(0);
+				await expect(promise).to.be.revertedWith("Invalid amount");
+			});
+
+			it("Should revert with the right error if having insufficient token approval from the user", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount.sub(1));
+
+				const promise = maticX.connect(stakerA).submit(stakeAmount);
+				await expect(promise).to.be.revertedWith(
+					"SafeERC20: low-level call failed"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the Submit and Delegate events on the MaticX contract", async function () {
+				const { maticX, pol, stakerA, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "Submit")
+					.withArgs(stakerA.address, stakeAmount)
+					.and.to.emit(maticX, "Delegate")
+					.withArgs(preferredDepositValidatorId, stakeAmount);
+			});
+
+			it("Should emit the Transfer event on the MaticX contract", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "Transfer")
+					.withArgs(
+						ethers.constants.AddressZero,
+						stakerA.address,
+						stakeAmount
+					);
+			});
+
+			it("Should emit the ShareMinted event on the StakingInfo contract", async function () {
+				const {
+					maticX,
+					stakeManager,
+					pol,
+					stakerA,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+				const validatorShare = (await ethers.getContractAt(
+					"IValidatorShare",
+					validatorShareAddress
+				)) as IValidatorShare;
+
+				const stakingLoggerAddress =
+					await validatorShare.stakingLogger();
+				const stakingLogger = await ethers.getContractAt(
+					"IStakingInfo",
+					stakingLoggerAddress
+				);
+
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
+				await expect(promise)
+					.to.emit(stakingLogger, "ShareMinted")
+					.withArgs(
+						preferredDepositValidatorId,
+						maticX.address,
+						stakeAmount,
+						stakeAmount
+					);
+			});
+
+			it("Should return the right MaticX balance", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
+				await expect(promise).to.changeTokenBalance(
+					maticX,
+					stakerA,
+					stakeAmount
+				);
+			});
+
+			it("Should return the right POL token balances", async function () {
+				const { maticX, stakeManager, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const promise = maticX.connect(stakerA).submitPOL(stakeAmount);
+				await expect(promise).to.changeTokenBalances(
+					pol,
+					[stakerA, maticX, stakeManager],
+					[stakeAmount.mul(-1), 0, stakeAmount]
+				);
+			});
+
+			it("Should return the right MaticX to POL conversion", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticXToPOL(stakeAmount);
+
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticXToPOL(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right MaticX to POL conversion in a backward compatible manner", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticXToMatic(stakeAmount);
+
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticXToMatic(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right POL to MaticX conversion", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertPOLToMaticX(stakeAmount);
+
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertPOLToMaticX(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right POL to MaticX conversion in a backward compatible manner", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+
+				const initialConversion =
+					await maticX.convertMaticToMaticX(stakeAmount);
+
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const currentConversion =
+					await maticX.convertMaticToMaticX(stakeAmount);
+				expect(initialConversion).not.to.equal(currentConversion);
+				expect(currentConversion[0]).to.equal(stakeAmount);
+				expect(currentConversion[1]).to.equal(stakeAmount);
+				expect(currentConversion[2]).to.equal(stakeAmount);
+			});
+
+			it("Should return the right total pooled stake tokens", async function () {
+				const { maticX, pol, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, tripleStakeAmount);
+
+					for (let i = 0; i < 3; i++) {
+						await maticX.connect(staker).submitPOL(stakeAmount);
+					}
+				}
+
+				const totalPooledStakeTokens =
+					await maticX.getTotalStakeAcrossAllValidators();
+				expect(totalPooledStakeTokens).to.equal(
+					tripleStakeAmount.mul(2)
+				);
+			});
+
+			it("Should return the right total pooled stake tokens in a backward compatible manner", async function () {
+				const { maticX, pol, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, tripleStakeAmount);
+
+					for (let i = 0; i < 3; i++) {
+						await maticX.connect(staker).submitPOL(stakeAmount);
+					}
+				}
+
+				const totalPooledStakeTokens =
+					await maticX.getTotalPooledMatic();
+				expect(totalPooledStakeTokens).to.equal(
+					tripleStakeAmount.mul(2)
+				);
+			});
+
+			it("Should return the right total stake from a validator share", async function () {
+				const {
+					maticX,
+					stakeManager,
+					pol,
+					stakers,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+				const initialTotalStake = await maticX.getTotalStake(
+					validatorShareAddress
+				);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				const currentTotalStake = await maticX.getTotalStake(
+					validatorShareAddress
+				);
+				expect(currentTotalStake).not.to.equal(initialTotalStake);
+				expect(currentTotalStake[0]).to.equal(stakeAmount.mul(2));
+				expect(currentTotalStake[1]).to.equal(
+					ethers.utils.parseUnits("100000000000", 18)
+				);
+			});
+		});
+	});
+
+	describe("Request a withdrawal", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if requesting the zero amount", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const promise = maticX.connect(stakerA).requestWithdraw(0);
+				await expect(promise).to.be.revertedWith("Invalid amount");
+			});
+
+			it("Should revert with the right error if requesting a higher amount than staked before", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount.add(1));
+				await expect(promise).to.be.revertedWith(
+					"ERC20: burn amount exceeds balance"
+				);
+			});
+
+			it("Should revert with the right error if having MaticX shares transferred from the current staker", async function () {
+				const { maticX, pol, stakerA, stakerB } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				await maticX.connect(stakerA).transfer(stakerB.address, 1);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise).to.be.revertedWith(
+					"ERC20: burn amount exceeds balance"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the RequestWithdraw and Transfer events", async function () {
+				const { maticX, pol, stakerA, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "RequestWithdraw")
+					.withArgs(
+						stakerA.address,
+						tripleStakeAmount,
+						tripleStakeAmount
+					)
+					.and.to.emit(maticX, "Transfer")
+					.withArgs(
+						stakerA.address,
+						ethers.constants.AddressZero,
+						stakeAmount
+					);
+			});
+
+			it("Should emit the RequestWithraw event if transferring extra MaticX shares to the current staker", async function () {
+				const { maticX, pol, stakerA, stakerB, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX
+					.connect(stakerB)
+					.transfer(stakerA.address, stakeAmount);
+				const tripleStakeAmount = stakeAmount.mul(2);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(tripleStakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "RequestWithdraw")
+					.withArgs(
+						stakerA.address,
+						tripleStakeAmount,
+						tripleStakeAmount
+					);
+			});
+
+			it("Should emit the RequestWithraw event if changing a preferred withdrawal validator id", async function () {
+				const {
+					maticX,
+					pol,
+					validatorRegistry,
+					stakerA,
+					validatorIds,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const preferredWithdrawalValidatorId = validatorIds[1];
+				await validatorRegistry.setPreferredWithdrawalValidatorId(
+					preferredWithdrawalValidatorId
+				);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise)
+					.to.emit(maticX, "RequestWithdraw")
+					.withArgs(stakerA.address, stakeAmount, stakeAmount);
+			});
+
+			it("Should return the right staker's withdrawal requests", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakerA,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+
+				const initialWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const currentWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				expect(currentWithdrawalRequests.length).not.to.equal(
+					initialWithdrawalRequests.length
+				);
+				expect(currentWithdrawalRequests).to.have.lengthOf(1);
+
+				const [currentValidatorNonce, , currentValidatorShareAddress] =
+					currentWithdrawalRequests[0];
+				expect(currentValidatorNonce).to.equal(1);
+				expect(currentValidatorShareAddress).to.equal(
+					validatorShareAddress
+				);
+			});
+
+			it("Should return the right MaticX and POL token balances if submitting POL", async function () {
+				const { maticX, pol, stakerA } =
+					await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise).to.changeTokenBalance(
+					maticX,
+					stakerA,
+					stakeAmount.mul(-1)
+				);
+				await expect(promise).to.changeTokenBalance(pol, stakerA, 0);
+			});
+
+			it("Should return the right MaticX and POL token balances if submitting Matic", async function () {
+				const { maticX, pol, matic, stakerA } =
+					await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				const promise = maticX
+					.connect(stakerA)
+					.requestWithdraw(stakeAmount);
+				await expect(promise).to.changeTokenBalance(
+					maticX,
+					stakerA,
+					stakeAmount.mul(-1)
+				);
+				await expect(promise).to.changeTokenBalance(pol, stakerA, 0);
+				await expect(promise).to.changeTokenBalance(matic, stakerA, 0);
+			});
+		});
+	});
+
+	describe("Claim a withdrawal", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, stakerA } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(stakerA).claimWithdrawal(0);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should return the right error if claiming too early", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch.sub(1));
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise).to.be.revertedWith(
+					"Not able to claim yet"
+				);
+			});
+
+			it("Should return the right error if having no requests for the user", async function () {
+				const { maticX, stakerA } = await loadFixture(deployFixture);
+
+				const withdrawalIndex = 0;
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise).to.be.revertedWith(
+					"Request does not exist"
+				);
+			});
+
+			it("Should return the right error if having no request at a given index for the user", async function () {
+				const { maticX, pol, stakerA, stakers } =
+					await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 1;
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise).to.be.revertedWith(
+					"Request does not exist"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the ClaimWithdrawal event", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise)
+					.to.emit(maticX, "ClaimWithdrawal")
+					.withArgs(stakerA.address, withdrawalIndex, stakeAmount);
+			});
+
+			it("Should return the right POL token balances if submitting POL", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise).to.changeTokenBalances(
+					pol,
+					[stakeManager, maticX, stakerA],
+					[stakeAmount.mul(-1), 0, stakeAmount]
+				);
+			});
+
+			it("Should return the right POL token balances if submitting Matic", async function () {
+				const {
+					maticX,
+					pol,
+					matic,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+				} = await loadFixture(deployFixture);
+
+				await matic
+					.connect(stakerA)
+					.approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submit(stakeAmount);
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const withdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				const promise = maticX
+					.connect(stakerA)
+					.claimWithdrawal(withdrawalIndex);
+				await expect(promise).to.changeTokenBalances(
+					pol,
+					[stakeManager, maticX, stakerA],
+					[stakeAmount.mul(-1), 0, stakeAmount]
+				);
+				await expect(promise).to.changeTokenBalances(
+					matic,
+					[stakeManager, maticX, stakerA],
+					[0, 0, 0]
+				);
+			});
+
+			it("Should return the right staker's withdrawal requests", async function () {
+				const {
+					maticX,
+					pol,
+					stakeManager,
+					stakeManagerGovernance,
+					stakerA,
+					stakers,
+				} = await loadFixture(deployFixture);
+
+				for (const staker of stakers) {
+					await pol
+						.connect(staker)
+						.approve(maticX.address, stakeAmount);
+					await maticX.connect(staker).submitPOL(stakeAmount);
+				}
+
+				await maticX.connect(stakerA).requestWithdraw(stakeAmount);
+
+				const withdrawalIndex = 0;
+				const initialWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				const [, withdrawalEpoch] =
+					initialWithdrawalRequests[withdrawalIndex];
+
+				await stakeManager
+					.connect(stakeManagerGovernance)
+					.setCurrentEpoch(withdrawalEpoch);
+
+				await maticX.connect(stakerA).claimWithdrawal(withdrawalIndex);
+
+				const currentWithdrawalRequests =
+					await maticX.getUserWithdrawalRequests(stakerA.address);
+				expect(currentWithdrawalRequests.length).not.to.equal(
+					initialWithdrawalRequests.length
+				);
+				expect(currentWithdrawalRequests).to.be.empty;
+			});
+		});
+	});
+
+	describe("Withdraw validator rewards", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawRewards(preferredDepositValidatorId);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if having an insufficient rewards amount", async function () {
+				const { maticX, manager, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawRewards(preferredDepositValidatorId);
+				await expect(promise).to.be.revertedWith(
+					"Too small rewards amount"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			// TODO Add tests
+		});
+	});
+
+	describe("Withdraw validators rewards", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawValidatorsReward([
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+					]);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if having an insufficient rewards amount", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawValidatorsReward([
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+					]);
+				await expect(promise).to.be.revertedWith(
+					"Too small rewards amount"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			// TODO Add tests
+		});
+	});
+
+	describe("Stake rewards and distribute fees", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, bot, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if called by a non bot", async function () {
+				const {
+					maticX,
+					executor,
+					botRole,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(executor)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${botRole}`
+				);
+			});
+
+			it("Should revert with the right error if having an unregistered validator id", async function () {
+				const { maticX, bot } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(0);
+				await expect(promise).to.be.revertedWith(
+					"Doesn't exist in validator registry"
+				);
+			});
+
+			it("Should revert with the right error if having the zero reward", async function () {
+				const { maticX, bot, preferredWithdrawalValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(
+						preferredWithdrawalValidatorId
+					);
+				await expect(promise).to.be.revertedWith("Reward is zero");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the StakeRewards and DistributeFees events if having a positive fee amount", async function () {
+				const {
+					maticX,
+					pol,
+					polHolder,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol
+					.connect(polHolder)
+					.transfer(maticX.address, stakeAmount);
+
+				const feeAmount = stakeAmount.mul(5).div(100);
+				const netStakeAmount = stakeAmount.sub(feeAmount);
+				const treasuryAddress = await maticX.treasury();
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise)
+					.to.emit(maticX, "StakeRewards")
+					.withArgs(preferredDepositValidatorId, netStakeAmount)
+					.and.to.emit(maticX, "DistributeFees")
+					.withArgs(treasuryAddress, feeAmount);
+			});
+
+			it("Should emit the StakeRewards if having the zero fee amount", async function () {
+				const {
+					maticX,
+					pol,
+					polHolder,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const stakeAmount = 19;
+				await pol
+					.connect(polHolder)
+					.transfer(maticX.address, stakeAmount);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise)
+					.to.emit(maticX, "StakeRewards")
+					.withArgs(preferredDepositValidatorId, stakeAmount)
+					.and.not.to.emit(maticX, "DistributeFees");
+			});
+
+			it("Should return the right POL balances", async function () {
+				const {
+					maticX,
+					stakeManager,
+					pol,
+					polHolder,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol
+					.connect(polHolder)
+					.transfer(maticX.address, stakeAmount);
+
+				const treasuryAddress = await maticX.treasury();
+
+				const feeAmount = stakeAmount.mul(5).div(100);
+				const netStakeAmount = stakeAmount.sub(feeAmount);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise).to.changeTokenBalances(
+					pol,
+					[maticX, stakeManager, treasuryAddress],
+					[stakeAmount.mul(-1), netStakeAmount, feeAmount]
+				);
+			});
+		});
+	});
+
+	describe("Migrate a delegation", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						stakeAmount
+					);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if called by a non admin", async function () {
+				const {
+					maticX,
+					executor,
+					defaultAdminRole,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(executor)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						stakeAmount
+					);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing an unregistered source validator id", async function () {
+				const { maticX, manager, preferredWithdrawalValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						0,
+						preferredWithdrawalValidatorId,
+						stakeAmount
+					);
+				await expect(promise).to.be.revertedWith(
+					"From validator id does not exist in our registry"
+				);
+			});
+
+			it("Should revert with the right error if passing an unregistered destination validator id", async function () {
+				const { maticX, manager, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						0,
+						stakeAmount
+					);
+				await expect(promise).to.be.revertedWith(
+					"To validator id does not exist in our registry"
+				);
+			});
+
+			it("Should revert with the right error if passing zero amount", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						0
+					);
+				await expect(promise).to.be.revertedWith("Amount is zero");
+			});
+
+			it("Should revert with the right error if migrating a too much amount", async function () {
+				const {
+					maticX,
+					manager,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						1
+					);
+				await expect(promise).to.be.revertedWith("Migrating too much");
+			});
+		});
+
+		describe("Positive", function () {
+			// TODO Add tests
+		});
+	});
+
+	describe("Set a fee percent", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX.connect(stakerA).setFeePercent(100);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing a too high fee percent", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).setFeePercent(101);
+				await expect(promise).to.be.revertedWith(
+					"Fee percent must not exceed 100"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetFeePercent event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const feePercent = 100;
+				const promise = maticX
+					.connect(manager)
+					.setFeePercent(feePercent);
+				await expect(promise)
+					.to.emit(maticX, "SetFeePercent")
+					.withArgs(feePercent);
+			});
+		});
+	});
+
+	describe("Set a treasury address", function () {
+		const treasuryAddress = generateRandomAddress();
+
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(stakerA)
+					.setTreasury(treasuryAddress);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero treasury address", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setTreasury(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero treasury address"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetTreasury event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setTreasury(treasuryAddress);
+				await expect(promise)
+					.to.emit(maticX, "SetTreasury")
+					.withArgs(treasuryAddress);
+			});
+		});
+	});
+
+	describe("Set a validator registry address", function () {
+		const validatorRegistryAddress = generateRandomAddress();
+
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(stakerA)
+					.setValidatorRegistry(validatorRegistryAddress);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero treasury address", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setValidatorRegistry(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero validator registry address"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetValidatorRegistry event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setValidatorRegistry(validatorRegistryAddress);
+				await expect(promise)
+					.to.emit(maticX, "SetValidatorRegistry")
+					.withArgs(validatorRegistryAddress);
+			});
+		});
+	});
+
+	describe("Set a fx state root tunnel address", function () {
+		const fxStateRootTunnelAddress = generateRandomAddress();
+
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, stakerA, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(stakerA)
+					.setFxStateRootTunnel(fxStateRootTunnelAddress);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing the zero fx state root tunnel address", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setFxStateRootTunnel(ethers.constants.AddressZero);
+				await expect(promise).to.be.revertedWith(
+					"Zero fx state root tunnel address"
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetFxStateRootTunnel event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.setFxStateRootTunnel(fxStateRootTunnelAddress);
+				await expect(promise)
+					.to.emit(maticX, "SetFxStateRootTunnel")
+					.withArgs(fxStateRootTunnelAddress);
+			});
+		});
+	});
+
+	describe("Set a version", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX.connect(executor).setVersion(version);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+
+			it("Should revert with the right error if passing an empty version", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).setVersion("");
+				await expect(promise).to.be.revertedWith("Empty version");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the SetVersion event", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).setVersion(version);
+				await expect(promise)
+					.to.emit(maticX, "SetVersion")
+					.withArgs(version);
+			});
+		});
+	});
+
+	describe("Toggle a pause", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX.connect(executor).togglePause();
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the Paused event if pausing", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).togglePause();
+				await expect(promise)
+					.to.emit(maticX, "Paused")
+					.withArgs(manager.address);
+			});
+
+			it("Should emit the Unpaused event if pausing", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(manager).togglePause();
+				await expect(promise)
+					.to.emit(maticX, "Unpaused")
+					.withArgs(manager.address);
+			});
+
+			it("Should return the right paused status if toggling once", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const paused = await maticX.paused();
+				expect(paused).to.be.true;
+			});
+
+			it("Should return the right paused status if toggling twice", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+				await maticX.connect(manager).togglePause();
+
+				const paused = await maticX.paused();
+				expect(paused).to.be.false;
+			});
+		});
 	});
 });
