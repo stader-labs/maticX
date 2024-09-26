@@ -148,9 +148,6 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 _amount
 	) external;
 
-	/// @notice Toggles the paused status of this contract.
-	function togglePause() external;
-
 	/// @notice Sets a fee percent.
 	/// @param _feePercent - Fee percent (10 = 10%)
 	function setFeePercent(uint8 _feePercent) external;
@@ -170,6 +167,9 @@ interface IMaticX is IERC20Upgradeable {
 	/// @notice Sets a new version of this contract
 	/// @param _version - New version of this contract
 	function setVersion(string calldata _version) external;
+
+	/// @notice Toggles the paused status of this contract.
+	function togglePause() external;
 
 	/// @notice Converts an amount of MaticX shares to POL tokens.
 	/// @param _balance - Balance in MaticX shares

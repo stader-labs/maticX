@@ -430,11 +430,6 @@ contract MaticX is
 		);
 	}
 
-	/// @notice Toggles the paused status of this contract.
-	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		paused() ? _unpause() : _pause();
-	}
-
 	/// ------------------------------ Setters ---------------------------------
 
 	/// @notice Sets a fee percent.
@@ -496,6 +491,11 @@ contract MaticX is
 
 		version = _version;
 		emit SetVersion(_version);
+	}
+
+	/// @notice Toggles the paused status of this contract.
+	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
+		paused() ? _unpause() : _pause();
 	}
 
 	/// ------------------------------ Getters ---------------------------------

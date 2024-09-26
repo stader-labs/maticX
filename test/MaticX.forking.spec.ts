@@ -23,6 +23,7 @@ const envVars = extractEnvironmentVariables();
 describe("MaticX (Forking)", function () {
 	const stakeAmount = ethers.utils.parseUnits("100", 18);
 	const tripleStakeAmount = stakeAmount.mul(3);
+	const version = "1";
 
 	async function deployFixture(fullMaticXInitialization = true) {
 		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
@@ -581,61 +582,6 @@ describe("MaticX (Forking)", function () {
 					manager.address
 				);
 				expect(hasRole).to.be.false;
-			});
-		});
-	});
-
-	describe("Toggle pause", function () {
-		describe("Negative", function () {
-			it("Should revert with the right error if called by a non admin", async function () {
-				const { maticX, executor, defaultAdminRole } =
-					await loadFixture(deployFixture);
-
-				const promise = maticX.connect(executor).togglePause();
-				await expect(promise).to.be.revertedWith(
-					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
-				);
-			});
-		});
-
-		describe("Positive", function () {
-			it("Should emit the Paused event if pausing", async function () {
-				const { maticX, manager } = await loadFixture(deployFixture);
-
-				const promise = maticX.connect(manager).togglePause();
-				await expect(promise)
-					.to.emit(maticX, "Paused")
-					.withArgs(manager.address);
-			});
-
-			it("Should emit the Unpaused event if pausing", async function () {
-				const { maticX, manager } = await loadFixture(deployFixture);
-
-				await maticX.connect(manager).togglePause();
-
-				const promise = maticX.connect(manager).togglePause();
-				await expect(promise)
-					.to.emit(maticX, "Unpaused")
-					.withArgs(manager.address);
-			});
-
-			it("Should return the right paused status if toggling once", async function () {
-				const { maticX, manager } = await loadFixture(deployFixture);
-
-				await maticX.connect(manager).togglePause();
-
-				const paused = await maticX.paused();
-				expect(paused).to.be.true;
-			});
-
-			it("Should return the right paused status if toggling twice", async function () {
-				const { maticX, manager } = await loadFixture(deployFixture);
-
-				await maticX.connect(manager).togglePause();
-				await maticX.connect(manager).togglePause();
-
-				const paused = await maticX.paused();
-				expect(paused).to.be.false;
 			});
 		});
 	});
@@ -2283,16 +2229,14 @@ describe("MaticX (Forking)", function () {
 	});
 
 	describe("Set a version", function () {
-		const version = "1";
-
 		describe("Negative", function () {
 			it("Should revert with the right error if called by a non admin", async function () {
-				const { maticX, stakerA, defaultAdminRole } =
+				const { maticX, executor, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
-				const promise = maticX.connect(stakerA).setVersion(version);
+				const promise = maticX.connect(executor).setVersion(version);
 				await expect(promise).to.be.revertedWith(
-					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
 				);
 			});
 
@@ -2312,6 +2256,61 @@ describe("MaticX (Forking)", function () {
 				await expect(promise)
 					.to.emit(maticX, "SetVersion")
 					.withArgs(version);
+			});
+		});
+	});
+
+	describe("Toggle a pause", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if called by a non admin", async function () {
+				const { maticX, executor, defaultAdminRole } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX.connect(executor).togglePause();
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
+				);
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the Paused event if pausing", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).togglePause();
+				await expect(promise)
+					.to.emit(maticX, "Paused")
+					.withArgs(manager.address);
+			});
+
+			it("Should emit the Unpaused event if pausing", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX.connect(manager).togglePause();
+				await expect(promise)
+					.to.emit(maticX, "Unpaused")
+					.withArgs(manager.address);
+			});
+
+			it("Should return the right paused status if toggling once", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const paused = await maticX.paused();
+				expect(paused).to.be.true;
+			});
+
+			it("Should return the right paused status if toggling twice", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+				await maticX.connect(manager).togglePause();
+
+				const paused = await maticX.paused();
+				expect(paused).to.be.false;
 			});
 		});
 	});
