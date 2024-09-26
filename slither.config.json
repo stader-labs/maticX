@@ -1,6 +1,6 @@
 {
 	"compile_force_framework": "hardhat",
-	"detectors_to_exclude": "calls-loop,constable-states,naming-convention,pragma,solc-version,unused-return,unused-state",
+	"detectors_to_exclude": "calls-loop,naming-convention,pragma,solc-version,unused-return,unused-state",
 	"include_paths": "(MaticX.sol|ValidatorRegistry.sol)",
 	"filter_paths": "(@openzeppelin/|lib/|mocks/|state-transfer/|tunnel/)"
 }

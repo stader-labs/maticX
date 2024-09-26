@@ -2,6 +2,9 @@
 pragma solidity 0.8.7;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { IFxStateRootTunnel } from "./IFxStateRootTunnel.sol";
+import { IStakeManager } from "./IStakeManager.sol";
+import { IValidatorRegistry } from "./IValidatorRegistry.sol";
 import { IValidatorShare } from "./IValidatorShare.sol";
 
 /// @title MaticX interface
@@ -153,16 +156,16 @@ interface IMaticX is IERC20Upgradeable {
 	function setFeePercent(uint8 _feePercent) external;
 
 	/// @notice Sets the address of the treasury.
-	/// @param _address Address of the treasury
-	function setTreasury(address _address) external;
+	/// @param _treasury Address of the treasury
+	function setTreasury(address _treasury) external;
 
 	/// @notice Sets the address of the validator registry.
-	/// @param _address Address of the validator registry
-	function setValidatorRegistry(address _address) external;
+	/// @param _validatorRegistry Address of the validator registry
+	function setValidatorRegistry(address _validatorRegistry) external;
 
 	/// @notice Sets the address of the fx state root tunnel.
-	/// @param _address Address of the fx state root tunnel
-	function setFxStateRootTunnel(address _address) external;
+	/// @param _fxStateRootTunnel Address of the fx state root tunnel
+	function setFxStateRootTunnel(address _fxStateRootTunnel) external;
 
 	/// @notice Sets a new version of this contract
 	/// @param _version - New version of this contract
@@ -248,10 +251,10 @@ interface IMaticX is IERC20Upgradeable {
 		external
 		view
 		returns (
-			address _stakeManager,
-			address _maticToken,
-			address _validatorRegistry,
-			address _polToken
+			IStakeManager _stakeManager,
+			IERC20Upgradeable _maticToken,
+			IValidatorRegistry _validatorRegistry,
+			IERC20Upgradeable _polToken
 		);
 
 	/// @notice Returns the address of the treasury.
@@ -264,5 +267,5 @@ interface IMaticX is IERC20Upgradeable {
 	function feePercent() external view returns (uint8);
 
 	/// @notice Returns the address of the fx state root tunnel.
-	function fxStateRootTunnel() external view returns (address);
+	function fxStateRootTunnel() external view returns (IFxStateRootTunnel);
 }

@@ -1607,7 +1607,9 @@ describe("MaticX (Forking)", function () {
 				const promise = maticX
 					.connect(stakerA)
 					.claimWithdrawal(withdrawalIndex);
-				await expect(promise).to.be.revertedWith("Request not exists");
+				await expect(promise).to.be.revertedWith(
+					"Request does not exist"
+				);
 			});
 
 			it("Should return the right error if having no request at a given index for the user", async function () {
@@ -1628,7 +1630,9 @@ describe("MaticX (Forking)", function () {
 				const promise = maticX
 					.connect(stakerA)
 					.claimWithdrawal(withdrawalIndex);
-				await expect(promise).to.be.revertedWith("Request not exists");
+				await expect(promise).to.be.revertedWith(
+					"Request does not exist"
+				);
 			});
 		});
 

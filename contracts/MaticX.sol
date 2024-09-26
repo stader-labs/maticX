@@ -29,9 +29,9 @@ contract MaticX is
 	uint256 private constant NOT_ENTERED = 1;
 	uint256 private constant ENTERED = 2;
 
-	address private validatorRegistry;
-	address private stakeManager;
-	address private maticToken;
+	IValidatorRegistry private validatorRegistry;
+	IStakeManager private stakeManager;
+	IERC20Upgradeable private maticToken;
 	address public override treasury;
 	string public override version;
 	uint8 public override feePercent;
@@ -39,8 +39,8 @@ contract MaticX is
 	uint256 private instantPoolMatic_deprecated;
 	uint256 private instantPoolMaticX_deprecated;
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
-	address public override fxStateRootTunnel;
-	address private polToken;
+	IFxStateRootTunnel public override fxStateRootTunnel;
+	IERC20Upgradeable private polToken;
 	uint256 private reentrancyGuardStatus;
 
 	/// ------------------------------ Modifiers -------------------------------
@@ -85,13 +85,13 @@ contract MaticX is
 			_validatorRegistry != address(0),
 			"Zero validator registry address"
 		);
-		validatorRegistry = _validatorRegistry;
+		validatorRegistry = IValidatorRegistry(_validatorRegistry);
 
 		require(_stakeManager != address(0), "Zero stake manager address");
-		stakeManager = _stakeManager;
+		stakeManager = IStakeManager(_stakeManager);
 
 		require(_maticToken != address(0), "Zero matic token address");
-		maticToken = _maticToken;
+		maticToken = IERC20Upgradeable(_maticToken);
 
 		require(_manager != address(0), "Zero manager address");
 		_setupRole(DEFAULT_ADMIN_ROLE, _manager);
@@ -102,7 +102,7 @@ contract MaticX is
 		feePercent = 5;
 
 		IERC20Upgradeable(maticToken).safeApprove(
-			stakeManager,
+			_stakeManager,
 			type(uint256).max
 		);
 	}
@@ -113,14 +113,14 @@ contract MaticX is
 		address _polToken
 	) external reinitializer(2) onlyRole(DEFAULT_ADMIN_ROLE) {
 		require(_polToken != address(0), "Zero POL token address");
-		polToken = _polToken;
+		polToken = IERC20Upgradeable(_polToken);
 
 		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
 
 		reentrancyGuardStatus = NOT_ENTERED;
 
 		IERC20Upgradeable(_polToken).safeApprove(
-			stakeManager,
+			address(stakeManager),
 			type(uint256).max
 		);
 	}
@@ -165,12 +165,8 @@ contract MaticX is
 	) private returns (uint256) {
 		require(_amount > 0, "Invalid amount");
 
-		address token = _pol ? polToken : maticToken;
-		IERC20Upgradeable(token).safeTransferFrom(
-			sender,
-			address(this),
-			_amount
-		);
+		IERC20Upgradeable token = _pol ? polToken : maticToken;
+		token.safeTransferFrom(sender, address(this), _amount);
 
 		(
 			uint256 amountToMint,
@@ -181,16 +177,17 @@ contract MaticX is
 		_mint(sender, amountToMint);
 		emit Submit(sender, _amount);
 
-		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
+		uint256 preferredValidatorId = validatorRegistry
 			.preferredDepositValidatorId();
-		address validatorShare = IStakeManager(stakeManager)
-			.getValidatorContract(preferredValidatorId);
+		IValidatorShare validatorShare = IValidatorShare(
+			stakeManager.getValidatorContract(preferredValidatorId)
+		);
 
 		_pol
-			? IValidatorShare(validatorShare).buyVoucherPOL(_amount, 0)
-			: IValidatorShare(validatorShare).buyVoucher(_amount, 0);
+			? validatorShare.buyVoucherPOL(_amount, 0)
+			: validatorShare.buyVoucher(_amount, 0);
 
-		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
+		fxStateRootTunnel.sendMessageToChild(
 			abi.encode(totalShares + amountToMint, totalPooledAmount + _amount)
 		);
 
@@ -219,9 +216,8 @@ contract MaticX is
 			"Too much to withdraw"
 		);
 
-		uint256[] memory validatorIds = IValidatorRegistry(validatorRegistry)
-			.getValidators();
-		uint256 preferredValidatorId = IValidatorRegistry(validatorRegistry)
+		uint256[] memory validatorIds = validatorRegistry.getValidators();
+		uint256 preferredValidatorId = validatorRegistry
 			.preferredWithdrawalValidatorId();
 
 		uint256 currentIdx = 0;
@@ -238,14 +234,15 @@ contract MaticX is
 
 		uint256 leftAmountToWithdraw = amountToWithdraw;
 		uint256 totalAttempts = validatorIdCount;
+		uint256 requestEpoch = stakeManager.epoch() +
+			stakeManager.withdrawalDelay();
 
 		while (leftAmountToWithdraw > 0 && totalAttempts > 0) {
 			uint256 validatorId = validatorIds[currentIdx];
-			address validatorShare = IStakeManager(stakeManager)
-				.getValidatorContract(validatorId);
-			(uint256 validatorBalance, ) = getTotalStake(
-				IValidatorShare(validatorShare)
+			IValidatorShare validatorShare = IValidatorShare(
+				stakeManager.getValidatorContract(validatorId)
 			);
+			(uint256 validatorBalance, ) = getTotalStake(validatorShare);
 
 			uint256 amountToWithdrawFromValidator = (validatorBalance <=
 				leftAmountToWithdraw)
@@ -253,21 +250,20 @@ contract MaticX is
 				: leftAmountToWithdraw;
 
 			if (amountToWithdrawFromValidator > 0) {
-				IValidatorShare(validatorShare).sellVoucher_newPOL(
+				validatorShare.sellVoucher_newPOL(
 					amountToWithdrawFromValidator,
 					type(uint256).max
 				);
 
-				uint256 validatorNonce = IValidatorShare(validatorShare)
-					.unbondNonces(address(this));
-				uint256 requestEpoch = IStakeManager(stakeManager).epoch() +
-					IStakeManager(stakeManager).withdrawalDelay();
+				uint256 validatorNonce = validatorShare.unbondNonces(
+					address(this)
+				);
 
 				userWithdrawalRequests[msg.sender].push(
 					WithdrawalRequest(
 						validatorNonce,
 						requestEpoch,
-						validatorShare
+						address(validatorShare)
 					)
 				);
 
@@ -280,7 +276,7 @@ contract MaticX is
 
 		require(leftAmountToWithdraw == 0, "Extra amount left to withdraw");
 
-		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
+		fxStateRootTunnel.sendMessageToChild(
 			abi.encode(
 				totalShares - _amount,
 				totalPooledAmount - amountToWithdraw
@@ -296,19 +292,19 @@ contract MaticX is
 	function claimWithdrawal(
 		uint256 _idx
 	) external override nonReentrant whenNotPaused {
-		uint256 balanceBeforeClaim = IERC20Upgradeable(polToken).balanceOf(
-			address(this)
-		);
-
 		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[
 			msg.sender
 		];
-		require(_idx < userRequests.length, "Request not exists");
+		require(_idx < userRequests.length, "Request does not exist");
 
 		WithdrawalRequest memory userRequest = userRequests[_idx];
 		require(
-			IStakeManager(stakeManager).epoch() >= userRequest.requestEpoch,
+			stakeManager.epoch() >= userRequest.requestEpoch,
 			"Not able to claim yet"
+		);
+
+		uint256 balanceBeforeClaim = IERC20Upgradeable(polToken).balanceOf(
+			address(this)
 		);
 
 		IValidatorShare(userRequest.validatorAddress).unstakeClaimTokens_newPOL(
@@ -318,11 +314,10 @@ contract MaticX is
 		userRequests[_idx] = userRequests[userRequests.length - 1];
 		userRequests.pop();
 
-		uint256 amountToClaim = IERC20Upgradeable(polToken).balanceOf(
-			address(this)
-		) - balanceBeforeClaim;
+		uint256 amountToClaim = polToken.balanceOf(address(this)) -
+			balanceBeforeClaim;
 
-		IERC20Upgradeable(polToken).safeTransfer(msg.sender, amountToClaim);
+		polToken.safeTransfer(msg.sender, amountToClaim);
 
 		emit ClaimWithdrawal(msg.sender, _idx, amountToClaim);
 	}
@@ -341,26 +336,30 @@ contract MaticX is
 	function withdrawValidatorsReward(
 		uint256[] calldata _validatorIds
 	) external override nonReentrant whenNotPaused returns (uint256[] memory) {
-		uint256[] memory rewards = new uint256[](_validatorIds.length);
-		for (uint256 i = 0; i < _validatorIds.length; i++) {
+		uint256 validatorIdCount = _validatorIds.length;
+		uint256[] memory rewards = new uint256[](validatorIdCount);
+
+		for (uint256 i = 0; i < validatorIdCount; ) {
 			rewards[i] = _withdrawRewards(_validatorIds[i]);
+			unchecked {
+				++i;
+			}
 		}
 		return rewards;
 	}
 
-	/// @dev Withdraw stake token rewards from the given validator.
+	/// @dev Withdraws POL rewards from the given validator.
 	/// @param _validatorId - Validator id
 	function _withdrawRewards(uint256 _validatorId) private returns (uint256) {
-		address validatorShare = IStakeManager(stakeManager)
-			.getValidatorContract(_validatorId);
-
-		uint256 balanceBeforeRewards = IERC20Upgradeable(polToken).balanceOf(
-			address(this)
+		IValidatorShare validatorShare = IValidatorShare(
+			stakeManager.getValidatorContract(_validatorId)
 		);
 
-		IValidatorShare(validatorShare).withdrawRewardsPOL();
+		uint256 balanceBeforeRewards = polToken.balanceOf(address(this));
 
-		uint256 rewards = IERC20Upgradeable(polToken).balanceOf(address(this)) -
+		validatorShare.withdrawRewardsPOL();
+
+		uint256 rewards = polToken.balanceOf(address(this)) -
 			balanceBeforeRewards;
 
 		emit WithdrawRewards(_validatorId, rewards);
@@ -373,30 +372,30 @@ contract MaticX is
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused onlyRole(BOT) {
 		require(
-			IValidatorRegistry(validatorRegistry).validatorIdExists(
-				_validatorId
-			),
+			validatorRegistry.validatorIdExists(_validatorId),
 			"Doesn't exist in validator registry"
 		);
 
-		uint256 reward = IERC20Upgradeable(polToken).balanceOf(address(this));
+		uint256 reward = polToken.balanceOf(address(this));
 		require(reward > 0, "Reward is zero");
 
 		uint256 treasuryFee = (reward * feePercent) / 100;
 		if (treasuryFee > 0) {
-			IERC20Upgradeable(polToken).safeTransfer(treasury, treasuryFee);
+			polToken.safeTransfer(treasury, treasuryFee);
 			emit DistributeFees(treasury, treasuryFee);
 		}
 
 		uint256 amountToStake = reward - treasuryFee;
-		address validatorShare = IStakeManager(stakeManager)
-			.getValidatorContract(_validatorId);
-		IValidatorShare(validatorShare).buyVoucherPOL(amountToStake, 0);
+		IValidatorShare validatorShare = IValidatorShare(
+			stakeManager.getValidatorContract(_validatorId)
+		);
+
+		validatorShare.buyVoucherPOL(amountToStake, 0);
 
 		uint256 totalShares = totalSupply();
 		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
 
-		IFxStateRootTunnel(fxStateRootTunnel).sendMessageToChild(
+		fxStateRootTunnel.sendMessageToChild(
 			abi.encode(totalShares, totalPooledAmount)
 		);
 
@@ -414,21 +413,17 @@ contract MaticX is
 	) external override whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
 		require(_amount > 0, "Amount is zero");
 		require(
-			IValidatorRegistry(validatorRegistry).validatorIdExists(
-				_fromValidatorId
-			),
+			validatorRegistry.validatorIdExists(_fromValidatorId),
 			"From validator id does not exist in our registry"
 		);
 		require(
-			IValidatorRegistry(validatorRegistry).validatorIdExists(
-				_toValidatorId
-			),
+			validatorRegistry.validatorIdExists(_toValidatorId),
 			"To validator id does not exist in our registry"
 		);
 
 		emit MigrateDelegation(_fromValidatorId, _toValidatorId, _amount);
 
-		IStakeManager(stakeManager).migrateDelegation(
+		stakeManager.migrateDelegation(
 			_fromValidatorId,
 			_toValidatorId,
 			_amount
@@ -454,36 +449,42 @@ contract MaticX is
 	}
 
 	/// @notice Sets the address of the treasury.
-	/// @param _address Address of the treasury
+	/// @param _treasury - Address of the treasury
 	function setTreasury(
-		address _address
+		address _treasury
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(_address != address(0), "Zero treasury address");
+		require(_treasury != address(0), "Zero treasury address");
 
-		treasury = _address;
-		emit SetTreasury(_address);
+		treasury = _treasury;
+		emit SetTreasury(_treasury);
 	}
 
 	/// @notice Sets the address of the validator registry.
-	/// @param _address Address of the validator registry
+	/// @param _validatorRegistry - Address of the validator registry
 	function setValidatorRegistry(
-		address _address
+		address _validatorRegistry
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(_address != address(0), "Zero validator registry address");
+		require(
+			_validatorRegistry != address(0),
+			"Zero validator registry address"
+		);
 
-		validatorRegistry = _address;
-		emit SetValidatorRegistry(_address);
+		validatorRegistry = IValidatorRegistry(_validatorRegistry);
+		emit SetValidatorRegistry(_validatorRegistry);
 	}
 
 	/// @notice Sets the address of the fx state root tunnel.
-	/// @param _address Address of the fx state root tunnel
+	/// @param _fxStateRootTunnel - Address of the fx state root tunnel
 	function setFxStateRootTunnel(
-		address _address
+		address _fxStateRootTunnel
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(_address != address(0), "Zero fx state root tunnel address");
+		require(
+			_fxStateRootTunnel != address(0),
+			"Zero fx state root tunnel address"
+		);
 
-		fxStateRootTunnel = _address;
-		emit SetFxStateRootTunnel(_address);
+		fxStateRootTunnel = IFxStateRootTunnel(_fxStateRootTunnel);
+		emit SetFxStateRootTunnel(_fxStateRootTunnel);
 	}
 
 	/// @notice Sets a new version of this contract
@@ -591,21 +592,25 @@ contract MaticX is
 		override
 		returns (uint256)
 	{
-		uint256[] memory validators = IValidatorRegistry(validatorRegistry)
-			.getValidators();
+		uint256[] memory validators = validatorRegistry.getValidators();
+		uint256 validatorCount = validators.length;
+		uint256 totalValidatorStake;
 
-		uint256 totalStake;
-		for (uint256 i = 0; i < validators.length; ++i) {
+		for (uint256 i = 0; i < validatorCount; ) {
 			address validatorShare = IStakeManager(stakeManager)
 				.getValidatorContract(validators[i]);
-			(uint256 currValidatorShare, ) = getTotalStake(
+			(uint256 validatorStake, ) = getTotalStake(
 				IValidatorShare(validatorShare)
 			);
 
-			totalStake += currValidatorShare;
+			totalValidatorStake += validatorStake;
+
+			unchecked {
+				++i;
+			}
 		}
 
-		return totalStake;
+		return totalValidatorStake;
 	}
 
 	/// @notice Returns total pooled POL tokens from all registered validators.
@@ -664,10 +669,10 @@ contract MaticX is
 		view
 		override
 		returns (
-			address _stakeManager,
-			address _maticToken,
-			address _validatorRegistry,
-			address _polToken
+			IStakeManager _stakeManager,
+			IERC20Upgradeable _maticToken,
+			IValidatorRegistry _validatorRegistry,
+			IERC20Upgradeable _polToken
 		)
 	{
 		_stakeManager = stakeManager;
