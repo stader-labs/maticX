@@ -10,6 +10,7 @@ import {
 	IERC20,
 	IMaticX,
 	IStakeManager,
+	MaticX,
 	ValidatorRegistry,
 } from "../typechain-types";
 import { extractEnvironmentVariables } from "../utils/environment";
@@ -21,25 +22,20 @@ describe("ValidatorRegistry", function () {
 	const validatorIds = [128, 72];
 	const version = "1";
 
-	async function deployFixture(fullValidatorRegistryInitialization = true) {
+	async function deployFixture(callValidatorRegistryInitializeV2 = true) {
 		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
 
 		// EOA definitions
 		const manager = await impersonateAccount(
 			"0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67"
 		);
-		const [executor, bot] = await ethers.getSigners();
+		const [executor, bot, treasury] = await ethers.getSigners();
 
 		// Contract definitions
 		const stakeManager = (await ethers.getContractAt(
 			"IStakeManager",
 			"0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908"
 		)) as IStakeManager;
-
-		const maticX = (await ethers.getContractAt(
-			"IMaticX",
-			"0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645"
-		)) as IMaticX;
 
 		const matic = (await ethers.getContractAt(
 			"IERC20",
@@ -63,8 +59,17 @@ describe("ValidatorRegistry", function () {
 			]
 		)) as ValidatorRegistry;
 
+		const MaticX = await ethers.getContractFactory("MaticX");
+		const maticX = (await upgrades.deployProxy(MaticX, [
+			validatorRegistry.address,
+			stakeManager.address,
+			matic.address,
+			manager.address,
+			treasury.address,
+		])) as MaticX;
+
 		// Contract initializations
-		if (fullValidatorRegistryInitialization) {
+		if (callValidatorRegistryInitializeV2) {
 			await validatorRegistry.connect(manager).initializeV2(pol.address);
 		}
 
@@ -691,7 +696,7 @@ describe("ValidatorRegistry", function () {
 					.withArgs(validatorIds[0]);
 			});
 
-			it("Should return the right validators", async function () {
+			it("Should return the right validator ids", async function () {
 				const { validatorRegistry, manager } =
 					await loadFixture(deployFixture);
 
@@ -851,6 +856,15 @@ describe("ValidatorRegistry", function () {
 				const { validatorRegistry, manager } =
 					await loadFixture(deployFixture);
 
+				const maticX = (await ethers.getContractAt(
+					"IMaticX",
+					"0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645"
+				)) as IMaticX;
+
+				await validatorRegistry
+					.connect(manager)
+					.setMaticX(maticX.address);
+
 				await validatorRegistry
 					.connect(manager)
 					.addValidator(validatorIds[0]);
@@ -862,10 +876,68 @@ describe("ValidatorRegistry", function () {
 					"Validator has some shares left"
 				);
 			});
+
+			it("Should revert with the right error if getting a removed validator id", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				await validatorRegistry
+					.connect(manager)
+					.addValidator(validatorIds[0]);
+
+				await validatorRegistry
+					.connect(manager)
+					.removeValidator(validatorIds[0]);
+
+				const promise = validatorRegistry.getValidatorId(0);
+				await expect(promise).to.be.revertedWith(
+					"Invalid validator index"
+				);
+			});
 		});
 
 		describe("Positive", function () {
-			// TODO
+			it("Should emit the RemoveValidator event", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				await validatorRegistry
+					.connect(manager)
+					.addValidator(validatorIds[0]);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.removeValidator(validatorIds[0]);
+				await expect(promise)
+					.to.emit(validatorRegistry, "RemoveValidator")
+					.withArgs(validatorIds[0]);
+			});
+
+			it("Should return the right validator ids", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				for (const validatorId of validatorIds) {
+					await validatorRegistry
+						.connect(manager)
+						.addValidator(validatorId);
+				}
+
+				const initialValidatorIds =
+					await validatorRegistry.getValidators();
+
+				await validatorRegistry
+					.connect(manager)
+					.removeValidator(validatorIds[0]);
+
+				const currentValidatorIds =
+					await validatorRegistry.getValidators();
+				expect(currentValidatorIds).not.to.equal(initialValidatorIds);
+				expect(currentValidatorIds).to.have.lengthOf(
+					validatorIds.length - 1
+				);
+				expect(currentValidatorIds[0]).to.equal(validatorIds[1]);
+			});
 		});
 	});
 
