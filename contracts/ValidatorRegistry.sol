@@ -276,13 +276,13 @@ contract ValidatorRegistry is
 	}
 
 	/// @notice Returns validator id by index.
-	/// @param _index - Validator index
+	/// @param _idx - Validator index
 	/// @return Validator id
 	function getValidatorId(
-		uint256 _index
+		uint256 _idx
 	) external view override returns (uint256) {
-		require(_index < validators.length, "Invalid validator index");
-		return validators[_index];
+		require(_idx < validators.length, "Validator id does not exist");
+		return validators[_idx];
 	}
 
 	/// @notice Returns a list of registered validators.
