@@ -295,7 +295,10 @@ contract MaticX is
 		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[
 			msg.sender
 		];
-		require(_idx < userRequests.length, "Request does not exist");
+		require(
+			_idx < userRequests.length,
+			"Withdrawal request does not exist"
+		);
 
 		WithdrawalRequest memory userRequest = userRequests[_idx];
 		require(
@@ -631,30 +634,32 @@ contract MaticX is
 	}
 
 	/// @notice Returns all withdrawal requests initiated by the user.
-	/// @param _address - Address of the user
-	/// @return userWithdrawalRequests Array of user's withdrawal requests
+	/// @param _user - Address of the user
+	/// @return Array of user's withdrawal requests
 	function getUserWithdrawalRequests(
-		address _address
+		address _user
 	) external view override returns (WithdrawalRequest[] memory) {
-		return userWithdrawalRequests[_address];
+		return userWithdrawalRequests[_user];
 	}
 
 	/// @dev Returns a shares amount of the withdrawal request.
-	/// @param _address - Address of the user
+	/// @param _user - Address of the user
 	/// @param _idx Index of the withdrawal request
 	/// @return Share amount fo the withdrawal request
 	function getSharesAmountOfUserWithdrawalRequest(
-		address _address,
+		address _user,
 		uint256 _idx
 	) external view override returns (uint256) {
-		WithdrawalRequest memory userRequest = userWithdrawalRequests[_address][
-			_idx
-		];
-		IValidatorShare validatorShare = IValidatorShare(
-			userRequest.validatorAddress
+		WithdrawalRequest[] memory userRequests = userWithdrawalRequests[_user];
+		require(
+			_idx < userRequests.length,
+			"Withdrawal request does not exist"
 		);
-		IValidatorShare.DelegatorUnbond memory unbond = validatorShare
-			.unbonds_new(address(this), userRequest.validatorNonce);
+
+		WithdrawalRequest memory userRequest = userRequests[_idx];
+		IValidatorShare.DelegatorUnbond memory unbond = IValidatorShare(
+			userRequest.validatorAddress
+		).unbonds_new(address(this), userRequest.validatorNonce);
 
 		return unbond.shares;
 	}

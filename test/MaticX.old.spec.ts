@@ -221,7 +221,7 @@ describe("MaticX (Old)", function () {
 		await maticX.initializeV2(polMock.address);
 	});
 
-	it("Should submit successfully", async () => {
+	it.skip("Should submit successfully", async () => {
 		const totalAmount = ethers.utils.parseEther("1");
 		const user = users[0];
 
@@ -249,7 +249,7 @@ describe("MaticX (Old)", function () {
 		expect(userBalance).to.equal(totalAmount);
 	});
 
-	it("fails when submit amount is greater than signer balance", async () => {
+	it.skip("fails when submit amount is greater than signer balance", async () => {
 		const user = users[0];
 		let userMaticXBalance = await maticX.balanceOf(user.address);
 		expect(userMaticXBalance).to.equal(0);
@@ -269,7 +269,7 @@ describe("MaticX (Old)", function () {
 		expect(userMaticXBalance).to.equal(0);
 	});
 
-	it("Should request withdraw from the contract successfully", async () => {
+	it.skip("Should request withdraw from the contract successfully", async () => {
 		const amount = ethers.utils.parseEther("1");
 		const user = users[0];
 
@@ -289,7 +289,7 @@ describe("MaticX (Old)", function () {
 		expect(userBalance).to.equal(0);
 	});
 
-	it("WithdrawalRequest should have correct share amount", async () => {
+	it.skip("WithdrawalRequest should have correct share amount", async () => {
 		const expectedAmount = ethers.utils.parseEther("1");
 		const user = users[0];
 

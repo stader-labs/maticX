@@ -89,9 +89,9 @@ interface IValidatorRegistry {
 		);
 
 	/// @notice Returns the validator id by index.
-	/// @param _index - Validator index
+	/// @param _idx - Validator index
 	/// @return Validator id
-	function getValidatorId(uint256 _index) external view returns (uint256);
+	function getValidatorId(uint256 _idx) external view returns (uint256);
 
 	/// @notice Returns all the validator addresses joined the MaticX protocol.
 	/// @return List of validator addresses

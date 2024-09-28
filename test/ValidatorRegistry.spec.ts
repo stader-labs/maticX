@@ -20,7 +20,7 @@ const envVars = extractEnvironmentVariables();
 
 describe("ValidatorRegistry", function () {
 	const validatorIds = [128, 72];
-	const version = "1";
+	const version = "2";
 
 	async function deployFixture(callValidatorRegistryInitializeV2 = true) {
 		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
@@ -180,7 +180,7 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry.getValidatorId(0);
 				await expect(promise).to.be.revertedWith(
-					"Invalid validator index"
+					"Validator id does not exist"
 				);
 			});
 		});
@@ -678,7 +678,7 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry.getValidatorId(1);
 				await expect(promise).to.be.revertedWith(
-					"Invalid validator index"
+					"Validator id does not exist"
 				);
 			});
 		});
@@ -891,7 +891,7 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry.getValidatorId(0);
 				await expect(promise).to.be.revertedWith(
-					"Invalid validator index"
+					"Validator id does not exist"
 				);
 			});
 		});

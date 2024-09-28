@@ -80,24 +80,24 @@ interface IMaticX is IERC20Upgradeable {
 	event SetFeePercent(uint8 _feePercent);
 
 	/// @notice Emitted when the address of the treasury is set.
-	/// @param _address - Address of the treasury
-	event SetTreasury(address _address);
+	/// @param _treasury - Address of the treasury
+	event SetTreasury(address _treasury);
 
 	/// @notice Emitted when the address of the validator registry is set.
-	/// @param _address - Address of the validator registry
-	event SetValidatorRegistry(address _address);
+	/// @param _validatorRegistry - Address of the validator registry
+	event SetValidatorRegistry(address _validatorRegistry);
 
 	/// @notice Emitted when the address of the fx state root tunnel is set.
-	/// @param _address - Address of the fx state root tunnel
-	event SetFxStateRootTunnel(address _address);
+	/// @param _fxStateRootTunnel - Address of the fx state root tunnel
+	event SetFxStateRootTunnel(address _fxStateRootTunnel);
 
 	/// @notice Emitted when the new version of the current contract is set.
 	/// @param _version - Version of the current contract
 	event SetVersion(string _version);
 
 	/// @notice Emitted when the address of the POL token is set.
-	/// @param _address - Address of the POL token
-	event SetPOLToken(address _address);
+	/// @param _polToken - Address of the POL token
+	event SetPOLToken(address _polToken);
 
 	/// @notice Sends Matic tokens to the current contract and mints MaticX
 	/// shares in return. It requires that the sender has a preliminary approved
@@ -227,18 +227,18 @@ interface IMaticX is IERC20Upgradeable {
 	) external view returns (uint256, uint256);
 
 	/// @notice Returns all withdrawal requests initiated by the user.
-	/// @param _address - Address of the user
-	/// @return userWithdrawalRequests Array of user's withdrawal requests
+	/// @param _user - Address of the user
+	/// @return Array of user's withdrawal requests
 	function getUserWithdrawalRequests(
-		address _address
+		address _user
 	) external view returns (WithdrawalRequest[] memory);
 
 	/// @dev Returns a shares amount of the withdrawal request.
-	/// @param _address - Address of the user
+	/// @param _user - Address of the user
 	/// @param _idx Index of the withdrawal request
 	/// @return Share amount fo the withdrawal request
 	function getSharesAmountOfUserWithdrawalRequest(
-		address _address,
+		address _user,
 		uint256 _idx
 	) external view returns (uint256);
 
