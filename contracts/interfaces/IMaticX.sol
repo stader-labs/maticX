@@ -218,10 +218,11 @@ interface IMaticX is IERC20Upgradeable {
 	/// @return Total pooled POL tokens
 	function getTotalPooledMatic() external view returns (uint256);
 
-	/// @notice Returns the total stake of this contract for the given validator
-	/// share.
+	/// @notice Returns the total amount of staked POL tokens and their exchange
+	/// rate for the current contract on the given validator share.
 	/// @param _validatorShare - Address of the validator share
-	/// @return Total stake of this contract
+	/// @return Total amount of staked POL tokens
+	/// @return Exchange rate
 	function getTotalStake(
 		IValidatorShare _validatorShare
 	) external view returns (uint256, uint256);
