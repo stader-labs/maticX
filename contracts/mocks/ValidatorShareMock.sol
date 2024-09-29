@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../interfaces/IValidatorShare.sol";
-import "../interfaces/IStakeManager.sol";
+contract ValidatorShareMock {
+	struct DelegatorUnbond {
+		uint256 shares;
+		uint256 withdrawEpoch;
+	}
 
-contract ValidatorShareMock is IValidatorShare {
 	uint256 constant REWARD_PRECISION = 10 ** 25;
 
 	address public token;
 
-	bool public override delegation;
+	bool public delegation;
 	uint256 mAmount;
 	uint256 public rewardPerShare;
 
@@ -19,57 +21,51 @@ contract ValidatorShareMock is IValidatorShare {
 	uint256 public withdrawPool;
 	uint256 public totalStaked;
 	uint256 public totalWithdrawPoolShares;
-	uint256 public override validatorId;
+	uint256 public validatorId;
 
 	mapping(address => mapping(uint256 => uint256))
 		public user2WithdrawPoolShare;
-	mapping(address => uint256) public override unbondNonces;
+	mapping(address => uint256) public unbondNonces;
 	mapping(address => uint256) public initalRewardPerShare;
 
-	IStakeManager stakeManager;
-	address public override stakingLogger;
+	address stakeManager;
+	address public stakingLogger;
 
 	constructor(address _token, address _stakeManager, uint256 _id) {
 		token = _token;
-		stakeManager = IStakeManager(_stakeManager);
+		stakeManager = _stakeManager;
 		validatorId = _id;
 		delegation = true;
 	}
 
-	function buyVoucher(
-		uint256 _amount,
-		uint256
-	) external override returns (uint256) {
+	function buyVoucher(uint256 _amount, uint256) external returns (uint256) {
 		return _buyVoucher(_amount);
 	}
 
 	function buyVoucherPOL(
 		uint256 _amount,
 		uint256
-	) external override returns (uint256) {
+	) external returns (uint256) {
 		return _buyVoucher(_amount);
 	}
 
-	function sellVoucher_new(uint256 _claimAmount, uint256) external override {
+	function sellVoucher_new(uint256 _claimAmount, uint256) external {
 		_sellVoucher_new(_claimAmount);
 	}
 
-	function sellVoucher_newPOL(
-		uint256 _claimAmount,
-		uint256
-	) external override {
+	function sellVoucher_newPOL(uint256 _claimAmount, uint256) external {
 		_sellVoucher_new(_claimAmount);
 	}
 
-	function unstakeClaimTokens_new(uint256 _unbondNonce) external override {
+	function unstakeClaimTokens_new(uint256 _unbondNonce) external {
 		_unstakeClaimTokens_new(_unbondNonce);
 	}
 
-	function unstakeClaimTokens_newPOL(uint256 _unbondNonce) external override {
+	function unstakeClaimTokens_newPOL(uint256 _unbondNonce) external {
 		_unstakeClaimTokens_new(_unbondNonce);
 	}
 
-	function restake() external override returns (uint256, uint256) {
+	function restake() external returns (uint256, uint256) {
 		uint256 liquidRewards = _withdrawReward(msg.sender);
 		// uint256 amountRestaked = buyVoucher(liquidRewards, 0);
 		uint256 amountRestaked = 0;
@@ -82,17 +78,15 @@ contract ValidatorShareMock is IValidatorShare {
 		return thisBalance - (totalStaked + withdrawPool);
 	}
 
-	function withdrawRewards() external override {
+	function withdrawRewards() external {
 		_withdrawReward(msg.sender);
 	}
 
-	function withdrawRewardsPOL() external override {
+	function withdrawRewardsPOL() external {
 		_withdrawReward(msg.sender);
 	}
 
-	function getTotalStake(
-		address
-	) external view override returns (uint256, uint256) {
+	function getTotalStake(address) external view returns (uint256, uint256) {
 		//getTotalStake returns totalStake of msg.sender but we need withdrawPool
 		return (totalStaked, 1);
 	}
@@ -101,7 +95,7 @@ contract ValidatorShareMock is IValidatorShare {
 		mAmount = _minAmount;
 	}
 
-	function minAmount() public view override returns (uint256) {
+	function minAmount() public view returns (uint256) {
 		return mAmount;
 	}
 
@@ -116,7 +110,7 @@ contract ValidatorShareMock is IValidatorShare {
 	function unbonds_new(
 		address _address,
 		uint256 _unbondNonce
-	) external view override returns (DelegatorUnbond memory) {
+	) external view returns (DelegatorUnbond memory) {
 		DelegatorUnbond memory unbond = DelegatorUnbond(
 			user2WithdrawPoolShare[_address][_unbondNonce],
 			2
@@ -133,10 +127,6 @@ contract ValidatorShareMock is IValidatorShare {
 
 		totalShares += shares;
 		totalStaked += _amount;
-		require(
-			stakeManager.delegationDeposit(validatorId, _amount, msg.sender),
-			"deposit failed"
-		);
 
 		return 1;
 	}
