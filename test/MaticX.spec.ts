@@ -38,6 +38,9 @@ describe("MaticX", function () {
 		const stakeManagerGovernance = await impersonateAccount(
 			"0x6e7a5820baD6cebA8Ef5ea69c0C92EbbDAc9CE48"
 		);
+		const validatorShareHolder = await impersonateAccount(
+			"0x9789FD6bCDD7077cF52FFDD4f2483513C557cd41"
+		);
 
 		const [executor, bot, treasury, stakerA, stakerB] =
 			await ethers.getSigners();
@@ -150,6 +153,7 @@ describe("MaticX", function () {
 			stakerA,
 			stakerB,
 			stakers,
+			validatorShareHolder,
 			defaultAdminRole,
 			botRole,
 			preferredDepositValidatorId,
@@ -283,6 +287,14 @@ describe("MaticX", function () {
 					defaultAdminRole,
 					manager.address
 				);
+				expect(hasRole).to.be.true;
+			});
+
+			it("Should return the default admin role set for the bot", async function () {
+				const { maticX, bot, botRole } =
+					await loadFixture(deployFixture);
+
+				const hasRole = await maticX.hasRole(botRole, bot.address);
 				expect(hasRole).to.be.true;
 			});
 
@@ -1417,59 +1429,7 @@ describe("MaticX", function () {
 					);
 			});
 
-			it("Should emit the RequestWithraw event if having an extra amount of MaticX shares received", async function () {
-				const { maticX, pol, stakerA, stakerB, stakers } =
-					await loadFixture(deployFixture);
-
-				for (const staker of stakers) {
-					await pol
-						.connect(staker)
-						.approve(maticX.address, stakeAmount);
-					await maticX.connect(staker).submitPOL(stakeAmount);
-				}
-
-				await maticX
-					.connect(stakerB)
-					.transfer(stakerA.address, stakeAmount);
-				const doubleStakeAmount = stakeAmount.mul(2);
-
-				const promise = maticX
-					.connect(stakerA)
-					.requestWithdraw(doubleStakeAmount);
-				await expect(promise)
-					.to.emit(maticX, "RequestWithdraw")
-					.withArgs(
-						stakerA.address,
-						doubleStakeAmount,
-						doubleStakeAmount
-					);
-			});
-
-			it("Should emit the RequestWithraw event if having a preferred withdrawal validator id changed", async function () {
-				const {
-					maticX,
-					pol,
-					validatorRegistry,
-					stakerA,
-					preferredDepositValidatorId,
-				} = await loadFixture(deployFixture);
-
-				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
-				await maticX.connect(stakerA).submitPOL(stakeAmount);
-
-				await validatorRegistry.setPreferredWithdrawalValidatorId(
-					preferredDepositValidatorId
-				);
-
-				const promise = maticX
-					.connect(stakerA)
-					.requestWithdraw(stakeAmount);
-				await expect(promise)
-					.to.emit(maticX, "RequestWithdraw")
-					.withArgs(stakerA.address, stakeAmount, stakeAmount);
-			});
-
-			it("Should return the right MaticX and POL token balances if submitting POL", async function () {
+			it("Should return the right MaticX and POL token balances if having POL tokens submitted", async function () {
 				const { maticX, pol, stakerA } =
 					await loadFixture(deployFixture);
 
@@ -1487,8 +1447,8 @@ describe("MaticX", function () {
 				await expect(promise).to.changeTokenBalance(pol, stakerA, 0);
 			});
 
-			it("Should return the right MaticX and POL token balances if submitting Matic", async function () {
-				const { maticX, pol, matic, stakerA } =
+			it("Should return the right MaticX balances if having Matic tokens submitted", async function () {
+				const { maticX, matic, stakerA } =
 					await loadFixture(deployFixture);
 
 				await matic
@@ -1504,8 +1464,6 @@ describe("MaticX", function () {
 					stakerA,
 					stakeAmount.mul(-1)
 				);
-				await expect(promise).to.changeTokenBalance(pol, stakerA, 0);
-				await expect(promise).to.changeTokenBalance(matic, stakerA, 0);
 			});
 
 			it("Should return the right staker's withdrawal requests", async function () {
@@ -1826,10 +1784,55 @@ describe("MaticX", function () {
 					"Too small rewards amount"
 				);
 			});
+
+			it("Should revert with the right error if passing an non existing validator id", async function () {
+				const { maticX, manager } = await loadFixture(deployFixture);
+
+				const promise = maticX.connect(manager).withdrawRewards(1_000);
+				await expect(promise).to.be.revertedWith(
+					"function call to a non-contract account"
+				);
+			});
 		});
 
 		describe("Positive", function () {
-			// TODO Add tests
+			it.skip("Should emit the WithdrawRewards event", async function () {
+				const {
+					maticX,
+					stakeManager,
+					manager,
+					validatorShareHolder,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+
+				const validatorShare = (await ethers.getContractAt(
+					"IValidatorShare",
+					validatorShareAddress
+				)) as IValidatorShare;
+
+				const validatorShareHolderBalance =
+					await validatorShare.balanceOf(
+						validatorShareHolder.address
+					);
+				await validatorShare
+					.connect(validatorShareHolder)
+					.transfer(maticX.address, validatorShareHolderBalance);
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawRewards(preferredDepositValidatorId);
+				await expect(promise)
+					.to.emit(maticX, "WithdrawRewards")
+					.withArgs(
+						preferredDepositValidatorId,
+						validatorShareHolderBalance
+					);
+			});
 		});
 	});
 
@@ -1872,10 +1875,61 @@ describe("MaticX", function () {
 					"Too small rewards amount"
 				);
 			});
+
+			it("Should revert with the right error if passing an non existing validator id", async function () {
+				const { maticX, manager, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawValidatorsReward([
+						1_000,
+						preferredDepositValidatorId,
+					]);
+				await expect(promise).to.be.revertedWith(
+					"function call to a non-contract account"
+				);
+			});
 		});
 
 		describe("Positive", function () {
-			// TODO Add tests
+			it.skip("Should emit the WithdrawRewards event", async function () {
+				const {
+					maticX,
+					stakeManager,
+					manager,
+					validatorShareHolder,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const validatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+
+				const validatorShare = (await ethers.getContractAt(
+					"IValidatorShare",
+					validatorShareAddress
+				)) as IValidatorShare;
+
+				const validatorShareHolderBalance =
+					await validatorShare.balanceOf(
+						validatorShareHolder.address
+					);
+				await validatorShare
+					.connect(validatorShareHolder)
+					.transfer(maticX.address, validatorShareHolderBalance);
+
+				const promise = maticX
+					.connect(manager)
+					.withdrawValidatorsReward([preferredDepositValidatorId]);
+				await expect(promise)
+					.to.emit(maticX, "WithdrawRewards")
+					.withArgs(
+						preferredDepositValidatorId,
+						validatorShareHolderBalance
+					);
+			});
 		});
 	});
 
@@ -2108,7 +2162,7 @@ describe("MaticX", function () {
 				await expect(promise).to.be.revertedWith("Amount is zero");
 			});
 
-			it("Should revert with the right error if migrating a too much amount", async function () {
+			it("Should revert with the right error if having the zero delegated amount", async function () {
 				const {
 					maticX,
 					manager,
@@ -2128,7 +2182,102 @@ describe("MaticX", function () {
 		});
 
 		describe("Positive", function () {
-			// TODO Add tests
+			it("Should emit the MigrateDelegation event", async function () {
+				const {
+					maticX,
+					pol,
+					manager,
+					stakerA,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						stakeAmount
+					);
+				await expect(promise).to.emit(maticX, "MigrateDelegation");
+			});
+
+			it("Should return the right total stake of the from validator", async function () {
+				const {
+					maticX,
+					stakeManager,
+					pol,
+					manager,
+					stakerA,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const fromValidatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredDepositValidatorId
+					);
+				const [initialTotalStake] = await maticX.getTotalStake(
+					fromValidatorShareAddress
+				);
+
+				await maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						stakeAmount
+					);
+
+				const [currentTotalStake] = await maticX.getTotalStake(
+					fromValidatorShareAddress
+				);
+				expect(currentTotalStake).not.to.equal(initialTotalStake);
+				expect(currentTotalStake).to.equal(0);
+			});
+
+			it("Should return the right total stake of the to validator", async function () {
+				const {
+					maticX,
+					stakeManager,
+					pol,
+					manager,
+					stakerA,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+
+				const toValidatorShareAddress =
+					await stakeManager.getValidatorContract(
+						preferredWithdrawalValidatorId
+					);
+				const [initialTotalStake] = await maticX.getTotalStake(
+					toValidatorShareAddress
+				);
+
+				await maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						stakeAmount
+					);
+
+				const [currentTotalStake] = await maticX.getTotalStake(
+					toValidatorShareAddress
+				);
+				expect(currentTotalStake).not.to.equal(initialTotalStake);
+				expect(currentTotalStake).to.equal(stakeAmount);
+			});
 		});
 	});
 

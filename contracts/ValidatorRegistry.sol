@@ -285,8 +285,8 @@ contract ValidatorRegistry is
 		return validators[_idx];
 	}
 
-	/// @notice Returns a list of registered validators.
-	/// @return List of registered validators
+	/// @notice Returns an array of registered validator ids.
+	/// @return Array of registered validator ids
 	function getValidators() external view override returns (uint256[] memory) {
 		return validators;
 	}
