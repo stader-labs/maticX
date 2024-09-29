@@ -225,14 +225,14 @@ contract ValidatorRegistry is
 	}
 
 	/// @notice Sets the address of MaticX.
-	/// @param _address - Address of MaticX
+	/// @param _maticX - Address of MaticX
 	function setMaticX(
-		address _address
+		address _maticX
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(_address != address(0), "Zero MaticX address");
-		maticX = _address;
+		require(_maticX != address(0), "Zero MaticX address");
+		maticX = _maticX;
 
-		emit SetMaticX(_address);
+		emit SetMaticX(_maticX);
 	}
 
 	/// @notice Sets a new version of this contract

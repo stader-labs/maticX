@@ -23,8 +23,8 @@ interface IValidatorRegistry {
 	event SetPreferredWithdrawalValidatorId(uint256 indexed _validatorId);
 
 	/// @notice Emitted when MaticX is set.
-	/// @param _address - Address of MaticX
-	event SetMaticX(address _address);
+	/// @param _maticX - Address of MaticX
+	event SetMaticX(address _maticX);
 
 	/// @notice Emitted when the new version of the current contract is set.
 	/// @param _version - Version of the current contract
@@ -48,8 +48,8 @@ interface IValidatorRegistry {
 	function setPreferredWithdrawalValidatorId(uint256 _validatorId) external;
 
 	/// @notice Sets the address of MaticX.
-	/// @param _address - Address of MaticX
-	function setMaticX(address _address) external;
+	/// @param _maticX - Address of MaticX
+	function setMaticX(address _maticX) external;
 
 	/// @notice Sets a new version of this contract
 	/// @param _version - New version of this contract
