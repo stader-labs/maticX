@@ -217,27 +217,15 @@ contract MaticX is
 		);
 
 		uint256[] memory validatorIds = validatorRegistry.getValidators();
-		uint256 preferredValidatorId = validatorRegistry
-			.preferredWithdrawalValidatorId();
-
-		uint256 currentIdx = 0;
-		uint256 validatorIdCount = validatorIds.length;
-
-		for (; currentIdx < validatorIdCount; ) {
-			if (preferredValidatorId == validatorIds[currentIdx]) {
-				break;
-			}
-			unchecked {
-				++currentIdx;
-			}
-		}
+		uint256 currentIdx = _getWithdrawalValidatorIndex(validatorIds);
 
 		uint256 leftAmountToWithdraw = amountToWithdraw;
-		uint256 totalAttempts = validatorIdCount;
+		uint256 validatorIdCount = validatorIds.length;
+		uint256 totalIterations = validatorIdCount;
 		uint256 requestEpoch = stakeManager.epoch() +
 			stakeManager.withdrawalDelay();
 
-		while (leftAmountToWithdraw > 0 && totalAttempts > 0) {
+		while (leftAmountToWithdraw > 0 && totalIterations > 0) {
 			uint256 validatorId = validatorIds[currentIdx];
 			IValidatorShare validatorShare = IValidatorShare(
 				stakeManager.getValidatorContract(validatorId)
@@ -270,7 +258,7 @@ contract MaticX is
 				leftAmountToWithdraw -= amountToWithdrawFromValidator;
 			}
 
-			--totalAttempts;
+			--totalIterations;
 			currentIdx = currentIdx + 1 < validatorIdCount ? currentIdx + 1 : 0;
 		}
 
@@ -284,6 +272,30 @@ contract MaticX is
 		);
 
 		emit RequestWithdraw(msg.sender, _amount, amountToWithdraw);
+	}
+
+	/// @dev Returns the starting validator index for a user's withdrawal request.
+	/// @param validatorIds - Array of validator ids
+	/// @return Starting validator index
+	function _getWithdrawalValidatorIndex(
+		uint256[] memory validatorIds
+	) private view returns (uint256) {
+		uint256 preferredValidatorId = validatorRegistry
+			.preferredWithdrawalValidatorId();
+
+		uint256 idx = 0;
+		uint256 validatorIdCount = validatorIds.length;
+
+		for (; idx < validatorIdCount; ) {
+			if (preferredValidatorId == validatorIds[idx]) {
+				break;
+			}
+			unchecked {
+				++idx;
+			}
+		}
+
+		return idx;
 	}
 
 	/// @notice Claims POL tokens from a validator share and sends them to the
@@ -538,7 +550,9 @@ contract MaticX is
 		totalShares = totalShares == 0 ? 1 : totalShares;
 
 		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
-		totalPooledAmount = totalPooledAmount == 0 ? 1 : totalPooledAmount;
+		if (totalPooledAmount == 0) {
+			totalPooledAmount = 1;
+		}
 
 		uint256 balanceInPOL = (_balance * (totalPooledAmount)) / totalShares;
 
@@ -580,7 +594,9 @@ contract MaticX is
 		totalShares = totalShares == 0 ? 1 : totalShares;
 
 		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
-		totalPooledAmount = totalPooledAmount == 0 ? 1 : totalPooledAmount;
+		if (totalPooledAmount == 0) {
+			totalPooledAmount = 1;
+		}
 
 		uint256 balanceInMaticX = (_balance * totalShares) / totalPooledAmount;
 
@@ -623,10 +639,11 @@ contract MaticX is
 		return getTotalStakeAcrossAllValidators();
 	}
 
-	/// @notice Returns the total stake of this contract for the given validator
-	/// share.
+	/// @notice Returns the total amount of staked POL tokens and their exchange
+	/// rate for the current contract on the given validator share.
 	/// @param _validatorShare - Address of the validator share
-	/// @return Total stake of this contract
+	/// @return Total amount of staked POL tokens
+	/// @return Exchange rate
 	function getTotalStake(
 		IValidatorShare _validatorShare
 	) public view override returns (uint256, uint256) {

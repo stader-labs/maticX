@@ -22,7 +22,7 @@
 		"func-named-parameters": ["error", 12],
 		"func-param-name-mixedcase": "error",
 		"func-visibility": ["error", { "ignoreConstructors": true }],
-		"function-max-lines": ["error", 100],
+		"function-max-lines": ["error", 75],
 		"gas-custom-errors": "off",
 		"immutable-vars-naming": ["error", { "immutablesAsConstants": false }],
 		"imports-on-top": "error",
