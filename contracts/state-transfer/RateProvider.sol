@@ -1,10 +1,9 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-
-import "../interfaces/IRateProvider.sol";
-import "../interfaces/IFxStateChildTunnel.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { IRateProvider } from "../interfaces/IRateProvider.sol";
+import { IFxStateChildTunnel } from "../interfaces/IFxStateChildTunnel.sol";
 
 /**
  * @title RateProvider

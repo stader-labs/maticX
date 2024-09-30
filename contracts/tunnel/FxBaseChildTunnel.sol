@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity 0.8.7;
 
 // IFxMessageProcessor represents interface to process message
 interface IFxMessageProcessor {

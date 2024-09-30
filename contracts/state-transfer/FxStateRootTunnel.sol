@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { FxBaseRootTunnel } from "../tunnel/FxBaseRootTunnel.sol";
 
 /**
