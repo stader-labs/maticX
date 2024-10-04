@@ -60,6 +60,9 @@ jobs:
       - name: Run unit tests
         run: npm run test:ci
 
+      - name: Deploy contracts into hardhat network
+        run: make hardhat
+
       - name: Save contract artifacts
         uses: actions/upload-artifact@v4
         with:
