@@ -15,6 +15,7 @@ import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import { deployDirect, deployProxy, verify } from "./scripts/tasks";
+import "./tasks/deploy-validator-registry";
 import { extractEnvironmentVariables } from "./utils/environment";
 
 const envSuffix = process.env.NODE_ENV === "main" ? "" : ".test";
