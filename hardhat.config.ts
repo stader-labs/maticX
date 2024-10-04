@@ -11,7 +11,7 @@ import "@typechain/hardhat";
 import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-import "./tasks/deploy-validator-registry";
+import "./tasks";
 import { extractEnvironmentVariables } from "./utils/environment";
 
 const envSuffix = process.env.NODE_ENV === "main" ? "" : ".test";
