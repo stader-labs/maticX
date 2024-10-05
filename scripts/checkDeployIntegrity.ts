@@ -1,5 +1,5 @@
 import hardhat, { ethers } from "hardhat";
-import { ValidatorRegistry, MaticX } from "../typechain";
+import { ValidatorRegistry, MaticX } from "../typechain-types";
 import { getUpgradeContext } from "./utils";
 
 const checkDeployIntegrity = async () => {
@@ -18,7 +18,7 @@ const checkDeployIntegrity = async () => {
 
 	const res = await validatorRegistry.getContracts();
 	isValid(
-		res._polygonERC20,
+		res._maticToken,
 		deployDetails.matic_erc20_address,
 		"ValidatorRegistry",
 		"ERC20"
@@ -44,7 +44,7 @@ const checkDeployIntegrity = async () => {
 		"validatorRegistry"
 	);
 	isValid(
-		contracts._polygonERC20,
+		contracts._maticToken,
 		deployDetails.matic_erc20_address,
 		"maticX",
 		"matic_erc20_address"
