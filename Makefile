@@ -86,3 +86,15 @@ upgrade-maticx-holesky:
 	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_HOLESKY) --name MaticX --contract $(HOLESKY_MATIC_X)
 upgrade-maticx-ethereum:
 	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_MATIC_X)
+
+# Verify the ValidatorRegistry contract
+verify-validatorregistry-holesky:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_HOLESKY) --contract $(HOLESKY_VALIDATOR_REGISTRY)
+verify-validatorregistry-ethereum:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_VALIDATOR_REGISTRY)
+
+# Verify the MaticX contract
+verify-maticx-holesky:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_HOLESKY) --contract $(HOLESKY_MATIC_X)
+verify-maticx-ethereum:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_MATIC_X)
