@@ -1,5 +1,5 @@
 import hardhat, { ethers, upgrades } from "hardhat";
-import { ValidatorRegistry__factory } from "../typechain";
+import { ValidatorRegistry__factory } from "../typechain-types";
 import { exportAddresses, getUpgradeContext } from "./utils";
 
 const upgradeValidatorRegistry = async () => {

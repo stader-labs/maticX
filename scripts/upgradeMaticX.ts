@@ -1,5 +1,5 @@
 import hardhat, { ethers, upgrades } from "hardhat";
-import { MaticX__factory } from "../typechain";
+import { MaticX__factory } from "../typechain-types";
 import { exportAddresses, getUpgradeContext } from "./utils";
 
 const upgradeMaticX = async () => {
