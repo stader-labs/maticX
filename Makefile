@@ -70,3 +70,19 @@ deploy-maticx-holesky:
 	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_HOLESKY) --validator-registry $(HOLESKY_VALIDATOR_REGISTRY) --stake-manager $(HOLESKY_STAKE_MANAGER) --matic-token $(HOLESKY_MATIC_TOKEN) --manager $(HOLESKY_MANAGER) --treasury $(HOLESKY_TREASURY)
 deploy-maticx-ethereum:
 	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_ETHEREUM) --validator-registry $(ETHEREUM_VALIDATOR_REGISTRY) --stake-manager $(ETHEREUM_STAKE_MANAGER) --matic-token $(ETHEREUM_MATIC_TOKEN) --manager $(ETHEREUM_MANAGER) --treasury $(ETHEREUM_TREASURY)
+
+# Upgrade the ValidatorRegistry contract
+upgrade-validatorregistry-localhost:
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_LOCALHOST) --name ValidatorRegistry --contract $(LOCALHOST_VALIDATOR_REGISTRY)
+upgrade-validatorregistry-holesky:
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_HOLESKY) --name ValidatorRegistry --contract $(HOLESKY_VALIDATOR_REGISTRY)
+upgrade-validatorregistry-ethereum:
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name ValidatorRegistry --contract $(ETHEREUM_VALIDATOR_REGISTRY)
+
+# Upgrade the MaticX contract
+upgrade-maticx-localhost:
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_LOCALHOST) --name MaticX --contract $(LOCALHOST_MATIC_X)
+upgrade-maticx-holesky:
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_HOLESKY) --name MaticX --contract $(HOLESKY_MATIC_X)
+upgrade-maticx-ethereum:
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_MATIC_X)
