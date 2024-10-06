@@ -14,6 +14,7 @@ interface EnvironmentSchema {
 	FORKING_BLOCK_NUMBER: number;
 	COINMARKETCAP_API_KEY: string;
 	GAS_REPORTER_NETWORK: string;
+	GAS_PRICE_GWEI: number;
 	REPORT_GAS: boolean;
 	DEPLOYER_MNEMONIC: string;
 	DEPLOYER_PASSPHRASE: string;
@@ -86,6 +87,12 @@ export function extractEnvironmentVariables(): EnvironmentSchema {
 				.allow("ethereum", "polygon")
 				.default("ethereum")
 				.description("Gas reporter network"),
+			GAS_PRICE_GWEI: Joi.number()
+				.optional()
+				.integer()
+				.min(0)
+				.default(0)
+				.description("Gas price in Gwei"),
 			REPORT_GAS: Joi.boolean()
 				.optional()
 				.default(false)

@@ -41,6 +41,8 @@ const mining: HardhatNetworkMiningConfig = {
 	},
 };
 
+const gasPrice = envVars.GAS_PRICE_GWEI || "auto";
+
 const config: HardhatUserConfig = {
 	networks: {
 		[Network.Hardhat]: {
@@ -71,6 +73,18 @@ const config: HardhatUserConfig = {
 			chainId: 17_000,
 			from: envVars.DEPLOYER_ADDRESS,
 			accounts,
+			gasPrice,
+		},
+		[Network.Amoy]: {
+			url: getProviderUrl(
+				Network.Amoy,
+				envVars.API_PROVIDER,
+				envVars.AMOY_API_KEY
+			),
+			chainId: 80_002,
+			from: envVars.DEPLOYER_ADDRESS,
+			accounts,
+			gasPrice,
 		},
 		[Network.Ethereum]: {
 			url: getProviderUrl(
@@ -81,6 +95,18 @@ const config: HardhatUserConfig = {
 			chainId: 1,
 			from: envVars.DEPLOYER_ADDRESS,
 			accounts,
+			gasPrice,
+		},
+		[Network.Polygon]: {
+			url: getProviderUrl(
+				Network.Polygon,
+				envVars.API_PROVIDER,
+				envVars.POLYGON_API_KEY
+			),
+			chainId: 137,
+			from: envVars.DEPLOYER_ADDRESS,
+			accounts,
+			gasPrice,
 		},
 	},
 	defaultNetwork: Network.Hardhat,
@@ -98,7 +124,7 @@ const config: HardhatUserConfig = {
 		target: "ethers-v5",
 	},
 	mocha: {
-		reporter: process.env.CI ? "dot" : "spec",
+		reporter: process.env.CI ? "dot" : "nyan",
 		timeout: "1h",
 	},
 	etherscan: {
@@ -112,8 +138,6 @@ const config: HardhatUserConfig = {
 		apiSecret: envVars.OZ_DEFENDER_API_SECRET,
 	},
 	gasReporter: {
-		currency: "USD",
-		enabled: envVars.REPORT_GAS,
 		excludeContracts: [
 			"@openzeppelin/",
 			"interfaces/",
@@ -122,6 +146,20 @@ const config: HardhatUserConfig = {
 			"state-transfer/",
 			"tunnel/",
 		],
+		enabled: envVars.REPORT_GAS,
+		...(envVars.GAS_REPORTER_NETWORK === "polygon"
+			? {
+					currency: "POL",
+					token: "POL",
+					gasPriceApi:
+						"https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
+				}
+			: {
+					currency: "ETH",
+					token: "ETH",
+					gasPriceApi:
+						"https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
+				}),
 	},
 	contractSizer: {
 		alphaSort: false,
