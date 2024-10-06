@@ -1,124 +1,110 @@
 import Joi from "joi";
+import { Provider } from "./network";
 
 interface EnvironmentSchema {
-	DEPLOYER_PRIVATE_KEY: string;
+	API_PROVIDER: Provider;
+	HOLESKY_API_KEY: string;
+	AMOY_API_KEY: string;
+	ETHEREUM_API_KEY: string;
+	POLYGON_API_KEY: string;
 	ETHERSCAN_API_KEY: string;
-	ROOT_CHAIN_RPC: string;
-	ROOT_GAS_PRICE: number;
-	CHILD_CHAIN_RPC: string;
-	CHILD_GAS_PRICE: number;
-	STAKE_MANAGER: string;
-	MATIC_TOKEN: string;
-	MANAGER: string;
-	INSTANT_POOL_OWNER: string;
-	TREASURY: string;
-	FX_ROOT: string;
-	FX_CHILD: string;
-	CHECKPOINT_MANAGER: string;
-	DEFENDER_TEAM_API_KEY: string;
-	DEFENDER_TEAM_API_SECRET_KEY: string;
-	FORKING_ROOT_BLOCK_NUMBER: number;
+	POLYGONSCAN_API_KEY: string;
+	OZ_DEFENDER_API_KEY: string;
+	OZ_DEFENDER_API_SECRET: string;
+	FORKING_BLOCK_NUMBER: number;
+	COINMARKETCAP_API_KEY: string;
+	GAS_REPORTER_NETWORK: string;
 	REPORT_GAS: boolean;
+	DEPLOYER_MNEMONIC: string;
+	DEPLOYER_PASSPHRASE: string;
+	DEPLOYER_ADDRESS: string;
 }
 
+const API_KEY_REGEX = /^[0-9A-Za-z_-]{32}$/;
+const GUID_V4_REGEX =
+	/^[{]?[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}[}]?$/;
+const MNEMONIC_REGEX = /^([a-z ]+){12,24}$/;
 const ADDRESS_REGEX = /^0x[0-9A-Fa-f]{40}$/;
 
 export function extractEnvironmentVariables(): EnvironmentSchema {
 	const envSchema = Joi.object()
 		.keys({
-			DEPLOYER_PRIVATE_KEY: Joi.string()
+			API_PROVIDER: Joi.string()
+				.optional()
+				.valid("alchemy", "infura")
+				.default("alchemy")
+				.default("RPC provider name"),
+			HOLESKY_API_KEY: Joi.string()
 				.required()
-				.length(64)
-				.alphanum()
-				.description("Private key for deployer"),
+				.regex(API_KEY_REGEX)
+				.description("API key for Holesky"),
+			AMOY_API_KEY: Joi.string()
+				.required()
+				.regex(API_KEY_REGEX)
+				.description("API key for Amoy"),
+			ETHEREUM_API_KEY: Joi.string()
+				.required()
+				.regex(API_KEY_REGEX)
+				.description("API key for Ethereum"),
+			POLYGON_API_KEY: Joi.string()
+				.required()
+				.regex(API_KEY_REGEX)
+				.description("API key for Polygon"),
 			ETHERSCAN_API_KEY: Joi.string()
 				.required()
 				.length(34)
 				.alphanum()
 				.description("API key for Etherscan"),
-			ROOT_CHAIN_RPC: Joi.string()
+			POLYGONSCAN_API_KEY: Joi.string()
 				.required()
-				.uri()
-				.description("RPC node URL for root chain (Ethereum)"),
-			ROOT_GAS_PRICE: Joi.number()
-				.optional()
-				.integer()
-				.min(0)
-				.default(0)
-				.description("Gas price in root chain (Ethereum)"),
-			CHILD_CHAIN_RPC: Joi.string()
-				.required()
-				.uri()
-				.description("RPC node URL for child chain (Polygon)"),
-			CHILD_GAS_PRICE: Joi.number()
-				.optional()
-				.integer()
-				.min(0)
-				.default(0)
-				.description("Gas price in child chain (Polygon)"),
-			STAKE_MANAGER: Joi.string()
-				.optional()
-				.regex(ADDRESS_REGEX)
-				.allow("")
-				.description("Address of StakeManager contract"),
-			MATIC_TOKEN: Joi.string()
-				.optional()
-				.regex(ADDRESS_REGEX)
-				.allow("")
-				.description("Address of MaticToken contract"),
-			MANAGER: Joi.string()
-				.optional()
-				.regex(ADDRESS_REGEX)
-				.allow("")
-				.description("Address of manager account"),
-			INSTANT_POOL_OWNER: Joi.string()
-				.optional()
-				.regex(ADDRESS_REGEX)
-				.allow("")
-				.description(
-					"Address of instant pool manager account. Deprecated"
-				),
-			TREASURY: Joi.string()
-				.optional()
-				.regex(ADDRESS_REGEX)
-				.allow("")
-				.description("Address of treasury account"),
-			FX_ROOT: Joi.string()
-				.optional()
-				.regex(ADDRESS_REGEX)
-				.allow("")
-				.description("Address of FxRoot contract"),
-			FX_CHILD: Joi.string()
-				.optional()
-				.regex(ADDRESS_REGEX)
-				.allow("")
-				.description("Address of FxChild contract"),
-			CHECKPOINT_MANAGER: Joi.string()
-				.optional()
-				.regex(ADDRESS_REGEX)
-				.allow("")
-				.description("Address of CheckpointManager contract"),
-			DEFENDER_TEAM_API_KEY: Joi.string()
+				.length(34)
+				.alphanum()
+				.description("API key for Polygonscan"),
+			OZ_DEFENDER_API_KEY: Joi.string()
 				.required()
 				.length(32)
 				.alphanum()
-				.description("API key for OpenZeppelin Defender"),
-			DEFENDER_TEAM_API_SECRET_KEY: Joi.string()
+				.description("API key for Openzeppelin Defender"),
+			OZ_DEFENDER_API_SECRET: Joi.string()
 				.required()
 				.length(64)
 				.alphanum()
-				.description("API secret key for OpenZeppelin Defender"),
-			FORKING_ROOT_BLOCK_NUMBER: Joi.number()
-				.required()
+				.description("API secret for Openzeppelin Defender"),
+			FORKING_BLOCK_NUMBER: Joi.number()
+				.optional()
 				.integer()
 				.min(0)
-				.description("Block number when forking root chain (Ethereum)"),
+				.default(0)
+				.description("Block number for Hardhat forking on Ethereum"),
+			COINMARKETCAP_API_KEY: Joi.string()
+				.optional()
+				.allow("")
+				.regex(GUID_V4_REGEX)
+				.description("API key for Coinmarketcap"),
+			GAS_REPORTER_NETWORK: Joi.string()
+				.optional()
+				.allow("ethereum", "polygon")
+				.default("ethereum")
+				.description("Gas reporter network"),
 			REPORT_GAS: Joi.boolean()
 				.optional()
 				.default(false)
-				.description(
-					"Flag to report gas prices or not while running tests"
-				),
+				.description("Report gas prices or not"),
+			DEPLOYER_MNEMONIC: Joi.string()
+				.optional()
+				.default(
+					"test test test test test test test test test test test junk"
+				)
+				.regex(MNEMONIC_REGEX)
+				.description("Mnemonic phrase of deployer account"),
+			DEPLOYER_PASSPHRASE: Joi.string()
+				.optional()
+				.allow("")
+				.description("Passphrase of deployer account"),
+			DEPLOYER_ADDRESS: Joi.string()
+				.required()
+				.regex(ADDRESS_REGEX)
+				.description("Address of deployer account"),
 		})
 		.unknown() as Joi.ObjectSchema<EnvironmentSchema>;
 

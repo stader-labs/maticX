@@ -17,8 +17,15 @@ import {
 } from "../typechain-types";
 import { extractEnvironmentVariables } from "../utils/environment";
 import { generateRandomAddress } from "../utils/account";
+import { getProviderUrl, Network } from "../utils/network";
 
 const envVars = extractEnvironmentVariables();
+
+const providerUrl = getProviderUrl(
+	Network.Ethereum,
+	envVars.API_PROVIDER,
+	envVars.ETHEREUM_API_KEY
+);
 
 describe("MaticX", function () {
 	const stakeAmount = ethers.utils.parseUnits("100", 18);
@@ -26,7 +33,7 @@ describe("MaticX", function () {
 	const version = "2";
 
 	async function deployFixture(callMaticXInitializeV2 = true) {
-		await reset(envVars.ROOT_CHAIN_RPC, envVars.FORKING_ROOT_BLOCK_NUMBER);
+		await reset(providerUrl, envVars.FORKING_BLOCK_NUMBER);
 
 		// EOA definitions
 		const manager = await impersonateAccount(
