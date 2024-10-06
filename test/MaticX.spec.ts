@@ -23,7 +23,7 @@ const envVars = extractEnvironmentVariables();
 
 const providerUrl = getProviderUrl(
 	Network.Ethereum,
-	envVars.API_PROVIDER,
+	envVars.RPC_PROVIDER,
 	envVars.ETHEREUM_API_KEY
 );
 
