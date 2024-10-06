@@ -1,5 +1,8 @@
 import * as dotenv from "dotenv";
-import { HardhatNetworkMiningConfig } from "hardhat/types";
+import {
+	HardhatNetworkHDAccountsConfig,
+	HardhatNetworkMiningConfig,
+} from "hardhat/types";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
@@ -13,15 +16,22 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "./tasks";
 import { extractEnvironmentVariables } from "./utils/environment";
+import { getProviderUrl, Network } from "./utils/network";
 
-const envSuffix = process.env.NODE_ENV === "main" ? "" : ".test";
-const exampleSuffix = process.env.CI ? ".example" : "";
-
+const isCI = process.env.CI;
 dotenv.config({
-	path: `.env${envSuffix}${exampleSuffix}`,
+	path: isCI ? ".env.example" : ".env",
 });
 
 const envVars = extractEnvironmentVariables();
+
+const accounts: Omit<HardhatNetworkHDAccountsConfig, "accountsBalance"> = {
+	mnemonic: envVars.DEPLOYER_MNEMONIC,
+	passphrase: envVars.DEPLOYER_PASSPHRASE,
+	path: "m/44'/60'/0'/0",
+	initialIndex: 0,
+	count: 10,
+};
 
 const mining: HardhatNetworkMiningConfig = {
 	auto: true,
@@ -32,7 +42,48 @@ const mining: HardhatNetworkMiningConfig = {
 };
 
 const config: HardhatUserConfig = {
-	defaultNetwork: "hardhat",
+	networks: {
+		[Network.Hardhat]: {
+			initialBaseFeePerGas: 0, // See https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
+			blockGasLimit: 30_000_000,
+			mining,
+			forking: {
+				url: getProviderUrl(
+					Network.Ethereum,
+					envVars.API_PROVIDER,
+					envVars.ETHEREUM_API_KEY
+				),
+				blockNumber: envVars.FORKING_BLOCK_NUMBER,
+				enabled: false,
+			},
+		},
+		[Network.Localhost]: {
+			url: "http://127.0.0.1:8545",
+			blockGasLimit: 30_000_000,
+			mining,
+		},
+		[Network.Holesky]: {
+			url: getProviderUrl(
+				Network.Holesky,
+				envVars.API_PROVIDER,
+				envVars.HOLESKY_API_KEY
+			),
+			chainId: 17_000,
+			from: envVars.DEPLOYER_ADDRESS,
+			accounts,
+		},
+		[Network.Ethereum]: {
+			url: getProviderUrl(
+				Network.Ethereum,
+				envVars.API_PROVIDER,
+				envVars.ETHEREUM_API_KEY
+			),
+			chainId: 1,
+			from: envVars.DEPLOYER_ADDRESS,
+			accounts,
+		},
+	},
+	defaultNetwork: Network.Hardhat,
 	solidity: {
 		version: "0.8.7",
 		settings: {
@@ -40,38 +91,6 @@ const config: HardhatUserConfig = {
 				enabled: true,
 				runs: 200,
 			},
-		},
-	},
-	networks: {
-		hardhat: {
-			initialBaseFeePerGas: 0, // See https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136
-			blockGasLimit: 30_000_000,
-			mining,
-			forking: {
-				url: envVars.ROOT_CHAIN_RPC,
-				blockNumber: envVars.FORKING_ROOT_BLOCK_NUMBER,
-				enabled: false,
-			},
-		},
-		localhost: {
-			url: "http://127.0.0.1:8545",
-			blockGasLimit: 30_000_000,
-			mining,
-		},
-		testnet: {
-			url: envVars.ROOT_CHAIN_RPC,
-			accounts: [envVars.DEPLOYER_PRIVATE_KEY],
-			gasPrice: envVars.ROOT_GAS_PRICE,
-		},
-		mainnet: {
-			url: envVars.ROOT_CHAIN_RPC,
-			accounts: [envVars.DEPLOYER_PRIVATE_KEY],
-			gasPrice: envVars.ROOT_GAS_PRICE,
-		},
-		matic: {
-			url: envVars.CHILD_CHAIN_RPC,
-			accounts: [envVars.DEPLOYER_PRIVATE_KEY],
-			gasPrice: envVars.CHILD_GAS_PRICE,
 		},
 	},
 	typechain: {
@@ -83,18 +102,19 @@ const config: HardhatUserConfig = {
 		timeout: "1h",
 	},
 	etherscan: {
-		apiKey: envVars.ETHERSCAN_API_KEY,
+		apiKey: {
+			[Network.Holesky]: envVars.HOLESKY_API_KEY,
+			[Network.EthereumAlt]: envVars.ETHERSCAN_API_KEY,
+		},
 	},
 	defender: {
-		apiKey: envVars.DEFENDER_TEAM_API_KEY,
-		apiSecret: envVars.DEFENDER_TEAM_API_SECRET_KEY,
+		apiKey: envVars.OZ_DEFENDER_API_KEY,
+		apiSecret: envVars.OZ_DEFENDER_API_SECRET,
 	},
-	contractSizer: {
-		alphaSort: false,
-		disambiguatePaths: false,
-		runOnCompile: false,
-		strict: true,
-		except: [
+	gasReporter: {
+		currency: "USD",
+		enabled: envVars.REPORT_GAS,
+		excludeContracts: [
 			"@openzeppelin/",
 			"interfaces/",
 			"lib/",
@@ -103,10 +123,12 @@ const config: HardhatUserConfig = {
 			"tunnel/",
 		],
 	},
-	gasReporter: {
-		currency: "USD",
-		enabled: envVars.REPORT_GAS,
-		excludeContracts: [
+	contractSizer: {
+		alphaSort: false,
+		disambiguatePaths: false,
+		runOnCompile: false,
+		strict: true,
+		except: [
 			"@openzeppelin/",
 			"interfaces/",
 			"lib/",
