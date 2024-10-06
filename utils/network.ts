@@ -1,5 +1,6 @@
 export enum Provider {
 	Alchemy = "alchemy",
+	Ankr = "ankr",
 	Infura = "infura",
 }
 
@@ -23,29 +24,35 @@ export function getProviderUrl(
 		return "http://127.0.0.1:8545";
 	}
 
-	const urls: Record<string, Record<Provider, string | undefined>> = {
+	const urls: Record<string, Record<Provider, string>> = {
 		[Network.Holesky]: {
 			[Provider.Alchemy]: "https://eth-holesky.g.alchemy.com",
+			[Provider.Ankr]: "https://rpc.ankr.com/eth_holesky",
 			[Provider.Infura]: "https://holesky.infura.io",
 		},
 		[Network.Amoy]: {
 			[Provider.Alchemy]: "https://polygon-amoy.g.alchemy.com",
+			[Provider.Ankr]: "https://rpc.ankr.com/polygon_amoy",
 			[Provider.Infura]: "https://polygon-amoy.infura.io",
 		},
 		[Network.AmoyAlt]: {
 			[Provider.Alchemy]: "https://polygon-amoy.g.alchemy.com",
+			[Provider.Ankr]: "https://rpc.ankr.com/polygon_amoy",
 			[Provider.Infura]: "https://polygon-amoy.infura.io",
 		},
 		[Network.Ethereum]: {
 			[Provider.Alchemy]: "https://eth-mainnet.g.alchemy.com",
+			[Provider.Ankr]: "https://rpc.ankr.com/eth",
 			[Provider.Infura]: "https://mainnet.infura.io",
 		},
 		[Network.EthereumAlt]: {
 			[Provider.Alchemy]: "https://eth-mainnet.g.alchemy.com",
+			[Provider.Ankr]: "https://rpc.ankr.com/eth",
 			[Provider.Infura]: "https://mainnet.infura.io",
 		},
 		[Network.Polygon]: {
 			[Provider.Alchemy]: "https://polygon-mainnet.g.alchemy.com",
+			[Provider.Ankr]: "https://rpc.ankr.com/polygon",
 			[Provider.Infura]: "https://polygon-mainnet.infura.io",
 		},
 	};
@@ -53,9 +60,21 @@ export function getProviderUrl(
 	const apiVersions: Record<Provider, number> = {
 		[Provider.Alchemy]: 2,
 		[Provider.Infura]: 3,
+		[Provider.Ankr]: 0,
 	};
 
-	return `${urls[network][provider]}/v${apiVersions[provider]}/${apiKey}`;
+	const urlParts = [urls[network][provider]];
+	if (apiVersions[provider] !== 0) {
+		urlParts.push(`v${apiVersions[provider]}`);
+	}
+	if (
+		[Provider.Alchemy, Provider.Infura].includes(provider) &&
+		typeof apiKey !== "undefined"
+	) {
+		urlParts.push(apiKey);
+	}
+
+	return urlParts.join("/");
 }
 
 export function isLocalNetwork(network: Network): boolean {

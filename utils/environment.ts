@@ -32,9 +32,9 @@ export function extractEnvironmentVariables(): EnvironmentSchema {
 		.keys({
 			API_PROVIDER: Joi.string()
 				.optional()
-				.valid("alchemy", "infura")
-				.default("alchemy")
-				.default("RPC provider name"),
+				.valid("alchemy", "ankr", "infura")
+				.default("ankr")
+				.default("API provider name"),
 			HOLESKY_API_KEY: Joi.string()
 				.required()
 				.regex(API_KEY_REGEX)
@@ -96,7 +96,7 @@ export function extractEnvironmentVariables(): EnvironmentSchema {
 			REPORT_GAS: Joi.boolean()
 				.optional()
 				.default(false)
-				.description("Report gas prices or not"),
+				.description("Flag to report gas price or not"),
 			DEPLOYER_MNEMONIC: Joi.string()
 				.optional()
 				.default(
