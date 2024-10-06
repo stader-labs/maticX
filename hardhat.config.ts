@@ -52,7 +52,7 @@ const config: HardhatUserConfig = {
 			forking: {
 				url: getProviderUrl(
 					Network.Ethereum,
-					envVars.API_PROVIDER,
+					envVars.RPC_PROVIDER,
 					envVars.ETHEREUM_API_KEY
 				),
 				blockNumber: envVars.FORKING_BLOCK_NUMBER,
@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
 		[Network.Holesky]: {
 			url: getProviderUrl(
 				Network.Holesky,
-				envVars.API_PROVIDER,
+				envVars.RPC_PROVIDER,
 				envVars.HOLESKY_API_KEY
 			),
 			chainId: 17_000,
@@ -78,7 +78,7 @@ const config: HardhatUserConfig = {
 		[Network.Amoy]: {
 			url: getProviderUrl(
 				Network.Amoy,
-				envVars.API_PROVIDER,
+				envVars.RPC_PROVIDER,
 				envVars.AMOY_API_KEY
 			),
 			chainId: 80_002,
@@ -89,7 +89,7 @@ const config: HardhatUserConfig = {
 		[Network.Ethereum]: {
 			url: getProviderUrl(
 				Network.Ethereum,
-				envVars.API_PROVIDER,
+				envVars.RPC_PROVIDER,
 				envVars.ETHEREUM_API_KEY
 			),
 			chainId: 1,
@@ -100,7 +100,7 @@ const config: HardhatUserConfig = {
 		[Network.Polygon]: {
 			url: getProviderUrl(
 				Network.Polygon,
-				envVars.API_PROVIDER,
+				envVars.RPC_PROVIDER,
 				envVars.POLYGON_API_KEY
 			),
 			chainId: 137,
@@ -138,6 +138,7 @@ const config: HardhatUserConfig = {
 		apiSecret: envVars.OZ_DEFENDER_API_SECRET,
 	},
 	gasReporter: {
+		coinmarketcap: envVars.COINMARKETCAP_API_KEY,
 		excludeContracts: [
 			"@openzeppelin/",
 			"interfaces/",
@@ -174,6 +175,7 @@ const config: HardhatUserConfig = {
 			"state-transfer/",
 			"tunnel/",
 		],
+		only: ["ChildPool", "MaticX", "ValidatorRegistry"],
 	},
 };
 
