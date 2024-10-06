@@ -45,6 +45,10 @@ ETHEREUM_MATIC_TOKEN :=
 ETHEREUM_MANAGER := 
 ETHEREUM_TREASURY := 
 
+# Contract paths
+CONTRACT_PATH_VALIDATOR_REGISTRY := contracts/ValidatorRegistry.sol
+CONTRACT_PATH_MATIC_X := contracts/MaticX.sol
+
 all: hardhat
 
 hardhat: deploy-validatorregistry-hardhat
@@ -98,3 +102,13 @@ verify-maticx-holesky:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_HOLESKY) --contract $(HOLESKY_MATIC_X)
 verify-maticx-ethereum:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_MATIC_X)
+
+# Analyze contracts with mythril
+analyze-mytrhil-validatorregistry:
+	$(BIN_MYTH) analyze $(CONTRACT_PATH_VALIDATOR_REGISTRY) --solc-json $(CONFIG_SOLC)
+analyze-mytrhil-maticx:
+	$(BIN_MYTH) analyze $(CONTRACT_PATH_MATIC_X) --solc-json $(CONFIG_SOLC)
+
+# Fuzz test contracts with echidna
+fuzz-echidna-maticx:
+	$(BIN_ECHIDNA) . --contract FuzzMaticX $(CONFIG_ECHIDNA)
