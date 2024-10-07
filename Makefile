@@ -14,32 +14,32 @@ NETWORK_HOLESKY := holesky
 NETWORK_ETHEREUM := ethereum
 
 # Hardhat contract addresses
-HARDHAT_MATIC_X := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_VALIDATOR_REGISTRY := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+HARDHAT_MATIC_X := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_STAKE_MANAGER := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_MATIC_TOKEN := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_MANAGER := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 HARDHAT_TREASURY := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
 # Localhost contract addresses
-LOCALHOST_MATIC_X := 
 LOCALHOST_VALIDATOR_REGISTRY := 
+LOCALHOST_MATIC_X := 
 LOCALHOST_STAKE_MANAGER := 
 LOCALHOST_MATIC_TOKEN := 
 LOCALHOST_MANAGER := 
 LOCALHOST_TREASURY := 
 
 # Holesky contract addresses
-HOLESKY_MATIC_X := 
 HOLESKY_VALIDATOR_REGISTRY := 
+HOLESKY_MATIC_X := 
 HOLESKY_STAKE_MANAGER := 
 HOLESKY_MATIC_TOKEN := 
 HOLESKY_MANAGER := 
 HOLESKY_TREASURY := 
 
 # Ethereum contract addresses
-ETHEREUM_MATIC_X := 
-ETHEREUM_VALIDATOR_REGISTRY := 
+ETHEREUM_VALIDATOR_REGISTRY := 0xf556442D5B77A4B0252630E15d8BbE2160870d77
+ETHEREUM_MATIC_X := 0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645
 ETHEREUM_STAKE_MANAGER := 
 ETHEREUM_MATIC_TOKEN := 
 ETHEREUM_MANAGER := 
@@ -102,6 +102,18 @@ verify-maticx-holesky:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_HOLESKY) --contract $(HOLESKY_MATIC_X)
 verify-maticx-ethereum:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_MATIC_X)
+
+# Import the ValidatorRegistry contract
+import-validatorregistry-holesky:
+	$(BIN_HARDHAT) import-contract --network $(NETWORK_HOLESKY) --name ValidatorRegistry --contract $(HOLESKY_VALIDATOR_REGISTRY)
+import-validatorregistry-ethereum:
+	$(BIN_HARDHAT) import-contract --network $(NETWORK_ETHEREUM) --name ValidatorRegistry --contract $(ETHEREUM_VALIDATOR_REGISTRY)
+
+# Import the MaticX contract
+import-maticx-holesky:
+	$(BIN_HARDHAT) import-contract --network $(NETWORK_HOLESKY) --name MaticX --contract $(HOLESKY_MATIC_X)
+import-maticx-ethereum:
+	$(BIN_HARDHAT) import-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_MATIC_X)
 
 # Analyze contracts with mythril
 analyze-mytrhil-validatorregistry:

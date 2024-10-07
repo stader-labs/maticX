@@ -16,6 +16,10 @@ task("upgrade-contract")
 			{ name: contractName, contract: contractAddress }: TaskParams,
 			{ ethers, upgrades, network, run }
 		) => {
+			if (!ethers.utils.isAddress(contractAddress)) {
+				throw new Error("Invalid contract address");
+			}
+
 			const networkName = network.name as Network;
 			console.log(`Network name: ${networkName}`);
 
