@@ -70,12 +70,16 @@ deploy-validatorregistry-ethereum:
 	$(BIN_HARDHAT) deploy:validator-registry --network $(NETWORK_ETHEREUM) --stake-manager $(ETHEREUM_STAKE_MANAGER) --matic-token $(ETHEREUM_MATIC_TOKEN) --matic-x $(ETHEREUM_MATIC_X) --manager $(ETHEREUM_MANAGER)
 
 # Initialize v2 the ValidatorRegistry contract
-initializev2-validatorregistry-localhost:
-	$(BIN_HARDHAT) initialize-v2:validator-registry --network $(NETWORK_LOCALHOST) --contract $(LOCALHOST_VALIDATOR_REGISTRY) --pol-token $(LOCALHOST_POL_TOKEN)
 initializev2-validatorregistry-sepolia:
 	$(BIN_HARDHAT) initialize-v2:validator-registry --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_VALIDATOR_REGISTRY) --pol-token $(SEPOLIA_POL_TOKEN)
 initializev2-validatorregistry-ethereum:
 	$(BIN_HARDHAT) initialize-v2:validator-registry --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_VALIDATOR_REGISTRY) --pol-token $(ETHEREUM_POL_TOKEN)
+
+# Initialize v2 the MaticX contract
+initializev2-maticx-sepolia:
+	$(BIN_HARDHAT) initialize-v2:matic-x --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_MATIC_X) --pol-token $(SEPOLIA_POL_TOKEN)
+initializev2-maticx-ethereum:
+	$(BIN_HARDHAT) initialize-v2:matic-x --network $(NETWORK_ETHEREUM) --contract $(ESEPOLIA_MATIC_X) --pol-token $(ETHEREUM_POL_TOKEN)
 
 # Deploy the MaticX contract
 deploy-maticx-hardhat:
