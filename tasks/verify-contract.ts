@@ -3,14 +3,14 @@ import { TASK_CLEAN, TASK_COMPILE } from "hardhat/builtin-tasks/task-names";
 import { isLocalNetwork, Network } from "../utils/network";
 
 interface TaskParams {
-	address: string;
+	contract: string;
 	contractPath: string;
 	constructorArguments: string[];
 }
 
 task("verify-contract")
 	.setDescription("Verify a contract")
-	.addParam<string>("address", "Contract address", undefined, types.string)
+	.addParam<string>("contract", "Contract address", undefined, types.string)
 	.addOptionalParam<string>(
 		"contractPath",
 		"Contract path",
@@ -26,7 +26,7 @@ task("verify-contract")
 	.setAction(
 		async (
 			{
-				address: contractAddress,
+				contract: contractAddress,
 				contractPath,
 				constructorArguments,
 			}: TaskParams,

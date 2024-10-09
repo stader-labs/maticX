@@ -87,7 +87,6 @@ task("deploy:validator-registry")
 				{ kind: "transparent" }
 			);
 			await validatorRegistry.deployed();
-
 			console.log(
 				`ValidatorRegistry Proxy deployed at ${validatorRegistry.address}`
 			);
@@ -98,6 +97,13 @@ task("deploy:validator-registry")
 				);
 			console.log(
 				`ValidatorRegistry Implementation deployed at ${implementationAddress}`
+			);
+
+			const adminAddress = await upgrades.erc1967.getAdminAddress(
+				validatorRegistry.address
+			);
+			console.log(
+				`ValidatorRegistry ProxyAdmin deployed at ${adminAddress}`
 			);
 		}
 	);

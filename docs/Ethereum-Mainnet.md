@@ -19,6 +19,7 @@
 ### Stake Manager
 
 -   Proxy address: [0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908](https://etherscan.io/address/0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908)
+-   Implementation address: [0xbA9Ac3C9983a3e967f0f387c75cCbD38Ad484963](https://etherscan.io/address/0xbA9Ac3C9983a3e967f0f387c75cCbD38Ad484963)
 
 ### Fx State Root Tunnel
 
@@ -34,7 +35,8 @@
 
 ### Polygon Migration
 
--   Address: [0x29e7DF7b6A1B2b07b731457f499E1696c60E2C4e](https://etherscan.io/address/0x29e7DF7b6A1B2b07b731457f499E1696c60E2C4e)
+-   Proxy address: [0x29e7DF7b6A1B2b07b731457f499E1696c60E2C4e](https://etherscan.io/address/0x29e7DF7b6A1B2b07b731457f499E1696c60E2C4e)
+-   Implementation address: [0x550B7CDaC6F5a0d9e840505c3Df74aC045530446](https://etherscan.io/address/0x550B7CDaC6F5a0d9e840505c3Df74aC045530446)
 
 ### Manager
 

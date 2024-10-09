@@ -4,8 +4,8 @@ import {
 	HardhatNetworkMiningConfig,
 } from "hardhat/types";
 import { HardhatUserConfig } from "hardhat/config";
+import "@nomicfoundation/hardhat-verify";
 import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-solhint";
 import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-defender";
@@ -70,7 +70,7 @@ const config: HardhatUserConfig = {
 				envVars.RPC_PROVIDER,
 				envVars.SEPOLIA_API_KEY
 			),
-			chainId: 17_000,
+			chainId: 11_155_111,
 			from: envVars.DEPLOYER_ADDRESS,
 			accounts,
 			gasPrice,
