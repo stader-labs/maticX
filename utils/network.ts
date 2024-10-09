@@ -7,7 +7,7 @@ export enum Provider {
 export enum Network {
 	Hardhat = "hardhat",
 	Localhost = "localhost",
-	Holesky = "holesky",
+	Sepolia = "sepolia",
 	Amoy = "amoy",
 	AmoyAlt = "polygonAmoy",
 	Ethereum = "ethereum",
@@ -25,10 +25,10 @@ export function getProviderUrl(
 	}
 
 	const urls: Record<string, Record<Provider, string>> = {
-		[Network.Holesky]: {
-			[Provider.Alchemy]: "https://eth-holesky.g.alchemy.com",
-			[Provider.Ankr]: "https://rpc.ankr.com/eth_holesky",
-			[Provider.Infura]: "https://holesky.infura.io",
+		[Network.Sepolia]: {
+			[Provider.Alchemy]: "https://eth-sepolia.g.alchemy.com",
+			[Provider.Ankr]: "https://rpc.ankr.com/eth_sepolia",
+			[Provider.Infura]: "https://sepolia.infura.io",
 		},
 		[Network.Amoy]: {
 			[Provider.Alchemy]: "https://polygon-amoy.g.alchemy.com",
@@ -82,7 +82,7 @@ export function isLocalNetwork(network: Network): boolean {
 }
 
 export function isTestNetwork(network: Network): boolean {
-	return [Network.Holesky, Network.Amoy, Network.AmoyAlt].includes(network);
+	return [Network.Sepolia, Network.Amoy, Network.AmoyAlt].includes(network);
 }
 
 export function isMainNetwork(network: Network): boolean {

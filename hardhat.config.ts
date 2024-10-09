@@ -64,11 +64,11 @@ const config: HardhatUserConfig = {
 			blockGasLimit: 30_000_000,
 			mining,
 		},
-		[Network.Holesky]: {
+		[Network.Sepolia]: {
 			url: getProviderUrl(
-				Network.Holesky,
+				Network.Sepolia,
 				envVars.RPC_PROVIDER,
-				envVars.HOLESKY_API_KEY
+				envVars.SEPOLIA_API_KEY
 			),
 			chainId: 17_000,
 			from: envVars.DEPLOYER_ADDRESS,
@@ -129,7 +129,7 @@ const config: HardhatUserConfig = {
 	},
 	etherscan: {
 		apiKey: {
-			[Network.Holesky]: envVars.HOLESKY_API_KEY,
+			[Network.Sepolia]: envVars.SEPOLIA_API_KEY,
 			[Network.EthereumAlt]: envVars.ETHERSCAN_API_KEY,
 		},
 	},

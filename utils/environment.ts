@@ -3,7 +3,7 @@ import { Provider } from "./network";
 
 interface EnvironmentSchema {
 	RPC_PROVIDER: Provider;
-	HOLESKY_API_KEY: string;
+	SEPOLIA_API_KEY: string;
 	AMOY_API_KEY: string;
 	ETHEREUM_API_KEY: string;
 	POLYGON_API_KEY: string;
@@ -33,10 +33,10 @@ export function extractEnvironmentVariables(): EnvironmentSchema {
 				.valid("alchemy", "ankr", "infura")
 				.default("ankr")
 				.default("RPC provider name"),
-			HOLESKY_API_KEY: Joi.string()
+			SEPOLIA_API_KEY: Joi.string()
 				.required()
 				.regex(API_KEY_REGEX)
-				.description("API key for Holesky"),
+				.description("API key for Sepolia"),
 			AMOY_API_KEY: Joi.string()
 				.required()
 				.regex(API_KEY_REGEX)
