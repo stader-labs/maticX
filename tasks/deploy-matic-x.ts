@@ -77,12 +77,12 @@ task("deploy:matic-x")
 			}
 			await run(TASK_COMPILE);
 
-			const deployer = await getSigner(
+			const signer = await getSigner(
 				ethers,
 				network.provider,
 				network.config.from
 			);
-			const MaticX = await ethers.getContractFactory("MaticX", deployer);
+			const MaticX = await ethers.getContractFactory("MaticX", signer);
 
 			const maticX = await upgrades.deployProxy(
 				MaticX,

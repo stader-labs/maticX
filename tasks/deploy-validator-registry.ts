@@ -66,14 +66,14 @@ task("deploy:validator-registry")
 			}
 			await run(TASK_COMPILE);
 
-			const deployer = await getSigner(
+			const signer = await getSigner(
 				ethers,
 				network.provider,
 				network.config.from
 			);
 			const ValidatorRegistry = await ethers.getContractFactory(
 				"ValidatorRegistry",
-				deployer
+				signer
 			);
 
 			const validatorRegistry = await upgrades.deployProxy(

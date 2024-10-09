@@ -18,6 +18,7 @@ HARDHAT_VALIDATOR_REGISTRY := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_MATIC_X := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_STAKE_MANAGER := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_MATIC_TOKEN := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+HARDHAT_POL_TOKEN := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_MANAGER := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 HARDHAT_TREASURY := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
@@ -26,6 +27,7 @@ LOCALHOST_VALIDATOR_REGISTRY :=
 LOCALHOST_MATIC_X := 
 LOCALHOST_STAKE_MANAGER := 
 LOCALHOST_MATIC_TOKEN := 
+LOCALHOST_POL_TOKEN := 
 LOCALHOST_MANAGER := 
 LOCALHOST_TREASURY := 
 
@@ -61,17 +63,25 @@ localhost: deploy-validatorregistry-localhost
 deploy-validatorregistry-hardhat:
 	$(BIN_HARDHAT) deploy:validator-registry --network $(NETWORK_HARDHAT) --stake-manager $(HARDHAT_STAKE_MANAGER) --matic-token $(HARDHAT_MATIC_TOKEN) --matic-x $(HARDHAT_MATIC_X) --manager $(HARDHAT_MANAGER)
 deploy-validatorregistry-localhost:
-	$(BIN_HARDHAT) deploy:validator-registry --network $(NETWORK_LOCALHOST) --stake-manager $(HARDHAT_STAKE_MANAGER) --matic-token $(LOCALHOST_MATIC_TOKEN) --matic-x $(LOCALHOST_MATIC_X) --manager $(LOCALHOST_MANAGER)
+	$(BIN_HARDHAT) deploy:validator-registry --network $(NETWORK_LOCALHOST) --stake-manager $(LOCALHOST_STAKE_MANAGER) --matic-token $(LOCALHOST_MATIC_TOKEN) --matic-x $(LOCALHOST_MATIC_X) --manager $(LOCALHOST_MANAGER)
 deploy-validatorregistry-sepolia:
 	$(BIN_HARDHAT) deploy:validator-registry --network $(NETWORK_SEPOLIA) --stake-manager $(SEPOLIA_STAKE_MANAGER) --matic-token $(SEPOLIA_MATIC_TOKEN) --matic-x $(SEPOLIA_MATIC_X) --manager $(SEPOLIA_MANAGER)
 deploy-validatorregistry-ethereum:
 	$(BIN_HARDHAT) deploy:validator-registry --network $(NETWORK_ETHEREUM) --stake-manager $(ETHEREUM_STAKE_MANAGER) --matic-token $(ETHEREUM_MATIC_TOKEN) --matic-x $(ETHEREUM_MATIC_X) --manager $(ETHEREUM_MANAGER)
 
+# Initialize v2 the ValidatorRegistry contract
+initializev2-validatorregistry-localhost:
+	$(BIN_HARDHAT) initialize-v2:validator-registry --network $(NETWORK_LOCALHOST) --contract $(LOCALHOST_VALIDATOR_REGISTRY) --pol-token $(LOCALHOST_POL_TOKEN)
+initializev2-validatorregistry-sepolia:
+	$(BIN_HARDHAT) initialize-v2:validator-registry --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_VALIDATOR_REGISTRY) --pol-token $(SEPOLIA_POL_TOKEN)
+initializev2-validatorregistry-ethereum:
+	$(BIN_HARDHAT) initialize-v2:validator-registry --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_VALIDATOR_REGISTRY) --pol-token $(ETHEREUM_POL_TOKEN)
+
 # Deploy the MaticX contract
 deploy-maticx-hardhat:
 	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_HARDHAT) --validator-registry $(HARDHAT_VALIDATOR_REGISTRY) --stake-manager $(HARDHAT_STAKE_MANAGER) --matic-token $(HARDHAT_MATIC_TOKEN) --manager $(HARDHAT_MANAGER) --treasury $(HARDHAT_TREASURY)
 deploy-maticx-localhost:
-	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_LOCALHOST) --validator-registry $(LOCALHOST_VALIDATOR_REGISTRY) --stake-manager $(HARDHAT_STAKE_MANAGER) --matic-token $(LOCALHOST_MATIC_TOKEN) --manager $(LOCALHOST_MANAGER) --treasury $(LOCALHOST_TREASURY)
+	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_LOCALHOST) --validator-registry $(LOCALHOST_VALIDATOR_REGISTRY) --stake-manager $(LOCALHOST_STAKE_MANAGER) --matic-token $(LOCALHOST_MATIC_TOKEN) --manager $(LOCALHOST_MANAGER) --treasury $(LOCALHOST_TREASURY)
 deploy-maticx-sepolia:
 	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_SEPOLIA) --validator-registry $(SEPOLIA_VALIDATOR_REGISTRY) --stake-manager $(SEPOLIA_STAKE_MANAGER) --matic-token $(SEPOLIA_MATIC_TOKEN) --manager $(SEPOLIA_MANAGER) --treasury $(SEPOLIA_TREASURY)
 deploy-maticx-ethereum:
