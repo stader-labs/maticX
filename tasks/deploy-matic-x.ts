@@ -96,7 +96,6 @@ task("deploy:matic-x")
 				{ kind: "transparent" }
 			);
 			await maticX.deployed();
-
 			console.log(`MaticX Proxy deployed at ${maticX.address}`);
 
 			const implementationAddress =
@@ -107,6 +106,6 @@ task("deploy:matic-x")
 			const proxyAdminAddress = await upgrades.erc1967.getAdminAddress(
 				maticX.address
 			);
-			console.log(`MaticX Proxy Admin deployed at ${proxyAdminAddress}`);
+			console.log(`MaticX ProxyAdmin deployed at ${proxyAdminAddress}`);
 		}
 	);

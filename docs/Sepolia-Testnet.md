@@ -8,8 +8,8 @@
 
 ### Validator Registry
 
--   Proxy address: [](https://sepolia.etherscan.io/address/)
--   Implementation address: [](https://sepolia.etherscan.io/address/)
+-   Proxy address: [0xE98fc808E8aE8025a1D17d6F4Fbc3Df226788438](https://sepolia.etherscan.io/address/0xE98fc808E8aE8025a1D17d6F4Fbc3Df226788438)
+-   Implementation address: [0xFAFbbA44f12066B4BF8EB0d05dD26a5567D3bb2F](https://sepolia.etherscan.io/address/0xFAFbbA44f12066B4BF8EB0d05dD26a5567D3bb2F)
 
 ### MaticX
 
@@ -18,7 +18,8 @@
 
 ### Stake Manager
 
--   Proxy address: [](https://sepolia.etherscan.io/address/)
+-   Proxy address: [0x4AE8f648B1Ec892B6cc68C89cc088583964d08bE](https://sepolia.etherscan.io/address/0x4AE8f648B1Ec892B6cc68C89cc088583964d08bE)
+-   Implementation address: [0xE3104cC25C94b21a162d316064fe50fDDA0635aC](https://sepolia.etherscan.io/address/0xE3104cC25C94b21a162d316064fe50fDDA0635aC)
 
 ### Fx State Root Tunnel
 
@@ -34,7 +35,8 @@
 
 ### Polygon Migration
 
--   Address: [](https://sepolia.etherscan.io/address/)
+-   Proxy address: [0x3A3B750E7d4d389Bc1d0be20E5D09530F82B9911](https://sepolia.etherscan.io/address/0x3A3B750E7d4d389Bc1d0be20E5D09530F82B9911)
+-   Implementation Address: [0xC70198ad91082c4d6eEb70d991cc4B2b61Cb3d1E](https://sepolia.etherscan.io/address/0xC70198ad91082c4d6eEb70d991cc4B2b61Cb3d1E)
 
 ### Manager
 
@@ -46,4 +48,4 @@
 
 ### Root Deployer
 
--   Address: [](https://sepolia.etherscan.io/address/)
+-   Address: [0x8C6B3eE457b193A49794df466957441b4AccD102](https://sepolia.etherscan.io/address/0x8C6B3eE457b193A49794df466957441b4AccD102)
