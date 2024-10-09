@@ -36,17 +36,13 @@
 
 -   Address: [0x29e7DF7b6A1B2b07b731457f499E1696c60E2C4e](https://etherscan.io/address/0x29e7DF7b6A1B2b07b731457f499E1696c60E2C4e)
 
-### Multisig
-
--   Address: [0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67](https://etherscan.io/address/0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67)
-
 ### Manager
 
 -   Address: [0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67](https://etherscan.io/address/0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67)
 
 ### Treasury
 
--   Address: [0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67](https://etherscan.io/address/0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67)
+-   Address: [0x01422247a1d15BB4FcF91F5A077Cf25BA6460130](https://etherscan.io/address/0x01422247a1d15BB4FcF91F5A077Cf25BA6460130)
 
 ### Root Deployer
 
