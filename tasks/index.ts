@@ -1,3 +1,4 @@
+import "./deploy-fx-state-root-tunnel";
 import "./deploy-matic-x";
 import "./deploy-validator-registry";
 import "./import-contract";
