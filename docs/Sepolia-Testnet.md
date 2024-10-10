@@ -13,8 +13,8 @@
 
 ### MaticX
 
--   Proxy address: [](https://sepolia.etherscan.io/address/)
--   Implementation address: [](https://sepolia.etherscan.io/address/)
+-   Proxy address: [0xB51AAb302085F436204c4B1964fBE74517B2D4b6](https://sepolia.etherscan.io/address/0xB51AAb302085F436204c4B1964fBE74517B2D4b6)
+-   Implementation address: [0x54a994B66FA7eA7160D6281002B56a041db0b5a5](https://sepolia.etherscan.io/address/0x54a994B66FA7eA7160D6281002B56a041db0b5a5)
 
 ### Stake Manager
 
