@@ -4,16 +4,11 @@ import {
 	HardhatNetworkMiningConfig,
 } from "hardhat/types";
 import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-verify";
-import "@nomiclabs/hardhat-ethers";
+import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-solhint";
-import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-defender";
 import "@openzeppelin/hardhat-upgrades";
-import "@typechain/hardhat";
 import "hardhat-contract-sizer";
-import "hardhat-gas-reporter";
-import "solidity-coverage";
 import "./tasks";
 import { extractEnvironmentVariables } from "./utils/environment";
 import { getProviderUrl, Network } from "./utils/network";
@@ -119,17 +114,13 @@ const config: HardhatUserConfig = {
 			},
 		},
 	},
-	typechain: {
-		outDir: "typechain-types",
-		target: "ethers-v5",
-	},
 	mocha: {
 		reporter: process.env.CI ? "dot" : "nyan",
 		timeout: "1h",
 	},
 	etherscan: {
 		apiKey: {
-			[Network.Sepolia]: envVars.SEPOLIA_API_KEY,
+			[Network.Sepolia]: envVars.ETHERSCAN_API_KEY,
 			[Network.EthereumAlt]: envVars.ETHERSCAN_API_KEY,
 		},
 	},

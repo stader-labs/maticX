@@ -1423,11 +1423,7 @@ describe("MaticX", function () {
 					.requestWithdraw(stakeAmount);
 				await expect(promise)
 					.to.emit(maticX, "RequestWithdraw")
-					.withArgs(
-						stakerA.address,
-						tripleStakeAmount,
-						tripleStakeAmount
-					)
+					.withArgs(stakerA.address, stakeAmount, stakeAmount)
 					.and.to.emit(maticX, "Transfer")
 					.withArgs(
 						stakerA.address,
@@ -1792,13 +1788,11 @@ describe("MaticX", function () {
 				);
 			});
 
-			it("Should revert with the right error if passing an non existing validator id", async function () {
+			it("Should revert without a reason if passing an non existing validator id", async function () {
 				const { maticX, manager } = await loadFixture(deployFixture);
 
 				const promise = maticX.connect(manager).withdrawRewards(1_000);
-				await expect(promise).to.be.revertedWith(
-					"function call to a non-contract account"
-				);
+				await expect(promise).to.be.revertedWithoutReason();
 			});
 		});
 
@@ -1883,7 +1877,7 @@ describe("MaticX", function () {
 				);
 			});
 
-			it("Should revert with the right error if passing an non existing validator id", async function () {
+			it("Should revert without a reason if passing an non existing validator id", async function () {
 				const { maticX, manager, preferredDepositValidatorId } =
 					await loadFixture(deployFixture);
 
@@ -1893,9 +1887,7 @@ describe("MaticX", function () {
 						1_000,
 						preferredDepositValidatorId,
 					]);
-				await expect(promise).to.be.revertedWith(
-					"function call to a non-contract account"
-				);
+				await expect(promise).to.be.revertedWithoutReason();
 			});
 		});
 
