@@ -37,7 +37,11 @@ interface IValidatorRegistry {
 
 	/// @notice Removes a validator from the registry.
 	/// @param _validatorId - Validator id
-	function removeValidator(uint256 _validatorId) external;
+	/// @param _ignoreBalance - If bypass the validator balance check or not
+	function removeValidator(
+		uint256 _validatorId,
+		bool _ignoreBalance
+	) external;
 
 	/// @notice Sets the prefered validator id for deposits.
 	/// @param _validatorId - Validator id for deposits

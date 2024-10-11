@@ -769,7 +769,7 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry
 					.connect(manager)
-					.removeValidator(validatorIds[0]);
+					.removeValidator(validatorIds[0], false);
 				await expect(promise).to.be.revertedWith("Pausable: paused");
 			});
 
@@ -787,7 +787,7 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry
 					.connect(executor)
-					.removeValidator(validatorIds[0]);
+					.removeValidator(validatorIds[0], false);
 				await expect(promise).to.be.revertedWith(
 					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${defaultAdminRole}`
 				);
@@ -803,7 +803,7 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry
 					.connect(manager)
-					.removeValidator(0);
+					.removeValidator(0, false);
 				await expect(promise).to.revertedWith("Zero validator id");
 			});
 
@@ -813,7 +813,7 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry
 					.connect(manager)
-					.removeValidator(validatorIds[0]);
+					.removeValidator(validatorIds[0], false);
 				await expect(promise).to.be.revertedWith(
 					"Validator id doesn't exist in our registry"
 				);
@@ -833,7 +833,7 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry
 					.connect(manager)
-					.removeValidator(validatorIds[0]);
+					.removeValidator(validatorIds[0], false);
 				await expect(promise).to.be.revertedWith(
 					"Can't remove a preferred validator for deposits"
 				);
@@ -853,13 +853,13 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry
 					.connect(manager)
-					.removeValidator(validatorIds[0]);
+					.removeValidator(validatorIds[0], false);
 				await expect(promise).to.be.revertedWith(
 					"Can't remove a preferred validator for withdrawals"
 				);
 			});
 
-			it("Should revert with the right error if having some validator shares", async function () {
+			it("Should revert with the right error if having some validator shares and the ignore balance flag unset", async function () {
 				const { validatorRegistry, manager } =
 					await loadFixture(deployFixture);
 
@@ -878,10 +878,33 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry
 					.connect(manager)
-					.removeValidator(validatorIds[0]);
+					.removeValidator(validatorIds[0], false);
 				await expect(promise).to.be.revertedWith(
 					"Validator has some shares left"
 				);
+			});
+
+			it("Shouldn't revert with an error if having some validator shares and the ignore balance flag set", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				const maticX = (await ethers.getContractAt(
+					"IMaticX",
+					"0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645"
+				)) as IMaticX;
+
+				await validatorRegistry
+					.connect(manager)
+					.setMaticX(maticX.address);
+
+				await validatorRegistry
+					.connect(manager)
+					.addValidator(validatorIds[0]);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.removeValidator(validatorIds[0], true);
+				await expect(promise).not.to.be.reverted;
 			});
 
 			it("Should revert with the right error if getting a removed validator id", async function () {
@@ -894,7 +917,7 @@ describe("ValidatorRegistry", function () {
 
 				await validatorRegistry
 					.connect(manager)
-					.removeValidator(validatorIds[0]);
+					.removeValidator(validatorIds[0], false);
 
 				const promise = validatorRegistry.getValidatorId(0);
 				await expect(promise).to.be.revertedWith(
@@ -904,7 +927,7 @@ describe("ValidatorRegistry", function () {
 		});
 
 		describe("Positive", function () {
-			it("Should emit the RemoveValidator event", async function () {
+			it("Should emit the RemoveValidator event if having the ignore balance flag unset", async function () {
 				const { validatorRegistry, manager } =
 					await loadFixture(deployFixture);
 
@@ -914,7 +937,23 @@ describe("ValidatorRegistry", function () {
 
 				const promise = validatorRegistry
 					.connect(manager)
-					.removeValidator(validatorIds[0]);
+					.removeValidator(validatorIds[0], false);
+				await expect(promise)
+					.to.emit(validatorRegistry, "RemoveValidator")
+					.withArgs(validatorIds[0]);
+			});
+
+			it("Should emit the RemoveValidator event if having the ignore balance flag set", async function () {
+				const { validatorRegistry, manager } =
+					await loadFixture(deployFixture);
+
+				await validatorRegistry
+					.connect(manager)
+					.addValidator(validatorIds[0]);
+
+				const promise = validatorRegistry
+					.connect(manager)
+					.removeValidator(validatorIds[0], true);
 				await expect(promise)
 					.to.emit(validatorRegistry, "RemoveValidator")
 					.withArgs(validatorIds[0]);
@@ -935,7 +974,7 @@ describe("ValidatorRegistry", function () {
 
 				await validatorRegistry
 					.connect(manager)
-					.removeValidator(validatorIds[0]);
+					.removeValidator(validatorIds[0], false);
 
 				const currentValidatorIds =
 					await validatorRegistry.getValidators();
