@@ -143,9 +143,11 @@ contract ValidatorRegistry is
 
 	/// @notice Removes a validator from the registry.
 	/// @param _validatorId - Validator id
+	/// @param _ignoreBalance - If bypass the validator balance check or not
 	// slither-disable-next-line pess-multiple-storage-read
 	function removeValidator(
-		uint256 _validatorId
+		uint256 _validatorId,
+		bool _ignoreBalance
 	)
 		external
 		override
@@ -163,12 +165,14 @@ contract ValidatorRegistry is
 			"Can't remove a preferred validator for withdrawals"
 		);
 
-		address validatorShare = stakeManager.getValidatorContract(
-			_validatorId
-		);
-		(uint256 validatorBalance, ) = IValidatorShare(validatorShare)
-			.getTotalStake(maticX);
-		require(validatorBalance == 0, "Validator has some shares left");
+		if (!_ignoreBalance) {
+			address validatorShare = stakeManager.getValidatorContract(
+				_validatorId
+			);
+			(uint256 validatorBalance, ) = IValidatorShare(validatorShare)
+				.getTotalStake(maticX);
+			require(validatorBalance == 0, "Validator has some shares left");
+		}
 
 		uint256 iterationCount = validators.length - 1;
 		for (uint256 i = 0; i < iterationCount; ) {
