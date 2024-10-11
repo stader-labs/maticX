@@ -9,8 +9,6 @@ interface EnvironmentSchema {
 	POLYGON_API_KEY: string;
 	ETHERSCAN_API_KEY: string;
 	POLYGONSCAN_API_KEY: string;
-	OZ_DEFENDER_API_KEY: string;
-	OZ_DEFENDER_API_SECRET: string;
 	FORKING_BLOCK_NUMBER: number;
 	COINMARKETCAP_API_KEY: string;
 	GAS_REPORTER_NETWORK: string;
@@ -59,16 +57,6 @@ export function extractEnvironmentVariables(): EnvironmentSchema {
 				.length(34)
 				.alphanum()
 				.description("API key for Polygonscan"),
-			OZ_DEFENDER_API_KEY: Joi.string()
-				.required()
-				.length(32)
-				.alphanum()
-				.description("API key for Openzeppelin Defender"),
-			OZ_DEFENDER_API_SECRET: Joi.string()
-				.required()
-				.length(64)
-				.alphanum()
-				.description("API secret for Openzeppelin Defender"),
 			FORKING_BLOCK_NUMBER: Joi.number()
 				.optional()
 				.integer()

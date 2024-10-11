@@ -6,7 +6,6 @@ import {
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-solhint";
-import "@openzeppelin/hardhat-defender";
 import "@openzeppelin/hardhat-upgrades";
 import "hardhat-contract-sizer";
 import "./tasks";
@@ -123,10 +122,6 @@ const config: HardhatUserConfig = {
 			[Network.Sepolia]: envVars.ETHERSCAN_API_KEY,
 			[Network.EthereumAlt]: envVars.ETHERSCAN_API_KEY,
 		},
-	},
-	defender: {
-		apiKey: envVars.OZ_DEFENDER_API_KEY,
-		apiSecret: envVars.OZ_DEFENDER_API_SECRET,
 	},
 	gasReporter: {
 		coinmarketcap: envVars.COINMARKETCAP_API_KEY,
