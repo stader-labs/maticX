@@ -41,7 +41,6 @@
 	"devDependencies": {
 		"@nomicfoundation/hardhat-toolbox": "^2.0.2",
 		"@nomiclabs/hardhat-solhint": "^4.0.0",
-		"@openzeppelin/hardhat-defender": "^1.6.0",
 		"@openzeppelin/hardhat-upgrades": "^1.10.0",
 		"@types/eslint__js": "^8.42.3",
 		"dotenv": "^16.4.5",
