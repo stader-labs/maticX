@@ -386,17 +386,34 @@ contract MaticX is
 	function stakeRewardsAndDistributeFees(
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused onlyRole(BOT) {
+		_stakeRewardsAndDistributeFees(_validatorId, true);
+	}
+
+	/// @notice Stake Matic rewards and distribute fees to the treasury if any.
+	/// @custom:deprecated
+	/// @param _validatorId - Validator id to stake Matic rewards
+	function stakeRewardsAndDistributeFeesMatic(
+		uint256 _validatorId
+	) external override nonReentrant whenNotPaused onlyRole(BOT) {
+		_stakeRewardsAndDistributeFees(_validatorId, false);
+	}
+
+	function _stakeRewardsAndDistributeFees(
+		uint256 _validatorId,
+		bool _pol
+	) private {
 		require(
 			validatorRegistry.validatorIdExists(_validatorId),
 			"Doesn't exist in validator registry"
 		);
 
-		uint256 reward = polToken.balanceOf(address(this));
+		IERC20Upgradeable token = _pol ? polToken : maticToken;
+		uint256 reward = token.balanceOf(address(this));
 		require(reward > 0, "Reward is zero");
 
 		uint256 treasuryFee = (reward * feePercent) / 100;
 		if (treasuryFee > 0) {
-			polToken.safeTransfer(treasury, treasuryFee);
+			token.safeTransfer(treasury, treasuryFee);
 			emit DistributeFees(treasury, treasuryFee);
 		}
 
@@ -405,7 +422,9 @@ contract MaticX is
 			stakeManager.getValidatorContract(_validatorId)
 		);
 
-		validatorShare.buyVoucherPOL(amountToStake, 0);
+		_pol
+			? validatorShare.buyVoucherPOL(amountToStake, 0)
+			: validatorShare.buyVoucher(amountToStake, 0);
 
 		uint256 totalShares = totalSupply();
 		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
