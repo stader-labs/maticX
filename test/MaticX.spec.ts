@@ -1932,7 +1932,7 @@ describe("MaticX", function () {
 		});
 	});
 
-	describe("Stake rewards and distribute fees", function () {
+	describe("Stake rewards and distribute fees for POL", function () {
 		describe("Negative", function () {
 			it("Should revert with the right error if paused", async function () {
 				const { maticX, manager, bot, preferredDepositValidatorId } =
@@ -2063,6 +2063,158 @@ describe("MaticX", function () {
 					pol,
 					[maticX, stakeManager, treasuryAddress],
 					[stakeAmount.mul(-1), netStakeAmount, feeAmount]
+				);
+			});
+		});
+	});
+
+	describe("Stake rewards and distribute fees for Matic", function () {
+		describe("Negative", function () {
+			it("Should revert with the right error if paused", async function () {
+				const { maticX, manager, bot, preferredDepositValidatorId } =
+					await loadFixture(deployFixture);
+
+				await maticX.connect(manager).togglePause();
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFeesMatic(
+						preferredDepositValidatorId
+					);
+				await expect(promise).to.be.revertedWith("Pausable: paused");
+			});
+
+			it("Should revert with the right error if called by a non bot", async function () {
+				const {
+					maticX,
+					executor,
+					botRole,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(executor)
+					.stakeRewardsAndDistributeFeesMatic(
+						preferredDepositValidatorId
+					);
+				await expect(promise).to.be.revertedWith(
+					`AccessControl: account ${executor.address.toLowerCase()} is missing role ${botRole}`
+				);
+			});
+
+			it("Should revert with the right error if having an unregistered validator id", async function () {
+				const { maticX, bot } = await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFeesMatic(0);
+				await expect(promise).to.be.revertedWith(
+					"Doesn't exist in validator registry"
+				);
+			});
+
+			it("Should revert with the right error if having the zero reward", async function () {
+				const { maticX, bot, preferredWithdrawalValidatorId } =
+					await loadFixture(deployFixture);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFeesMatic(
+						preferredWithdrawalValidatorId
+					);
+				await expect(promise).to.be.revertedWith("Reward is zero");
+			});
+		});
+
+		describe("Positive", function () {
+			it("Should emit the StakeRewards and DistributeFees events if having a positive fee amount", async function () {
+				const {
+					maticX,
+					matic,
+					polygonTreasury,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await matic
+					.connect(polygonTreasury)
+					.transfer(maticX.address, stakeAmount);
+
+				const feeAmount = stakeAmount.mul(5).div(100);
+				const netStakeAmount = stakeAmount.sub(feeAmount);
+				const treasuryAddress = await maticX.treasury();
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFeesMatic(
+						preferredDepositValidatorId
+					);
+				await expect(promise)
+					.to.emit(maticX, "StakeRewards")
+					.withArgs(preferredDepositValidatorId, netStakeAmount)
+					.and.to.emit(maticX, "DistributeFees")
+					.withArgs(treasuryAddress, feeAmount);
+			});
+
+			it("Should emit the StakeRewards if having the zero fee amount", async function () {
+				const {
+					maticX,
+					matic,
+					polygonTreasury,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const stakeAmount = 19;
+				await matic
+					.connect(polygonTreasury)
+					.transfer(maticX.address, stakeAmount);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFeesMatic(
+						preferredDepositValidatorId
+					);
+				await expect(promise)
+					.to.emit(maticX, "StakeRewards")
+					.withArgs(preferredDepositValidatorId, stakeAmount)
+					.and.not.to.emit(maticX, "DistributeFees");
+			});
+
+			it("Should return the right Matic balances", async function () {
+				const {
+					maticX,
+					stakeManager,
+					pol,
+					matic,
+					polygonTreasury,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await matic
+					.connect(polygonTreasury)
+					.transfer(maticX.address, stakeAmount);
+
+				const treasuryAddress = await maticX.treasury();
+
+				const feeAmount = stakeAmount.mul(5).div(100);
+				const netStakeAmount = stakeAmount.sub(feeAmount);
+
+				const promise = maticX
+					.connect(bot)
+					.stakeRewardsAndDistributeFeesMatic(
+						preferredDepositValidatorId
+					);
+				await expect(promise).to.changeTokenBalances(
+					matic,
+					[maticX, treasuryAddress],
+					[stakeAmount.mul(-1), feeAmount]
+				);
+				await expect(promise).to.changeTokenBalance(
+					pol,
+					stakeManager,
+					netStakeAmount
 				);
 			});
 		});
