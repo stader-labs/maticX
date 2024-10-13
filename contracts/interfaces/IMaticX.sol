@@ -13,7 +13,7 @@ interface IMaticX is IERC20Upgradeable {
 	struct WithdrawalRequest {
 		// Validator's incremental nonce
 		uint256 validatorNonce;
-		// Request epoch number
+		// Request epoch
 		uint256 requestEpoch;
 		// Address of the validator share
 		address validatorAddress;
