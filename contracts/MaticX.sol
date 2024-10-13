@@ -222,8 +222,7 @@ contract MaticX is
 		uint256 leftAmountToWithdraw = amountToWithdraw;
 		uint256 validatorIdCount = validatorIds.length;
 		uint256 totalIterations = validatorIdCount;
-		uint256 requestEpoch = stakeManager.epoch() +
-			stakeManager.withdrawalDelay();
+		uint256 requestEpoch = stakeManager.epoch();
 
 		while (leftAmountToWithdraw > 0 && totalIterations > 0) {
 			uint256 validatorId = validatorIds[currentIdx];
@@ -314,7 +313,8 @@ contract MaticX is
 
 		WithdrawalRequest memory userRequest = userRequests[_idx];
 		require(
-			stakeManager.epoch() >= userRequest.requestEpoch,
+			stakeManager.epoch() >=
+				userRequest.requestEpoch + stakeManager.withdrawalDelay(),
 			"Not able to claim yet"
 		);
 
