@@ -1559,11 +1559,12 @@ describe("MaticX", function () {
 				const withdrawalIndex = 0;
 				const withdrawalRequests =
 					await maticX.getUserWithdrawalRequests(stakerA.address);
-				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+				const [, requestEpoch] = withdrawalRequests[withdrawalIndex];
 
+				const withdrawalDelay = await stakeManager.withdrawalDelay();
 				await stakeManager
 					.connect(stakeManagerGovernance)
-					.setCurrentEpoch(withdrawalEpoch.sub(1));
+					.setCurrentEpoch(requestEpoch.add(withdrawalDelay).sub(1));
 
 				const promise = maticX
 					.connect(stakerA)
@@ -1633,11 +1634,12 @@ describe("MaticX", function () {
 				const withdrawalIndex = 0;
 				const withdrawalRequests =
 					await maticX.getUserWithdrawalRequests(stakerA.address);
-				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+				const [, requestEpoch] = withdrawalRequests[withdrawalIndex];
 
+				const withdrawalDelay = await stakeManager.withdrawalDelay();
 				await stakeManager
 					.connect(stakeManagerGovernance)
-					.setCurrentEpoch(withdrawalEpoch);
+					.setCurrentEpoch(requestEpoch.add(withdrawalDelay));
 
 				const promise = maticX
 					.connect(stakerA)
@@ -1664,11 +1666,12 @@ describe("MaticX", function () {
 				const withdrawalIndex = 0;
 				const withdrawalRequests =
 					await maticX.getUserWithdrawalRequests(stakerA.address);
-				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+				const [, requestEpoch] = withdrawalRequests[withdrawalIndex];
 
+				const withdrawalDelay = await stakeManager.withdrawalDelay();
 				await stakeManager
 					.connect(stakeManagerGovernance)
-					.setCurrentEpoch(withdrawalEpoch);
+					.setCurrentEpoch(requestEpoch.add(withdrawalDelay));
 
 				const promise = maticX
 					.connect(stakerA)
@@ -1700,11 +1703,12 @@ describe("MaticX", function () {
 				const withdrawalIndex = 0;
 				const withdrawalRequests =
 					await maticX.getUserWithdrawalRequests(stakerA.address);
-				const [, withdrawalEpoch] = withdrawalRequests[withdrawalIndex];
+				const [, requestEpoch] = withdrawalRequests[withdrawalIndex];
 
+				const withdrawalDelay = await stakeManager.withdrawalDelay();
 				await stakeManager
 					.connect(stakeManagerGovernance)
-					.setCurrentEpoch(withdrawalEpoch);
+					.setCurrentEpoch(requestEpoch.add(withdrawalDelay));
 
 				const promise = maticX
 					.connect(stakerA)
@@ -1743,12 +1747,13 @@ describe("MaticX", function () {
 				const withdrawalIndex = 0;
 				const initialWithdrawalRequests =
 					await maticX.getUserWithdrawalRequests(stakerA.address);
-				const [, withdrawalEpoch] =
+				const [, requestEpoch] =
 					initialWithdrawalRequests[withdrawalIndex];
 
+				const withdrawalDelay = await stakeManager.withdrawalDelay();
 				await stakeManager
 					.connect(stakeManagerGovernance)
-					.setCurrentEpoch(withdrawalEpoch);
+					.setCurrentEpoch(requestEpoch.add(withdrawalDelay));
 
 				await maticX.connect(stakerA).claimWithdrawal(withdrawalIndex);
 
