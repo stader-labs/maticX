@@ -134,16 +134,16 @@ interface IMaticX is IERC20Upgradeable {
 		uint256[] calldata _validatorIds
 	) external returns (uint256[] memory);
 
-	/// @notice Stake POL rewards and distribute fees to the treasury if any.
+	/// @notice Stakes POL rewards and distribute fees to the treasury if any.
 	/// @param _validatorId - Validator id to stake POL rewards
 	function stakeRewardsAndDistributeFees(uint256 _validatorId) external;
 
-	/// @notice Stake Matic rewards and distribute fees to the treasury if any.
+	/// @notice Stakes Matic rewards and distribute fees to the treasury if any.
 	/// @custom:deprecated
 	/// @param _validatorId - Validator id to stake Matic rewards
 	function stakeRewardsAndDistributeFeesMatic(uint256 _validatorId) external;
 
-	/// @notice Migrate all POL tokens to another validator.
+	/// @notice Migrates all POL tokens to another validator.
 	/// @param _fromValidatorId - Validator id to migrate POL tokens from
 	/// @param _toValidatorId - Validator id to migrate POL tokens to
 	/// @param _amount - Amount of POL tokens
