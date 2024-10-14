@@ -4,9 +4,8 @@ import { MaticXDeployer } from "./deployers";
 const main = async () => {
 	const [rootSigner] = await ethers.getSigners();
 
-	const maticXDeployer = await MaticXDeployer.CreateMaticXDeployer(
-		rootSigner
-	);
+	const maticXDeployer =
+		await MaticXDeployer.CreateMaticXDeployer(rootSigner);
 	await maticXDeployer.deploy();
 	await maticXDeployer.export();
 };

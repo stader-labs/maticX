@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { FxBaseChildTunnel } from "../tunnel/FxBaseChildTunnel.sol";
 
 /**
@@ -17,11 +16,9 @@ contract FxStateChildTunnel is FxBaseChildTunnel, AccessControl {
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 	}
 
-	function setFxRootTunnel(address _fxRootTunnel)
-		external
-		override
-		onlyRole(DEFAULT_ADMIN_ROLE)
-	{
+	function setFxRootTunnel(
+		address _fxRootTunnel
+	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
 		fxRootTunnel = _fxRootTunnel;
 	}
 
@@ -53,15 +50,9 @@ contract FxStateChildTunnel is FxBaseChildTunnel, AccessControl {
 		return balanceInMATIC;
 	}
 
-	function convertMaticXToMatic(uint256 _balance)
-		public
-		view
-		returns (
-			uint256,
-			uint256,
-			uint256
-		)
-	{
+	function convertMaticXToMatic(
+		uint256 _balance
+	) public view returns (uint256, uint256, uint256) {
 		(uint256 maticX, uint256 matic) = getReserves();
 		maticX = maticX == 0 ? 1 : maticX;
 		matic = matic == 0 ? 1 : matic;
@@ -71,15 +62,9 @@ contract FxStateChildTunnel is FxBaseChildTunnel, AccessControl {
 		return (balanceInMATIC, maticX, matic);
 	}
 
-	function convertMaticToMaticX(uint256 _balance)
-		public
-		view
-		returns (
-			uint256,
-			uint256,
-			uint256
-		)
-	{
+	function convertMaticToMaticX(
+		uint256 _balance
+	) public view returns (uint256, uint256, uint256) {
 		(uint256 maticX, uint256 matic) = getReserves();
 		maticX = maticX == 0 ? 1 : maticX;
 		matic = matic == 0 ? 1 : matic;

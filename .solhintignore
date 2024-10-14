@@ -1,0 +1,16 @@
+.idea
+.openzeppelin
+.vscode
+artifacts/
+cache/
+coverage/
+contracts/ChildPool.sol
+contracts/interfaces/IChildPool.sol
+contracts/lib
+contracts/mocks
+contracts/state-transfer
+contracts/tunnel
+crytic-corpus/
+crytic-export/
+node_modules/
+typechain-types/

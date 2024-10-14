@@ -1,6 +1,6 @@
 interface Multisig {
 	address: string;
-	owners: Array<string>;
+	owners: string[];
 }
 
 export interface DeployDetails {
