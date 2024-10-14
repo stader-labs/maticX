@@ -118,6 +118,7 @@ contract MaticX is
 
 		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
 
+		version = "2";
 		reentrancyGuardStatus = NOT_ENTERED;
 
 		IERC20Upgradeable(_polToken).safeApprove(
