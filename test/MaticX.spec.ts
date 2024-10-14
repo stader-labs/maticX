@@ -31,6 +31,7 @@ describe("MaticX", function () {
 	const stakeAmount = ethers.utils.parseUnits("100", 18);
 	const tripleStakeAmount = stakeAmount.mul(3);
 	const version = "2";
+	const feePercent = 10;
 
 	async function deployFixture(callMaticXInitializeV2 = true) {
 		await reset(providerUrl, envVars.FORKING_BLOCK_NUMBER);
@@ -2460,16 +2461,48 @@ describe("MaticX", function () {
 		});
 
 		describe("Positive", function () {
-			it("Should emit the SetFeePercent event", async function () {
+			it("Should emit the SetFeePercent event if having zero rewards", async function () {
 				const { maticX, manager } = await loadFixture(deployFixture);
 
-				const feePercent = 100;
 				const promise = maticX
 					.connect(manager)
 					.setFeePercent(feePercent);
 				await expect(promise)
 					.to.emit(maticX, "SetFeePercent")
 					.withArgs(feePercent);
+
+				await expect(promise)
+					.not.to.emit(maticX, "StakeRewards")
+					.and.not.to.emit(maticX, "DistributeFees");
+			});
+
+			it("Should emit the SetFeePercent, StakeRewards and DistributeFees events if having non zero rewards", async function () {
+				const {
+					maticX,
+					pol,
+					polygonTreasury,
+					manager,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await pol
+					.connect(polygonTreasury)
+					.transfer(maticX.address, stakeAmount);
+
+				const feeAmount = stakeAmount.mul(5).div(100);
+				const netStakeAmount = stakeAmount.sub(feeAmount);
+				const treasuryAddress = await maticX.treasury();
+
+				const promise = maticX
+					.connect(manager)
+					.setFeePercent(feePercent);
+				await expect(promise).to.emit(maticX, "SetFeePercent");
+
+				await expect(promise)
+					.to.emit(maticX, "StakeRewards")
+					.withArgs(preferredDepositValidatorId, netStakeAmount)
+					.and.to.emit(maticX, "DistributeFees")
+					.withArgs(treasuryAddress, feeAmount);
 			});
 		});
 	});
