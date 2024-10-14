@@ -105,6 +105,8 @@ contract ValidatorRegistry is
 
 		require(_polToken != address(0), "Zero POL token address");
 		polToken = _polToken;
+
+		version = "2";
 	}
 
 	/// ----------------------------- API --------------------------------------
