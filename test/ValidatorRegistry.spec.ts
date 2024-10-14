@@ -215,7 +215,7 @@ describe("ValidatorRegistry", function () {
 				const { validatorRegistry } = await loadFixture(deployFixture);
 
 				const currentVersion = await validatorRegistry.version();
-				expect(currentVersion).to.equal("");
+				expect(currentVersion).to.equal(version);
 			});
 
 			it("Should return the right contract addresses", async function () {
@@ -569,6 +569,19 @@ describe("ValidatorRegistry", function () {
 				await expect(promise)
 					.to.emit(validatorRegistry, "Initialized")
 					.withArgs(2);
+			});
+
+			it("Should return the right version", async function () {
+				const { validatorRegistry, pol, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
+
+				await validatorRegistry
+					.connect(manager)
+					.initializeV2(pol.address);
+
+				const currentVersion = await validatorRegistry.version();
+				expect(currentVersion).to.equal(version);
 			});
 
 			it("Should return the right contract addresses", async function () {

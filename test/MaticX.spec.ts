@@ -324,7 +324,7 @@ describe("MaticX", function () {
 				const { maticX } = await loadFixture(deployFixture);
 
 				const currentVersion = await maticX.version();
-				expect(currentVersion).to.equal("");
+				expect(currentVersion).to.equal(version);
 			});
 
 			it("Should return the right fee percent", async function () {
@@ -657,6 +657,17 @@ describe("MaticX", function () {
 					.withArgs(2)
 					.and.to.emit(maticX, "RoleAdminChanged")
 					.withArgs(botRole, defaultAdminRole, defaultAdminRole);
+			});
+
+			it("Should return the right version", async function () {
+				const { maticX, pol, manager } = await loadFixture(
+					deployFixture.bind(null, false)
+				);
+
+				await maticX.connect(manager).initializeV2(pol.address);
+
+				const currentVersion = await maticX.version();
+				expect(currentVersion).to.equal(version);
 			});
 
 			it("Should return the right contract addresses", async function () {
