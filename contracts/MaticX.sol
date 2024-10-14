@@ -26,6 +26,7 @@ contract MaticX is
 	using StringsUpgradeable for string;
 
 	bytes32 public constant BOT = keccak256("BOT");
+	uint256 private constant MAX_FEE_PERCENT = 15;
 	uint256 private constant NOT_ENTERED = 1;
 	uint256 private constant ENTERED = 2;
 
@@ -477,12 +478,15 @@ contract MaticX is
 	/// ------------------------------ Setters ---------------------------------
 
 	/// @notice Sets a fee percent.
-	/// @param _feePercent - Fee percent (10 = 10%)
+	/// @param _feePercent - Fee percent (1 = 1%)
 	// slither-disable-next-line reentrancy-eth
 	function setFeePercent(
 		uint8 _feePercent
 	) external override nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(_feePercent <= 100, "Fee percent must not exceed 100");
+		require(
+			_feePercent <= MAX_FEE_PERCENT,
+			"Fee percent must not exceed 15"
+		);
 
 		uint256[] memory validatorIds = validatorRegistry.getValidators();
 		uint256 validatorIdCount = validatorIds.length;
