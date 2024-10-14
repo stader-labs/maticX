@@ -381,26 +381,31 @@ contract MaticX is
 		return rewards;
 	}
 
-	/// @notice Stake POL rewards and distribute fees to the treasury if any.
+	/// @notice Stakes POL rewards and distribute fees to the treasury if any.
 	/// @param _validatorId - Validator id to stake POL rewards
 	function stakeRewardsAndDistributeFees(
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused onlyRole(BOT) {
-		_stakeRewardsAndDistributeFees(_validatorId, true);
+		_stakeRewardsAndDistributeFees(_validatorId, true, true);
 	}
 
-	/// @notice Stake Matic rewards and distribute fees to the treasury if any.
+	/// @notice Stakes Matic rewards and distribute fees to the treasury if any.
 	/// @custom:deprecated
 	/// @param _validatorId - Validator id to stake Matic rewards
 	function stakeRewardsAndDistributeFeesMatic(
 		uint256 _validatorId
 	) external override nonReentrant whenNotPaused onlyRole(BOT) {
-		_stakeRewardsAndDistributeFees(_validatorId, false);
+		_stakeRewardsAndDistributeFees(_validatorId, false, true);
 	}
 
+	/// @notice Stakes token rewards and distribute fees to the treasury if any.
+	/// @param _validatorId - Validator id to stake toke rewards
+	/// @param _pol - If POL tokens are used for staking and fee distribution
+	/// @param _revertOnZeroReward - If revert on the zero reward or not
 	function _stakeRewardsAndDistributeFees(
 		uint256 _validatorId,
-		bool _pol
+		bool _pol,
+		bool _revertOnZeroReward
 	) private {
 		require(
 			validatorRegistry.validatorIdExists(_validatorId),
@@ -409,7 +414,12 @@ contract MaticX is
 
 		IERC20Upgradeable token = _pol ? polToken : maticToken;
 		uint256 reward = token.balanceOf(address(this));
-		require(reward > 0, "Reward is zero");
+		if (reward == 0) {
+			if (_revertOnZeroReward) {
+				revert("Reward is zero");
+			}
+			return;
+		}
 
 		uint256 treasuryFee = (reward * feePercent) / 100;
 		if (treasuryFee > 0) {
@@ -436,7 +446,7 @@ contract MaticX is
 		emit StakeRewards(_validatorId, amountToStake);
 	}
 
-	/// @notice Migrate all POL tokens to another validator.
+	/// @notice Migrates all POL tokens to another validator.
 	/// @param _fromValidatorId - Validator id to migrate POL tokens from
 	/// @param _toValidatorId - Validator id to migrate POL tokens to
 	/// @param _amount - Amount of POL tokens
@@ -468,10 +478,22 @@ contract MaticX is
 
 	/// @notice Sets a fee percent.
 	/// @param _feePercent - Fee percent (10 = 10%)
+	// slither-disable-next-line reentrancy-eth
 	function setFeePercent(
 		uint8 _feePercent
-	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+	) external override nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
 		require(_feePercent <= 100, "Fee percent must not exceed 100");
+
+		uint256[] memory validatorIds = validatorRegistry.getValidators();
+		uint256 validatorIdCount = validatorIds.length;
+
+		for (uint256 i = 0; i < validatorIdCount; ) {
+			_stakeRewardsAndDistributeFees(validatorIds[i], true, false);
+
+			unchecked {
+				++i;
+			}
+		}
 
 		feePercent = _feePercent;
 		emit SetFeePercent(_feePercent);
