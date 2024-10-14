@@ -31,7 +31,7 @@ describe("MaticX", function () {
 	const stakeAmount = ethers.utils.parseUnits("100", 18);
 	const tripleStakeAmount = stakeAmount.mul(3);
 	const version = "2";
-	const feePercent = 10;
+	const feePercent = 15;
 
 	async function deployFixture(callMaticXInitializeV2 = true) {
 		await reset(providerUrl, envVars.FORKING_BLOCK_NUMBER);
@@ -2444,7 +2444,9 @@ describe("MaticX", function () {
 				const { maticX, stakerA, defaultAdminRole } =
 					await loadFixture(deployFixture);
 
-				const promise = maticX.connect(stakerA).setFeePercent(100);
+				const promise = maticX
+					.connect(stakerA)
+					.setFeePercent(feePercent);
 				await expect(promise).to.be.revertedWith(
 					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
 				);
@@ -2453,9 +2455,9 @@ describe("MaticX", function () {
 			it("Should revert with the right error if passing a too high fee percent", async function () {
 				const { maticX, manager } = await loadFixture(deployFixture);
 
-				const promise = maticX.connect(manager).setFeePercent(101);
+				const promise = maticX.connect(manager).setFeePercent(16);
 				await expect(promise).to.be.revertedWith(
-					"Fee percent must not exceed 100"
+					"Fee percent must not exceed 15"
 				);
 			});
 		});
