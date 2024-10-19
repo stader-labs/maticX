@@ -330,8 +330,8 @@ contract MaticX is
 		);
 
 		IValidatorShare(userRequest.validatorAddress).unstakeClaimTokens_newPOL(
-				userRequest.validatorNonce
-			);
+			userRequest.validatorNonce
+		);
 
 		userRequests[_idx] = userRequests[userRequests.length - 1];
 		userRequests.pop();
@@ -453,7 +453,7 @@ contract MaticX is
 		emit StakeRewards(_validatorId, amountToStake);
 	}
 
-	/// @notice Migrates all POL tokens to another validator.
+	/// @notice Delegates a given amount of POL tokens to another validator.
 	/// @param _fromValidatorId - Validator id to migrate POL tokens from
 	/// @param _toValidatorId - Validator id to migrate POL tokens to
 	/// @param _amount - Amount of POL tokens
@@ -472,12 +472,22 @@ contract MaticX is
 			"To validator id does not exist in our registry"
 		);
 
-		emit MigrateDelegation(_fromValidatorId, _toValidatorId, _amount);
+		IValidatorShare validatorShare = IValidatorShare(
+			stakeManager.getValidatorContract(_fromValidatorId)
+		);
+		(uint256 validatorBalance, ) = getTotalStake(validatorShare);
+
+		uint256 finalAmount = _amount > validatorBalance
+			? validatorBalance
+			: _amount;
+		require(finalAmount > 0, "Available delegation amount is zero");
+
+		emit MigrateDelegation(_fromValidatorId, _toValidatorId, finalAmount);
 
 		stakeManager.migrateDelegation(
 			_fromValidatorId,
 			_toValidatorId,
-			_amount
+			finalAmount
 		);
 	}
 
