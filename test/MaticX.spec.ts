@@ -2350,12 +2350,14 @@ describe("MaticX", function () {
 						preferredWithdrawalValidatorId,
 						1
 					);
-				await expect(promise).to.be.revertedWith("Migrating too much");
+				await expect(promise).to.be.revertedWith(
+					"Available delegation amount is zero"
+				);
 			});
 		});
 
 		describe("Positive", function () {
-			it("Should emit the MigrateDelegation event", async function () {
+			it("Should emit the MigrateDelegation event if having a sufficient source validator balance", async function () {
 				const {
 					maticX,
 					pol,
@@ -2378,7 +2380,34 @@ describe("MaticX", function () {
 				await expect(promise).to.emit(maticX, "MigrateDelegation");
 			});
 
-			it("Should return the right total stake of the from validator", async function () {
+			it("Should emit the MigrateDelegation event if having an sufficient source validator balance", async function () {
+				const {
+					maticX,
+					pol,
+					manager,
+					stakerA,
+					preferredDepositValidatorId,
+					preferredWithdrawalValidatorId,
+				} = await loadFixture(deployFixture);
+
+				const requestedWithdrawalAmount = 1;
+				await pol.connect(stakerA).approve(maticX.address, stakeAmount);
+				await maticX.connect(stakerA).submitPOL(stakeAmount);
+				await maticX
+					.connect(stakerA)
+					.requestWithdraw(requestedWithdrawalAmount);
+
+				const promise = maticX
+					.connect(manager)
+					.migrateDelegation(
+						preferredDepositValidatorId,
+						preferredWithdrawalValidatorId,
+						stakeAmount.sub(requestedWithdrawalAmount)
+					);
+				await expect(promise).to.emit(maticX, "MigrateDelegation");
+			});
+
+			it("Should return the right total stake of the source validator", async function () {
 				const {
 					maticX,
 					stakeManager,
@@ -2415,7 +2444,7 @@ describe("MaticX", function () {
 				expect(currentTotalStake).to.equal(0);
 			});
 
-			it("Should return the right total stake of the to validator", async function () {
+			it("Should return the right total stake of the destination validator", async function () {
 				const {
 					maticX,
 					stakeManager,
