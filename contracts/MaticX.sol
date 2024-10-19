@@ -26,7 +26,8 @@ contract MaticX is
 	using StringsUpgradeable for string;
 
 	bytes32 public constant BOT = keccak256("BOT");
-	uint256 private constant MAX_FEE_PERCENT = 15;
+	uint256 private constant MAX_FEE_PERCENT = 1_500; // 15%
+	uint256 private constant BASIS_POINTS = 10_000;
 	uint256 private constant NOT_ENTERED = 1;
 	uint256 private constant ENTERED = 2;
 
@@ -35,7 +36,7 @@ contract MaticX is
 	IERC20Upgradeable private maticToken;
 	address public override treasury;
 	string public override version;
-	uint8 public override feePercent;
+	uint16 public override feePercent;
 	address private instantPoolOwner_deprecated;
 	uint256 private instantPoolMatic_deprecated;
 	uint256 private instantPoolMaticX_deprecated;
@@ -119,6 +120,10 @@ contract MaticX is
 		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
 
 		version = "2";
+		feePercent *= 100;
+		instantPoolOwner_deprecated = address(0);
+		instantPoolMatic_deprecated = 0;
+		instantPoolMaticX_deprecated = 0;
 		reentrancyGuardStatus = NOT_ENTERED;
 
 		IERC20Upgradeable(_polToken).safeApprove(
@@ -325,8 +330,8 @@ contract MaticX is
 		);
 
 		IValidatorShare(userRequest.validatorAddress).unstakeClaimTokens_newPOL(
-			userRequest.validatorNonce
-		);
+				userRequest.validatorNonce
+			);
 
 		userRequests[_idx] = userRequests[userRequests.length - 1];
 		userRequests.pop();
@@ -423,7 +428,7 @@ contract MaticX is
 			return;
 		}
 
-		uint256 treasuryFee = (reward * feePercent) / 100;
+		uint256 treasuryFee = (reward * feePercent) / BASIS_POINTS;
 		if (treasuryFee > 0) {
 			token.safeTransfer(treasury, treasuryFee);
 			emit DistributeFees(treasury, treasuryFee);
@@ -478,16 +483,13 @@ contract MaticX is
 
 	/// ------------------------------ Setters ---------------------------------
 
-	/// @notice Sets a fee percent.
-	/// @param _feePercent - Fee percent (1 = 1%)
+	/// @notice Sets a fee percent where 1 = 0.01%.
+	/// @param _feePercent - Fee percent
 	// slither-disable-next-line reentrancy-eth
 	function setFeePercent(
-		uint8 _feePercent
+		uint16 _feePercent
 	) external override nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-		require(
-			_feePercent <= MAX_FEE_PERCENT,
-			"Fee percent must not exceed 15"
-		);
+		require(_feePercent <= MAX_FEE_PERCENT, "Fee percent is too high");
 
 		uint256[] memory validatorIds = validatorRegistry.getValidators();
 		uint256 validatorIdCount = validatorIds.length;

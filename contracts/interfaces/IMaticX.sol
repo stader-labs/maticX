@@ -77,7 +77,7 @@ interface IMaticX is IERC20Upgradeable {
 
 	/// @notice Emitted when the fee percent is set.
 	/// @param _feePercent - Fee percent
-	event SetFeePercent(uint8 _feePercent);
+	event SetFeePercent(uint16 _feePercent);
 
 	/// @notice Emitted when the address of the treasury is set.
 	/// @param _treasury - Address of the treasury
@@ -153,9 +153,9 @@ interface IMaticX is IERC20Upgradeable {
 		uint256 _amount
 	) external;
 
-	/// @notice Sets a fee percent.
-	/// @param _feePercent - Fee percent (10 = 10%)
-	function setFeePercent(uint8 _feePercent) external;
+	/// @notice Sets a fee percent where 1 = 0.01%.
+	/// @param _feePercent - Fee percent
+	function setFeePercent(uint16 _feePercent) external;
 
 	/// @notice Sets the address of the treasury.
 	/// @param _treasury Address of the treasury
@@ -270,7 +270,7 @@ interface IMaticX is IERC20Upgradeable {
 	function version() external view returns (string memory);
 
 	/// @notice Returns the fee percent.
-	function feePercent() external view returns (uint8);
+	function feePercent() external view returns (uint16);
 
 	/// @notice Returns the address of the fx state root tunnel.
 	function fxStateRootTunnel() external view returns (IFxStateRootTunnel);
