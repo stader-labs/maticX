@@ -1,9 +1,9 @@
+import fs from "node:fs";
+import path from "node:path";
 import { Contract, ethers } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { publicKeyCreate } from "secp256k1";
 import { DeployDetails } from "./types";
-import fs from "fs";
-import path from "path";
 
 export const getPublicKey = (privateKey: string): Uint8Array => {
 	const privKeyBytes = ethers.utils.arrayify(privateKey);
@@ -57,6 +57,7 @@ export const exportAddresses = (fullFilePath: string, addresses: object) => {
 export const getUpgradeContext = (hre: HardhatRuntimeEnvironment) => {
 	const network = hre.network.name;
 	const filePath = `${network}-deployment-info.json`;
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
 	const deployDetails: DeployDetails = require(path.join("..", filePath));
 
 	return {

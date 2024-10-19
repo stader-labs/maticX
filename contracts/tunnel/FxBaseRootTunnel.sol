@@ -1,14 +1,16 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity 0.8.7;
 
 import { RLPReader } from "../lib/RLPReader.sol";
 import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { Merkle } from "../lib/Merkle.sol";
-import "../lib/ExitPayloadReader.sol";
+import { ExitPayloadReader } from "../lib/ExitPayloadReader.sol";
 
 interface IFxStateSender {
-	function sendMessageToChild(address _receiver, bytes calldata _data)
-		external;
+	function sendMessageToChild(
+		address _receiver,
+		bytes calldata _data
+	) external;
 }
 
 contract ICheckpointManager {
@@ -69,10 +71,9 @@ abstract contract FxBaseRootTunnel {
 		fxRoot.sendMessageToChild(fxChildTunnel, message);
 	}
 
-	function _validateAndExtractMessage(bytes memory inputData)
-		internal
-		returns (bytes memory)
-	{
+	function _validateAndExtractMessage(
+		bytes memory inputData
+	) internal returns (bytes memory) {
 		ExitPayloadReader.ExitPayload memory payload = inputData
 			.toExitPayload();
 

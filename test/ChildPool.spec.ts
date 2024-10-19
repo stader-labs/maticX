@@ -1,3 +1,6 @@
+import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
+import { reset } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { Transaction, utils } from "ethers";
 import { ethers, upgrades } from "hardhat";
@@ -11,15 +14,13 @@ import {
 	RateProvider,
 	StakeManagerMock,
 	ValidatorRegistry,
-} from "../typechain";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
+} from "../typechain-types";
 
 describe("ChildPool", () => {
 	let childPool: ChildPool;
 	let deployer: SignerWithAddress;
 	let manager: SignerWithAddress;
-	let instant_pool_owner: SignerWithAddress;
+	let instantPoolOwner: SignerWithAddress;
 	let treasury: SignerWithAddress;
 	let users: SignerWithAddress[] = [];
 	let maticX: MaticX;
@@ -59,10 +60,11 @@ describe("ChildPool", () => {
 	let requestMaticXSwap: (
 		signer: SignerWithAddress,
 		amount: BigNumber
-	) => Promise<any>;
+	) => Promise<unknown>;
 	let claimMaticXSwap: (
 		signer: SignerWithAddress,
 		index: BigNumber
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	) => Promise<any>;
 
 	before(() => {
@@ -99,11 +101,10 @@ describe("ChildPool", () => {
 			signer: SignerWithAddress,
 			amount: BigNumberish
 		) => {
-			const signerChildPool = await childPool.connect(signer);
-			const result =
-				await signerChildPool.swapMaticForMaticXViaInstantPool({
-					value: amount,
-				});
+			const signerChildPool = childPool.connect(signer);
+			await signerChildPool.swapMaticForMaticXViaInstantPool({
+				value: amount,
+			});
 		};
 
 		requestMaticXSwap = async (
@@ -112,7 +113,7 @@ describe("ChildPool", () => {
 		) => {
 			await mintMaticX(signer, amount);
 			await maticXApproveForChildPool(signer, amount);
-			const signerChildPool = await childPool.connect(signer);
+			const signerChildPool = childPool.connect(signer);
 			return await signerChildPool.requestMaticXSwap(amount);
 		};
 
@@ -120,16 +121,18 @@ describe("ChildPool", () => {
 			signer: SignerWithAddress,
 			index: BigNumber
 		) => {
-			const signerChildPool = await childPool.connect(signer);
+			const signerChildPool = childPool.connect(signer);
 			return await signerChildPool.claimMaticXSwap(index);
 		};
 	});
 
 	beforeEach(async () => {
+		await reset();
+
 		[deployer, ...users] = await ethers.getSigners();
 		manager = deployer;
 		treasury = users[1];
-		instant_pool_owner = deployer;
+		instantPoolOwner = deployer;
 		polygonMock = (await (
 			await ethers.getContractFactory("PolygonMock")
 		).deploy()) as PolygonMock;
@@ -182,7 +185,6 @@ describe("ChildPool", () => {
 				stakeManagerMock.address,
 				polygonMock.address,
 				manager.address,
-				instant_pool_owner.address,
 				treasury.address,
 			]
 		)) as MaticX;
@@ -194,7 +196,7 @@ describe("ChildPool", () => {
 				fxStateChildTunnel.address,
 				maticX.address,
 				manager.address,
-				instant_pool_owner.address,
+				instantPoolOwner.address,
 				treasury.address,
 				10,
 			]
@@ -235,9 +237,8 @@ describe("ChildPool", () => {
 	});
 
 	it("get remaining amount after instant withdrawal fee deduction", async () => {
-		const result = await childPool.getAmountAfterInstantWithdrawalFees(
-			1000
-		);
+		const result =
+			await childPool.getAmountAfterInstantWithdrawalFees(1000);
 		expect(result).to.eql([BigNumber.from("999"), BigNumber.from("1")]);
 	});
 
@@ -252,24 +253,24 @@ describe("ChildPool", () => {
 
 	it("get maticX from matic via instant pool", async () => {
 		expect(await childPool.instantPoolMaticX()).to.eql(BigNumber.from("0"));
-		await mintMaticX(instant_pool_owner, ethers.utils.parseEther("1000.0"));
-		expect(await maticX.balanceOf(instant_pool_owner.address)).to.eql(
+		await mintMaticX(instantPoolOwner, ethers.utils.parseEther("1000.0"));
+		expect(await maticX.balanceOf(instantPoolOwner.address)).to.eql(
 			BigNumber.from(1000).mul(wei)
 		);
 		await provideInstantPoolMaticX(
-			instant_pool_owner,
+			instantPoolOwner,
 			ethers.utils.parseEther("1000.0")
 		);
 		expect(await childPool.instantPoolMaticX()).to.eql(
 			BigNumber.from("1000").mul(wei)
 		);
-		expect(await maticX.balanceOf(instant_pool_owner.address)).to.eql(
+		expect(await maticX.balanceOf(instantPoolOwner.address)).to.eql(
 			BigNumber.from("0").mul(wei)
 		);
 		expect(await maticX.balanceOf(users[0].address)).to.eql(
 			BigNumber.from("0").mul(wei)
 		);
-		const result = await swapMaticForMaticXViaInstantPool(
+		await swapMaticForMaticXViaInstantPool(
 			users[0],
 			ethers.utils.parseEther("2")
 		);
@@ -294,7 +295,7 @@ describe("ChildPool", () => {
 		expect(await childPool.instantPoolMatic()).to.eql(BigNumber.from("0"));
 		// add matic to instant pool
 		await provideInstantPoolMatic(
-			instant_pool_owner,
+			instantPoolOwner,
 			ethers.utils.parseEther("1000.0")
 		);
 		// check for new value of instant pool
@@ -302,9 +303,8 @@ describe("ChildPool", () => {
 			BigNumber.from("1000").mul(wei)
 		);
 		const maticXAmount = ethers.utils.parseEther("50.0");
-		const [maticAmount, ,] = await childPool.convertMaticXToMatic(
-			maticXAmount
-		);
+		const [maticAmount, ,] =
+			await childPool.convertMaticXToMatic(maticXAmount);
 		const requestResult = await requestMaticXSwap(users[0], maticXAmount);
 		// 50 maticX deposited in instant pool
 		expect(await childPool.instantPoolMaticX()).to.eql(
@@ -336,7 +336,7 @@ describe("ChildPool", () => {
 
 	it("claim maticX swap - fails because of lock-in period", async () => {
 		await provideInstantPoolMatic(
-			instant_pool_owner,
+			instantPoolOwner,
 			ethers.utils.parseEther("1000.0")
 		);
 		const maticXAmount = ethers.utils.parseEther("50.0");
@@ -348,7 +348,7 @@ describe("ChildPool", () => {
 
 	it("claim maticX swap - fails because of wrong index", async () => {
 		await provideInstantPoolMatic(
-			instant_pool_owner,
+			instantPoolOwner,
 			ethers.utils.parseEther("1000.0")
 		);
 		const maticXAmount = ethers.utils.parseEther("50.0");
@@ -360,7 +360,7 @@ describe("ChildPool", () => {
 
 	it("claim maticX swap - fails because of wrong user address", async () => {
 		await provideInstantPoolMatic(
-			instant_pool_owner,
+			instantPoolOwner,
 			ethers.utils.parseEther("1000.0")
 		);
 		const maticXAmount = ethers.utils.parseEther("50.0");
@@ -372,13 +372,12 @@ describe("ChildPool", () => {
 
 	it("claim maticX swap - succeeds", async () => {
 		await provideInstantPoolMatic(
-			instant_pool_owner,
+			instantPoolOwner,
 			ethers.utils.parseEther("1000.0")
 		);
 		const maticXAmount = ethers.utils.parseEther("50.0");
-		const [maticAmount, ,] = await childPool.convertMaticXToMatic(
-			maticXAmount
-		);
+		const [maticAmount, ,] =
+			await childPool.convertMaticXToMatic(maticXAmount);
 		await requestMaticXSwap(users[0], maticXAmount);
 
 		// increase block time by 5 hours

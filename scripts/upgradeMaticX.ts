@@ -1,5 +1,5 @@
 import hardhat, { ethers, upgrades } from "hardhat";
-import { MaticX__factory } from "../typechain";
+import { MaticX__factory } from "../typechain-types";
 import { exportAddresses, getUpgradeContext } from "./utils";
 
 const upgradeMaticX = async () => {
@@ -12,9 +12,8 @@ const upgradeMaticX = async () => {
 	)) as MaticX__factory;
 
 	await upgrades.upgradeProxy(MaticXAddress, MaticXFactory);
-	const MaticXImplAddress = await upgrades.erc1967.getImplementationAddress(
-		MaticXAddress
-	);
+	const MaticXImplAddress =
+		await upgrades.erc1967.getImplementationAddress(MaticXAddress);
 
 	console.log("MaticX upgraded");
 	console.log("proxy:", MaticXAddress);

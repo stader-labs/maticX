@@ -6,9 +6,10 @@ import "../tunnel/FxBaseChildTunnel.sol";
 contract FxRootMock {
 	uint256 stateId;
 
-	function sendMessageToChild(address fxChildTunnel, bytes memory _message)
-		external
-	{
+	function sendMessageToChild(
+		address fxChildTunnel,
+		bytes memory _message
+	) external {
 		FxBaseChildTunnel(fxChildTunnel).processMessageFromRoot(
 			stateId,
 			msg.sender,

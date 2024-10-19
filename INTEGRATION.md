@@ -2,8 +2,8 @@
 
 Deployment addresses can be found at:
 
-- Mainnet: [mainnet-deployment-info.json](mainnet-deployment-info.json)
-- Testnet: [testnet-deployment-info.json](testnet-deployment-info.json)
+-   Mainnet: [mainnet-deployment-info.json](mainnet-deployment-info.json)
+-   Testnet: [testnet-deployment-info.json](testnet-deployment-info.json)
 
 ## Ethereum
 
@@ -54,7 +54,7 @@ WithdrawalRequest[] memory requests = getUserWithdrawalRequests(
 
 // StakeManager is necessary to check the availability of the withdrawal request
 IStakeManager stakeManager = IStakeManager(STAKEMANAGER_ADDRESS);
-// Important: Looping from the beginning doesn't work due to 
+// Important: Looping from the beginning doesn't work due to
 // non-shifting removal from the withdrawal request array.
 for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
     WithdrawalRequest request = requests[idx].amount;
@@ -62,7 +62,7 @@ for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
 
     uint256 amountInMaticBefore = matic.balanceOf(msg.sender);
     // Swaps the given index with the latest item and reduces the size.
-    // . V . . 
+    // . V . .
     // 6 1 4 9 Original array
     // 6 9 4 9 Swapping with the latest item
     // 6 9 4   Final array
@@ -131,7 +131,7 @@ contract Example {
 
         // StakeManager is necessary to check the availability of the withdrawal request
         IStakeManager stakeManager = IStakeManager(STAKEMANAGER_ADDRESS);
-        // Important: Looping from the beginning doesn't work due to 
+        // Important: Looping from the beginning doesn't work due to
         // non-shifting removal from the withdrawal request array.
         for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
             WithdrawalRequest request = requests[idx].amount;
@@ -139,7 +139,7 @@ contract Example {
 
             uint256 amountInMaticBefore = matic.balanceOf(msg.sender);
             // Swaps the given index with the latest item and reduces the size.
-            // . V . . 
+            // . V . .
             // 6 1 4 9 Original array
             // 6 9 4 9 Swapping with the latest item
             // 6 9 4   Final array
@@ -224,7 +224,7 @@ IChildPool childPool = IChildPool(CHILDPOOL_ADDRESS);
 WithdrawalRequest[] memory requests = getUserMaticXSwapRequests(
     msg.sender
 );
-// Important: Looping from the beginning doesn't work due to 
+// Important: Looping from the beginning doesn't work due to
 // non-shifting removal from the withdrawal request array.
 for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
     WithdrawalRequest request = requests[idx].amount;
@@ -232,7 +232,7 @@ for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
 
     uint256 amountInMatic = request.amount;
     // Swaps the given index with the latest item and reduces the size.
-    // . V . . 
+    // . V . .
     // 6 1 4 9 Original array
     // 6 9 4 9 Swapping with the latest item
     // 6 9 4   Final array
@@ -314,7 +314,7 @@ contract Example {
         WithdrawalRequest[] memory requests = getUserMaticXSwapRequests(
             msg.sender
         );
-        // Important: Looping from the beginning doesn't work due to 
+        // Important: Looping from the beginning doesn't work due to
         // non-shifting removal from the withdrawal request array.
         for (uint256 idx = requests.length - 1; idx >= 0; idx--) {
             WithdrawalRequest request = requests[idx].amount;
@@ -322,7 +322,7 @@ contract Example {
 
             uint256 amountInMatic = request.amount;
             // Swaps the given index with the latest item and reduces the size.
-            // . V . . 
+            // . V . .
             // 6 1 4 9 Original array
             // 6 9 4 9 Swapping with the latest item
             // 6 9 4   Final array

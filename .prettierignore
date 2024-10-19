@@ -1,0 +1,12 @@
+.idea/
+.openzeppelin/
+.vscode/
+artifacts/
+cache/
+contracts/ChildPool.sol
+contracts/interfaces/IChildPool.sol
+coverage/
+crytic-corpus/
+crytic-export/
+node_modules/
+typechain-types/
