@@ -31,7 +31,9 @@ describe("MaticX", function () {
 	const stakeAmount = ethers.utils.parseUnits("100", 18);
 	const tripleStakeAmount = stakeAmount.mul(3);
 	const version = "2";
-	const feePercent = 15;
+	const feePercent = 500; // 5%
+	const maxFeePercent = 1_500; // 15%
+	const basisPoints = 10_000;
 
 	async function deployFixture(callMaticXInitializeV2 = true) {
 		await reset(providerUrl, envVars.FORKING_BLOCK_NUMBER);
@@ -331,7 +333,7 @@ describe("MaticX", function () {
 				const { maticX } = await loadFixture(deployFixture);
 
 				const currentFeePercent = await maticX.feePercent();
-				expect(currentFeePercent).to.equal(5);
+				expect(currentFeePercent).to.equal(feePercent);
 			});
 
 			it("Should return the fx state root tunnel address", async function () {
@@ -2017,8 +2019,10 @@ describe("MaticX", function () {
 					.connect(polygonTreasury)
 					.transfer(maticX.address, stakeAmount);
 
-				const feeAmount = stakeAmount.mul(5).div(100);
+				const feePercent = await maticX.feePercent();
+				const feeAmount = stakeAmount.mul(feePercent).div(basisPoints);
 				const netStakeAmount = stakeAmount.sub(feeAmount);
+
 				const treasuryAddress = await maticX.treasury();
 
 				const promise = maticX
@@ -2070,7 +2074,8 @@ describe("MaticX", function () {
 
 				const treasuryAddress = await maticX.treasury();
 
-				const feeAmount = stakeAmount.mul(5).div(100);
+				const feePercent = await maticX.feePercent();
+				const feeAmount = stakeAmount.mul(feePercent).div(basisPoints);
 				const netStakeAmount = stakeAmount.sub(feeAmount);
 
 				const promise = maticX
@@ -2457,7 +2462,7 @@ describe("MaticX", function () {
 
 				const promise = maticX
 					.connect(stakerA)
-					.setFeePercent(feePercent);
+					.setFeePercent(maxFeePercent);
 				await expect(promise).to.be.revertedWith(
 					`AccessControl: account ${stakerA.address.toLowerCase()} is missing role ${defaultAdminRole}`
 				);
@@ -2466,9 +2471,11 @@ describe("MaticX", function () {
 			it("Should revert with the right error if passing a too high fee percent", async function () {
 				const { maticX, manager } = await loadFixture(deployFixture);
 
-				const promise = maticX.connect(manager).setFeePercent(16);
+				const promise = maticX
+					.connect(manager)
+					.setFeePercent(maxFeePercent + 1);
 				await expect(promise).to.be.revertedWith(
-					"Fee percent must not exceed 15"
+					"Fee percent is too high"
 				);
 			});
 		});
@@ -2479,10 +2486,10 @@ describe("MaticX", function () {
 
 				const promise = maticX
 					.connect(manager)
-					.setFeePercent(feePercent);
+					.setFeePercent(maxFeePercent);
 				await expect(promise)
 					.to.emit(maticX, "SetFeePercent")
-					.withArgs(feePercent);
+					.withArgs(maxFeePercent);
 
 				await expect(promise)
 					.not.to.emit(maticX, "StakeRewards")
@@ -2502,15 +2509,16 @@ describe("MaticX", function () {
 					.connect(polygonTreasury)
 					.transfer(maticX.address, stakeAmount);
 
-				const feeAmount = stakeAmount.mul(5).div(100);
+				const feePercent = await maticX.feePercent();
+				const feeAmount = stakeAmount.mul(feePercent).div(basisPoints);
 				const netStakeAmount = stakeAmount.sub(feeAmount);
+
 				const treasuryAddress = await maticX.treasury();
 
 				const promise = maticX
 					.connect(manager)
-					.setFeePercent(feePercent);
+					.setFeePercent(maxFeePercent);
 				await expect(promise).to.emit(maticX, "SetFeePercent");
-
 				await expect(promise)
 					.to.emit(maticX, "StakeRewards")
 					.withArgs(preferredDepositValidatorId, netStakeAmount)
