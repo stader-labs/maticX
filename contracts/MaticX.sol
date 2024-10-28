@@ -120,10 +120,10 @@ contract MaticX is
 		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
 
 		version = "2";
-		feePercent *= 100;
 		instantPoolOwner_deprecated = address(0);
 		instantPoolMatic_deprecated = 0;
 		instantPoolMaticX_deprecated = 0;
+		feePercent = 500;
 		reentrancyGuardStatus = NOT_ENTERED;
 
 		IERC20Upgradeable(_polToken).safeApprove(
