@@ -9,12 +9,12 @@
 ### Validator Registry
 
 -   Proxy address: [0xE98fc808E8aE8025a1D17d6F4Fbc3Df226788438](https://sepolia.etherscan.io/address/0xE98fc808E8aE8025a1D17d6F4Fbc3Df226788438)
--   Implementation address: [0xFAFbbA44f12066B4BF8EB0d05dD26a5567D3bb2F](https://sepolia.etherscan.io/address/0xFAFbbA44f12066B4BF8EB0d05dD26a5567D3bb2F)
+-   Implementation address: [0xDc70b17ADaa392B13B3120D7a3E7587aEe9d53B2](https://sepolia.etherscan.io/address/0xDc70b17ADaa392B13B3120D7a3E7587aEe9d53B2)
 
 ### MaticX
 
 -   Proxy address: [0xB51AAb302085F436204c4B1964fBE74517B2D4b6](https://sepolia.etherscan.io/address/0xB51AAb302085F436204c4B1964fBE74517B2D4b6)
--   Implementation address: [0x54a994B66FA7eA7160D6281002B56a041db0b5a5](https://sepolia.etherscan.io/address/0x54a994B66FA7eA7160D6281002B56a041db0b5a5)
+-   Implementation address: [0x6A70Ec90f7aeD8F27Ced7f0907364F932A97c85E](https://sepolia.etherscan.io/address/0x6A70Ec90f7aeD8F27Ced7f0907364F932A97c85E)
 
 ### Stake Manager
 
