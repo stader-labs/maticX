@@ -274,4 +274,19 @@ interface IMaticX is IERC20Upgradeable {
 
 	/// @notice Returns the address of the fx state root tunnel.
 	function fxStateRootTunnel() external view returns (IFxStateRootTunnel);
+
+	/// @notice Returns the address of the instant pool owner.
+	/// @custom:deprecated
+	/// @return _instantPoolOwner - Address of the instant pool owner.
+	function instantPoolOwner() external view returns (address);
+
+	/// @notice Returns a Matic amount in the instant pool.
+	/// @custom:deprecated
+	/// @return _instantPoolMatic - Matic amount in the instant pool.
+	function instantPoolMatic() external view returns (uint256);
+
+	/// @notice Returns a MaticX amount in the instant pool.
+	/// @custom:deprecated
+	/// @return _instantPoolMaticX - MaticX amount in the instant pool.
+	function instantPoolMaticX() external view returns (uint256);
 }
