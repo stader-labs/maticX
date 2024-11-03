@@ -37,9 +37,9 @@ contract MaticX is
 	address public override treasury;
 	string public override version;
 	uint16 public override feePercent;
-	address private instantPoolOwner_deprecated;
-	uint256 private instantPoolMatic_deprecated;
-	uint256 private instantPoolMaticX_deprecated;
+	address public override instantPoolOwner;
+	uint256 public override instantPoolMatic;
+	uint256 public override instantPoolMaticX;
 	mapping(address => WithdrawalRequest[]) private userWithdrawalRequests;
 	IFxStateRootTunnel public override fxStateRootTunnel;
 	IERC20Upgradeable private polToken;
@@ -120,9 +120,9 @@ contract MaticX is
 		_setRoleAdmin(BOT, DEFAULT_ADMIN_ROLE);
 
 		version = "2";
-		instantPoolOwner_deprecated = address(0);
-		instantPoolMatic_deprecated = 0;
-		instantPoolMaticX_deprecated = 0;
+		instantPoolOwner = address(0);
+		instantPoolMatic = 0;
+		instantPoolMaticX = 0;
 		feePercent = 500;
 		reentrancyGuardStatus = NOT_ENTERED;
 
