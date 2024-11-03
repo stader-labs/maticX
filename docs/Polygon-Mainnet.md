@@ -6,6 +6,11 @@
 
 -   Address: [0x79f2Ec80e2B9fB995D9deBda4d9026eF7A1507b9](https://polygonscan.com/address/0x79f2Ec80e2B9fB995D9deBda4d9026eF7A1507b9)
 
+### MaticX
+
+-   Proxy address: [0xfa68FB4628DFF1028CFEc22b4162FCcd0d45efb6](https://polygonscan.com/address/0xfa68FB4628DFF1028CFEc22b4162FCcd0d45efb6)
+-   Implementation address: [0x44cc2b69710E68593a01B3d42d9a1390Ee564BBf](https://polygonscan.com/address/0x44cc2b69710E68593a01B3d42d9a1390Ee564BBf)
+
 ### Child Pool
 
 -   Proxy address: [0xfd225C9e6601C9d38d8F98d8731BF59eFcF8C0E3](https://polygonscan.com/address/0xfd225C9e6601C9d38d8F98d8731BF59eFcF8C0E3)
