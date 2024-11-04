@@ -45,7 +45,7 @@ task("deploy:fx-state-child-tunnel")
 				await FxStateChildTunnel.deploy(fxChildAddress);
 			await fxStateChildTunnel.deployed();
 			console.log(
-				`fxStateChildTunnel deployed at ${fxStateChildTunnel.address}`
+				`FxStateChildTunnel deployed at ${fxStateChildTunnel.address}`
 			);
 		}
 	);
