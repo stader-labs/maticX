@@ -25,6 +25,14 @@
 
 -   Address: [0x40FB804Cc07302b89EC16a9f8d040506f64dFe29](https://etherscan.io/address/0x40FB804Cc07302b89EC16a9f8d040506f64dFe29)
 
+### Checkpoint Manager
+
+-   Address: [0x86e4dc95c7fbdbf52e33d563bbdb00823894c287](https://etherscan.io/address/0x86e4dc95c7fbdbf52e33d563bbdb00823894c287)
+
+### Fx Root
+
+-   Address: [0xfe5e5D361b2ad62c541bAb87C45a0B9B018389a2](https://etherscan.io/address/0xfe5e5D361b2ad62c541bAb87C45a0B9B018389a2)
+
 ### Matic Token
 
 -   Address: [0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0](https://etherscan.io/address/0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0)

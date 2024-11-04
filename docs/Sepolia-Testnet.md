@@ -25,6 +25,14 @@
 
 -   Address: [0x1316e16f56a5A05538277906E12b77F2B39B4d79](https://sepolia.etherscan.io/address/0x1316e16f56a5A05538277906E12b77F2B39B4d79)
 
+### Checkpoint Manager
+
+-   Address: [0xbd07D7E1E93c8d4b2a261327F3C28a8EA7167209](https://sepolia.etherscan.io/address/0xbd07D7E1E93c8d4b2a261327F3C28a8EA7167209)
+
+### Fx Root
+
+-   Address: [0x0E13EBEdDb8cf9f5987512d5E081FdC2F5b0991e](https://sepolia.etherscan.io/address/0x0E13EBEdDb8cf9f5987512d5E081FdC2F5b0991e)
+
 ### Matic Token
 
 -   Address: [0x3fd0A53F4Bf853985a95F4Eb3F9C9FDE1F8e2b53](https://sepolia.etherscan.io/address/0x3fd0A53F4Bf853985a95F4Eb3F9C9FDE1F8e2b53)
