@@ -38,13 +38,13 @@ task("deploy:fx-state-root-tunnel")
 			}: TaskParams,
 			{ ethers, network, run }
 		) => {
-			if (!ethers.utils.isAddress(checkpointManagerAddress)) {
+			if (!ethers.isAddress(checkpointManagerAddress)) {
 				throw new Error("Invalid CheckpointManager address");
 			}
-			if (!ethers.utils.isAddress(fxRootAddress)) {
+			if (!ethers.isAddress(fxRootAddress)) {
 				throw new Error("Invalid FxRootAddress address");
 			}
-			if (!ethers.utils.isAddress(maticXAddress)) {
+			if (!ethers.isAddress(maticXAddress)) {
 				throw new Error("Invalid MaticX address");
 			}
 
@@ -70,9 +70,12 @@ task("deploy:fx-state-root-tunnel")
 				fxRootAddress,
 				maticXAddress
 			);
-			await fxStateRootTunnel.deployed();
+			await fxStateRootTunnel.waitForDeployment();
+
+			const fxStateRootTunnelAddress =
+				await fxStateRootTunnel.getAddress();
 			console.log(
-				`FxStateRootTunnel deployed at ${fxStateRootTunnel.address}`
+				`FxStateRootTunnel deployed at ${fxStateRootTunnelAddress}`
 			);
 		}
 	);

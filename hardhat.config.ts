@@ -120,7 +120,9 @@ const config: HardhatUserConfig = {
 	etherscan: {
 		apiKey: {
 			[Network.Sepolia]: envVars.ETHERSCAN_API_KEY,
+			[Network.AmoyAlt]: envVars.POLYGONSCAN_API_KEY,
 			[Network.EthereumAlt]: envVars.ETHERSCAN_API_KEY,
+			[Network.Polygon]: envVars.POLYGONSCAN_API_KEY,
 		},
 	},
 	gasReporter: {
@@ -130,7 +132,6 @@ const config: HardhatUserConfig = {
 			"interfaces/",
 			"lib/",
 			"mocks/",
-			"state-transfer/",
 			"tunnel/",
 		],
 		enabled: envVars.REPORT_GAS,
@@ -161,7 +162,13 @@ const config: HardhatUserConfig = {
 			"state-transfer/",
 			"tunnel/",
 		],
-		only: ["ChildPool", "MaticX", "ValidatorRegistry"],
+		only: [
+			"ChildPool",
+			"FxStateChildTunnel",
+			"FxStateRootTunnel",
+			"MaticX",
+			"ValidatorRegistry",
+		],
 	},
 };
 

@@ -41,7 +41,7 @@ export async function deployDirect(
 		? await Contract.deploy(...args)
 		: await Contract.deploy();
 
-	await contract.deployed();
+	await contract.waitForDeployment();
 
 	console.log(`${contractName} deployed to:`, contract.address);
 }
@@ -58,7 +58,7 @@ export async function deployProxy(
 		? await hre.upgrades.deployProxy(Contract, args)
 		: await hre.upgrades.deployProxy(Contract);
 
-	await contract.deployed();
+	await contract.waitForDeployment();
 
 	console.log(`Proxy ${contractName} deployed to:`, contract.address);
 }

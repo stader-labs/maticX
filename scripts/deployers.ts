@@ -63,7 +63,7 @@ class BlockchainDeployer {
 		const contract = args.length
 			? ((await Contract.deploy(...args)) as T)
 			: ((await Contract.deploy()) as T);
-		await contract.deployed();
+		await contract.waitForDeployment();
 		console.log(`Deployed at ${contract.address}`);
 
 		return contract;
@@ -81,7 +81,7 @@ class BlockchainDeployer {
 		const contract = args.length
 			? ((await upgrades.deployProxy(Contract, args)) as T)
 			: ((await upgrades.deployProxy(Contract)) as T);
-		await contract.deployed();
+		await contract.waitForDeployment();
 		console.log(`Deployed at ${contract.address}`);
 
 		return contract;
