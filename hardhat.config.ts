@@ -105,13 +105,26 @@ const config: HardhatUserConfig = {
 	},
 	defaultNetwork: Network.Hardhat,
 	solidity: {
-		version: "0.8.7",
-		settings: {
-			optimizer: {
-				enabled: true,
-				runs: 200,
+		compilers: [
+			{
+				version: "0.8.7",
+				settings: {
+					optimizer: {
+						enabled: true,
+						runs: 200,
+					},
+				},
 			},
-		},
+			{
+				version: "0.8.8",
+				settings: {
+					optimizer: {
+						enabled: true,
+						runs: 200,
+					},
+				},
+			},
+		],
 	},
 	mocha: {
 		reporter: process.env.CI ? "dot" : "nyan",
