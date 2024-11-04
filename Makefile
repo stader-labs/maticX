@@ -20,6 +20,7 @@ HARDHAT_CHILD_POOL := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_STAKE_MANAGER := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_CHECKPOINT_MANAGER := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_FX_ROOT := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+HARDHAT_FX_CHILD := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_FX_STATE_ROOT_TUNNEL := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_FX_STATE_CHILD_TUNNEL := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 HARDHAT_MATIC_TOKEN := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
@@ -35,6 +36,7 @@ LOCALHOST_CHILD_POOL :=
 LOCALHOST_STAKE_MANAGER :=
 LOCALHOST_CHECKPOINT_MANAGER :=
 LOCALHOST_FX_ROOT :=
+LOCALHOST_FX_CHILD :=
 LOCALHOST_FX_STATE_ROOT_TUNNEL :=
 LOCALHOST_FX_STATE_CHILD_TUNNEL :=
 LOCALHOST_MATIC_TOKEN :=
@@ -58,6 +60,7 @@ SEPOLIA_TREASURY := 0xdeb90df43BBa8FC0e2C08C54dC0F48cfc694F896
 # Amoy contract addresses
 AMOY_MATIC_X :=
 AMOY_CHILD_POOL :=
+AMOY_FX_CHILD := 0xE5930336866d0388f0f745A2d9207C7781047C0f
 AMOY_FX_STATE_CHLID_TUNNEL :=
 AMOY_MANAGER :=
 AMOY_TREASURY :=
@@ -78,6 +81,7 @@ ETHEREUM_TREASURY := 0x01422247a1d15BB4FcF91F5A077Cf25BA6460130
 # Polygon contract addresses
 POLYGON_MATIC_X := 0xfa68FB4628DFF1028CFEc22b4162FCcd0d45efb6
 POLYGON_CHILD_POOL := 0xfd225C9e6601C9d38d8F98d8731BF59eFcF8C0E3
+POLYGON_FX_CHILD := 0x8397259c983751DAf40400790063935a11afa28a
 POLYGON_FX_STATE_CHILD_TUNNEL := 0x97E58a6950D86d751082D5e1d350e74c19047570
 POLYGON_MANAGER := 0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67
 POLYGON_TREASURY := 0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67
@@ -89,9 +93,9 @@ CONTRACT_PATH_MATIC_X := contracts/MaticX.sol
 
 all: hardhat
 
-hardhat: deploy-validatorregistry-hardhat
+hardhat: deploy-validatorregistry-hardhat deploy-childpool-hardhat deploy-fxstateroottunnel-hardhat deploy-fxstatechildtunnel-hardhat
 
-localhost: deploy-validatorregistry-localhost
+localhost: deploy-validatorregistry-localhost deploy-childpool-localhost deploy-fxstateroottunnel-localhost deploy-fxstatechildtunnel-localhost
 
 # Deploy the ValidatorRegistry contract
 deploy-validatorregistry-hardhat:
@@ -132,6 +136,16 @@ deploy-fxstateroottunnel-sepolia:
 	$(BIN_HARDHAT) deploy:fx-state-root-tunnel --network $(NETWORK_SEPOLIA) --checkpoint-manager $(SEPOLIA_CHECKPOINT_MANAGER) --fx-root $(SEPOLIA_FX_ROOT) --matic-x $(SEPOLIA_MATIC_X)
 deploy-fxstateroottunnel-ethereum:
 	$(BIN_HARDHAT) deploy:fx-state-root-tunnel --network $(NETWORK_ETHEREUM) --checkpoint-manager $(ETHEREUM_CHECKPOINT_MANAGER) --fx-root $(ETHEREUM_FX_ROOT) --matic-x $(ETHEREUM_MATIC_X)
+
+# Deploy the FxStateChildTunnel contract
+deploy-fxstatechildtunnel-hardhat:
+	$(BIN_HARDHAT) deploy:fx-state-child-tunnel --network $(NETWORK_HARDHAT) --fx-child $(HARDHAT_FX_CHILD)
+deploy-fxstatechildtunnel-localhost:
+	$(BIN_HARDHAT) deploy:fx-state-child-tunnel --network $(NETWORK_LOCALHOST) --fx-child $(LOCALHOST_FX_CHILD)
+deploy-fxstatechildtunnel-amoy:
+	$(BIN_HARDHAT) deploy:fx-state-child-tunnel --network $(NETWORK_AMOY) --fx-child $(AMOY_FX_CHILD)
+deploy-fxstatechildtunnel-polygon:
+	$(BIN_HARDHAT) deploy:fx-state-child-tunnel --network $(NETWORK_POLYGON) --fx-child $(POLYGON_FX_CHILD)
 
 # Initialize v2 the ValidatorRegistry contract
 initializev2-validatorregistry-sepolia:
@@ -178,6 +192,12 @@ verify-fxstateroottunnel-sepolia:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_FX_STATE_ROOT_TUNNEL) "$(SEPOLIA_CHECKPOINT_MANAGER)" "$(SEPOLIA_FX_ROOT)" "$(SEPOLIA_MATIC_X)"
 verify-fxstateroottunnel-ethereum:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_FX_STATE_ROOT_TUNNEL) "$(ETHEREUM_CHECKPOINT_MANAGER)" "$(ETHEREUM_FX_ROOT)" "$(ETHEREUM_MATIC_X)"
+
+# Verify the FxStateChildTunnel contract
+verify-fxstatechildtunnel-amoy:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_AMOY) --contract $(AMOY_FX_STATE_CHILD_TUNNEL) "$(AMOY_FX_CHILD)"
+verify-fxstatechildtunnel-polygon:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_FX_STATE_CHILD_TUNNEL) "$(POLYGON_FX_CHILD)"
 
 # Import the ValidatorRegistry contract
 import-validatorregistry-sepolia:

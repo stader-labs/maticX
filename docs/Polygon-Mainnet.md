@@ -20,6 +20,10 @@
 
 -   Address: [0x97E58a6950D86d751082D5e1d350e74c19047570](https://polygonscan.com/address/0x97E58a6950D86d751082D5e1d350e74c19047570)
 
+### Fx Child
+
+-   Address: [0x8397259c983751DAf40400790063935a11afa28a](https://amoy.polygonscan.com/address/0x8397259c983751DAf40400790063935a11afa28a)
+
 ### Rate Provider
 
 -   Address: [0xeE652bbF72689AA59F0B8F981c9c90e2A8Af8d8f](https://polygonscan.com/address/0xeE652bbF72689AA59F0B8F981c9c90e2A8Af8d8f)

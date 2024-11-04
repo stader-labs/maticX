@@ -1,4 +1,5 @@
 import "./deploy-child-pool";
+import "./deploy-fx-state-child-tunnel";
 import "./deploy-fx-state-root-tunnel";
 import "./deploy-matic-x";
 import "./deploy-validator-registry";
