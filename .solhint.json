@@ -10,7 +10,7 @@
 		"avoid-tx-origin": "error",
 		"check-send-result": "error",
 		"code-complexity": ["error", 9],
-		"compiler-version": ["error", "0.8.7"],
+		"compiler-version": ["error", "^0.8.7"],
 		"comprehensive-interface": "off",
 		"const-name-snakecase": "error",
 		"constructor-syntax": "error",
