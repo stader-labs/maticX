@@ -54,19 +54,19 @@ task("deploy:matic-x")
 			}: TaskParams,
 			{ ethers, network, run, upgrades }
 		) => {
-			if (!ethers.utils.isAddress(validatorRegistryAddress)) {
+			if (!ethers.isAddress(validatorRegistryAddress)) {
 				throw new Error("Invalid ValidatorRegistry address");
 			}
-			if (!ethers.utils.isAddress(stakeManagerAddress)) {
+			if (!ethers.isAddress(stakeManagerAddress)) {
 				throw new Error("Invalid StakeManager address");
 			}
-			if (!ethers.utils.isAddress(maticTokenAddress)) {
+			if (!ethers.isAddress(maticTokenAddress)) {
 				throw new Error("Invalid MaticToken address");
 			}
-			if (!ethers.utils.isAddress(managerAddress)) {
+			if (!ethers.isAddress(managerAddress)) {
 				throw new Error("Invalid Manager address");
 			}
-			if (!ethers.utils.isAddress(treasuryAddress)) {
+			if (!ethers.isAddress(treasuryAddress)) {
 				throw new Error("Invalid Treasury address");
 			}
 
@@ -95,17 +95,18 @@ task("deploy:matic-x")
 				],
 				{ kind: "transparent" }
 			);
-			await maticX.deployed();
-			console.log(`MaticX Proxy deployed at ${maticX.address}`);
+			await maticX.waitForDeployment();
+
+			const maticXAddress = await maticX.getAddress();
+			console.log(`MaticX Proxy deployed at ${maticXAddress}`);
 
 			const implementationAddress =
-				await upgrades.erc1967.getImplementationAddress(maticX.address);
+				await upgrades.erc1967.getImplementationAddress(maticXAddress);
 			console.log(
 				`MaticX Implementation deployed at ${implementationAddress}`
 			);
-			const proxyAdminAddress = await upgrades.erc1967.getAdminAddress(
-				maticX.address
-			);
+			const proxyAdminAddress =
+				await upgrades.erc1967.getAdminAddress(maticXAddress);
 			console.log(`MaticX ProxyAdmin deployed at ${proxyAdminAddress}`);
 		}
 	);

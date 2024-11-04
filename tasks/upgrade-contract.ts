@@ -27,7 +27,7 @@ task("upgrade-contract")
 			}: TaskParams,
 			{ ethers, upgrades, network, run }
 		) => {
-			if (!ethers.utils.isAddress(contractAddress)) {
+			if (!ethers.isAddress(contractAddress)) {
 				throw new Error("Invalid contract address");
 			}
 
@@ -48,7 +48,7 @@ task("upgrade-contract")
 				ContractFactory,
 				{ unsafeSkipStorageCheck: unsafe }
 			);
-			await contract.deployed();
+			await contract.waitForDeployment();
 
 			const implementationAddress =
 				await upgrades.erc1967.getImplementationAddress(

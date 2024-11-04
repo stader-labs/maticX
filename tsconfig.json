@@ -1,18 +1,21 @@
 {
+	"extends": "@tsconfig/node20/tsconfig.json",
 	"compilerOptions": {
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"lib": ["es6"],
-		"module": "commonjs",
-		"moduleResolution": "node",
-		"noImplicitAny": true,
-		"outDir": "dist",
+		"allowJs": true,
+		"noEmit": true,
 		"resolveJsonModule": true,
-		"sourceMap": true,
-		"strict": true,
-		"target": "es6"
+		"typeRoots": ["./types"]
 	},
-	"exclude": ["node_modules"],
-	"include": ["./scripts", "./test", ".eslintrc.js", ".solcover.js"],
-	"files": ["hardhat.config.ts"]
+	"include": [
+		"scripts/**/*.ts",
+		"tasks/**/*.ts",
+		"test/**/*.ts",
+		"typechain-types/**/*.ts",
+		"types/**/*.ts",
+		"utils/**/*.ts",
+		".solcover.js",
+		"eslint.config.js",
+		"hardhat.config.ts",
+		"prettier.config.js"
+	]
 }

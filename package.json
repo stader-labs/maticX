@@ -39,9 +39,10 @@
 		"@openzeppelin/contracts-upgradeable": "^4.9.6"
 	},
 	"devDependencies": {
-		"@nomicfoundation/hardhat-toolbox": "^2.0.2",
+		"@nomicfoundation/hardhat-toolbox": "^5.0.0",
 		"@nomiclabs/hardhat-solhint": "^4.0.0",
-		"@openzeppelin/hardhat-upgrades": "^1.10.0",
+		"@openzeppelin/hardhat-upgrades": "^3.5.0",
+		"@tsconfig/node20": "^20.1.4",
 		"@types/eslint__js": "^8.42.3",
 		"dotenv": "^16.4.5",
 		"eslint": "^9.7.0",

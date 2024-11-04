@@ -9,11 +9,11 @@ export async function getSigner(
 	ethereum: EIP1193Provider,
 	address?: string
 ) {
-	const provider = new ethers.providers.Web3Provider(ethereum);
+	const provider = new ethers.BrowserProvider(ethereum);
 	return provider.getSigner(address);
 }
 
-export function generateRandomAddress(): string {
-	const privateKey = `0x${Buffer.from(ethers.utils.randomBytes(32)).toString("hex")}`;
+export function generateRandomAddress() {
+	const privateKey = `0x${Buffer.from(ethers.randomBytes(32)).toString("hex")}`;
 	return new ethers.Wallet(privateKey).address;
 }

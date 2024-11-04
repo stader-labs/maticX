@@ -46,16 +46,16 @@ task("deploy:validator-registry")
 			}: TaskParams,
 			{ ethers, network, run, upgrades }
 		) => {
-			if (!ethers.utils.isAddress(stakeManagerAddress)) {
+			if (!ethers.isAddress(stakeManagerAddress)) {
 				throw new Error("Invalid StakeManager address");
 			}
-			if (!ethers.utils.isAddress(maticTokenAddress)) {
+			if (!ethers.isAddress(maticTokenAddress)) {
 				throw new Error("Invalid MaticToken address");
 			}
-			if (!ethers.utils.isAddress(maticXAddress)) {
+			if (!ethers.isAddress(maticXAddress)) {
 				throw new Error("Invalid MaticX address");
 			}
-			if (!ethers.utils.isAddress(managerAddress)) {
+			if (!ethers.isAddress(managerAddress)) {
 				throw new Error("Invalid Manager address");
 			}
 
@@ -86,24 +86,27 @@ task("deploy:validator-registry")
 				],
 				{ kind: "transparent" }
 			);
-			await validatorRegistry.deployed();
+			await validatorRegistry.waitForDeployment();
+
+			const validatorRegistryAddress =
+				await validatorRegistry.getAddress();
 			console.log(
-				`ValidatorRegistry Proxy deployed at ${validatorRegistry.address}`
+				`ValidatorRegistry Proxy deployed at ${validatorRegistryAddress}`
 			);
 
 			const implementationAddress =
 				await upgrades.erc1967.getImplementationAddress(
-					validatorRegistry.address
+					validatorRegistryAddress
 				);
 			console.log(
 				`ValidatorRegistry Implementation deployed at ${implementationAddress}`
 			);
 
-			const adminAddress = await upgrades.erc1967.getAdminAddress(
-				validatorRegistry.address
+			const proxyAdminAddress = await upgrades.erc1967.getAdminAddress(
+				validatorRegistryAddress
 			);
 			console.log(
-				`ValidatorRegistry ProxyAdmin deployed at ${adminAddress}`
+				`ValidatorRegistry ProxyAdmin deployed at ${proxyAdminAddress}`
 			);
 		}
 	);

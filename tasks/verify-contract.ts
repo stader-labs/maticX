@@ -32,7 +32,7 @@ task("verify-contract")
 			}: TaskParams,
 			{ ethers, network, run }
 		) => {
-			if (!ethers.utils.isAddress(contractAddress)) {
+			if (!ethers.isAddress(contractAddress)) {
 				throw new Error("Invalid contract address");
 			}
 

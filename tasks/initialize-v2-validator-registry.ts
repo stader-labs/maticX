@@ -1,7 +1,6 @@
 import { task, types } from "hardhat/config";
 import { getSigner } from "../utils/account";
 import { isLocalNetwork, Network } from "../utils/network";
-import { ValidatorRegistry } from "../typechain-types";
 
 interface TaskParams {
 	contract: string;
@@ -20,10 +19,10 @@ task("initialize-v2:validator-registry")
 			}: TaskParams,
 			{ ethers, network }
 		) => {
-			if (!ethers.utils.isAddress(contractAddress)) {
+			if (!ethers.isAddress(contractAddress)) {
 				throw new Error("Invalid contract address");
 			}
-			if (!ethers.utils.isAddress(polTokenAddress)) {
+			if (!ethers.isAddress(polTokenAddress)) {
 				throw new Error("Invalid POL token address");
 			}
 
@@ -44,9 +43,7 @@ task("initialize-v2:validator-registry")
 				signer
 			);
 
-			const tx = await (
-				contractFactory as ValidatorRegistry
-			).initializeV2(polTokenAddress);
+			const tx = await contractFactory.initializeV2(polTokenAddress);
 			await tx.wait(1);
 			console.log(
 				`ValidatorRegistry initialized v2 at ${contractAddress}`

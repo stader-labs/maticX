@@ -62,19 +62,19 @@ task("deploy:child-pool")
 			}: TaskParams,
 			{ ethers, network, run, upgrades }
 		) => {
-			if (!ethers.utils.isAddress(fxStateChildTunnelAddress)) {
+			if (!ethers.isAddress(fxStateChildTunnelAddress)) {
 				throw new Error("Invalid FxStateChildTunnel address");
 			}
-			if (!ethers.utils.isAddress(maticXAddress)) {
+			if (!ethers.isAddress(maticXAddress)) {
 				throw new Error("Invalid MaticX address");
 			}
-			if (!ethers.utils.isAddress(managerAddress)) {
+			if (!ethers.isAddress(managerAddress)) {
 				throw new Error("Invalid Manager address");
 			}
-			if (!ethers.utils.isAddress(instantPoolOwnerAddress)) {
+			if (!ethers.isAddress(instantPoolOwnerAddress)) {
 				throw new Error("Invalid InstantPoolOwner address");
 			}
-			if (!ethers.utils.isAddress(treasuryAddress)) {
+			if (!ethers.isAddress(treasuryAddress)) {
 				throw new Error("Invalid Treasury address");
 			}
 
@@ -107,19 +107,20 @@ task("deploy:child-pool")
 				],
 				{ kind: "transparent" }
 			);
-			await childPool.deployed();
-			console.log(`ChildPool Proxy deployed at ${childPool.address}`);
+			await childPool.waitForDeployment();
+
+			const childPoolAddress = await childPool.getAddress();
+			console.log(`ChildPool Proxy deployed at ${childPoolAddress}`);
 
 			const implementationAddress =
 				await upgrades.erc1967.getImplementationAddress(
-					childPool.address
+					childPoolAddress
 				);
 			console.log(
 				`ChildPool Implementation deployed at ${implementationAddress}`
 			);
-			const proxyAdminAddress = await upgrades.erc1967.getAdminAddress(
-				childPool.address
-			);
+			const proxyAdminAddress =
+				await upgrades.erc1967.getAdminAddress(childPoolAddress);
 			console.log(
 				`ChildPool ProxyAdmin deployed at ${proxyAdminAddress}`
 			);

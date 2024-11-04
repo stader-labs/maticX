@@ -20,7 +20,7 @@ task("deploy:fx-state-child-tunnel")
 			{ fxChild: fxChildAddress }: TaskParams,
 			{ ethers, network, run }
 		) => {
-			if (!ethers.utils.isAddress(fxChildAddress)) {
+			if (!ethers.isAddress(fxChildAddress)) {
 				throw new Error("Invalid FxChildAddress address");
 			}
 
@@ -43,9 +43,12 @@ task("deploy:fx-state-child-tunnel")
 
 			const fxStateChildTunnel =
 				await FxStateChildTunnel.deploy(fxChildAddress);
-			await fxStateChildTunnel.deployed();
+			await fxStateChildTunnel.waitForDeployment();
+
+			const fxStateChildTunnelAddress =
+				await fxStateChildTunnel.getAddress();
 			console.log(
-				`FxStateChildTunnel deployed at ${fxStateChildTunnel.address}`
+				`FxStateChildTunnel deployed at ${fxStateChildTunnelAddress}`
 			);
 		}
 	);
