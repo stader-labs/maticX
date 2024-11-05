@@ -64,9 +64,9 @@ AMOY_MATIC_X :=
 AMOY_CHILD_POOL :=
 AMOY_FX_CHILD := 0xE5930336866d0388f0f745A2d9207C7781047C0f
 AMOY_FX_STATE_CHILD_TUNNEL := 0xDC5e26af83c1694A655beBe22689f12A42573d94
-AMOY_MANAGER :=
-AMOY_TREASURY :=
-AMOY_INSTANT_POOL_OWNER :=
+AMOY_MANAGER := 0x8C6B3eE457b193A49794df466957441b4AccD102
+AMOY_TREASURY := 0x8C6B3eE457b193A49794df466957441b4AccD102
+AMOY_INSTANT_POOL_OWNER := 0x8C6B3eE457b193A49794df466957441b4AccD102
 
 # Ethereum contract addresses
 ETHEREUM_VALIDATOR_REGISTRY := 0xf556442D5B77A4B0252630E15d8BbE2160870d77
@@ -92,6 +92,7 @@ POLYGON_INSTANT_POOL_OWNER := 0x51358004cFe135E64453d7F6a0dC433CAba09A2a
 # Contract paths
 CONTRACT_PATH_VALIDATOR_REGISTRY := contracts/ValidatorRegistry.sol
 CONTRACT_PATH_MATIC_X := contracts/MaticX.sol
+CONTRACT_PATH_CHILD_POOL := contracts/ChildPool.sol
 
 all: hardhat
 
@@ -116,8 +117,12 @@ deploy-maticx-localhost:
 	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_LOCALHOST) --validator-registry $(LOCALHOST_VALIDATOR_REGISTRY) --stake-manager $(LOCALHOST_STAKE_MANAGER) --matic-token $(LOCALHOST_MATIC_TOKEN) --manager $(LOCALHOST_MANAGER) --treasury $(LOCALHOST_TREASURY)
 deploy-maticx-sepolia:
 	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_SEPOLIA) --validator-registry $(SEPOLIA_VALIDATOR_REGISTRY) --stake-manager $(SEPOLIA_STAKE_MANAGER) --matic-token $(SEPOLIA_MATIC_TOKEN) --manager $(SEPOLIA_MANAGER) --treasury $(SEPOLIA_TREASURY)
+deploy-maticx-amoy:
+	$(BIN_HARDHAT) deploy:u-child-erc20 --network $(NETWORK_AMOY) --name "Liquid Staking Matic (PoS)" --symbol "MaticX" --child-chain-manager $(AMOY_MANAGER)
 deploy-maticx-ethereum:
 	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_ETHEREUM) --validator-registry $(ETHEREUM_VALIDATOR_REGISTRY) --stake-manager $(ETHEREUM_STAKE_MANAGER) --matic-token $(ETHEREUM_MATIC_TOKEN) --manager $(ETHEREUM_MANAGER) --treasury $(ETHEREUM_TREASURY)
+deploy-maticx-polygon:
+	$(BIN_HARDHAT) deploy:u-child-erc20 --network $(NETWORK_POLYGON) --name "Liquid Staking Matic (PoS)" --symbol "MaticX" --child-chain-manager $(POLYGON_MANAGER)
 
 # Deploy the ChildPool contract
 deploy-childpool-hardhat:
@@ -186,8 +191,12 @@ verify-validatorregistry-ethereum:
 # Verify the MaticX contract
 verify-maticx-sepolia:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_MATIC_X)
+verify-maticx-amoy:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_AMOY) --contract $(AMOY_MATIC_X)
 verify-maticx-ethereum:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_MATIC_X)
+verify-maticx-polygon:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_MATIC_X)
 
 # Verify the FxStateRootTunnel contract
 verify-fxstateroottunnel-sepolia:
