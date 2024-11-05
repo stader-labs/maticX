@@ -143,9 +143,9 @@ const config: HardhatUserConfig = {
 		excludeContracts: [
 			"@openzeppelin/",
 			"interfaces/",
-			"lib/",
+			"libraries/",
 			"mocks/",
-			"tunnel/",
+			"state-transfer/",
 		],
 		enabled: envVars.REPORT_GAS,
 		...(envVars.GAS_REPORTER_NETWORK === "polygon"
@@ -170,18 +170,11 @@ const config: HardhatUserConfig = {
 		except: [
 			"@openzeppelin/",
 			"interfaces/",
-			"lib/",
+			"libraries/",
 			"mocks/",
 			"state-transfer/",
-			"tunnel/",
 		],
-		only: [
-			"ChildPool",
-			"FxStateChildTunnel",
-			"FxStateRootTunnel",
-			"MaticX",
-			"ValidatorRegistry",
-		],
+		only: ["ChildPool", "MaticX", "ValidatorRegistry"],
 	},
 };
 
