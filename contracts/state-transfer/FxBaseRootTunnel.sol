@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.7;
 
-import { RLPReader } from "../lib/RLPReader.sol";
-import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
-import { Merkle } from "../lib/Merkle.sol";
-import { ExitPayloadReader } from "../lib/ExitPayloadReader.sol";
+import { RLPReader } from "../libraries/RLPReader.sol";
+import { MerklePatriciaProof } from "../libraries/MerklePatriciaProof.sol";
+import { Merkle } from "../libraries/Merkle.sol";
+import { ExitPayloadReader } from "../libraries/ExitPayloadReader.sol";
 
 interface IFxStateSender {
 	function sendMessageToChild(

@@ -2,5 +2,5 @@
 module.exports = {
 	configureYulOptimizer: true,
 	network: "hardhat",
-	skipFiles: ["interfaces/", "lib/", "mocks/", "state-transfer/", "tunnel/"],
+	skipFiles: ["interfaces/", "libraries/", "mocks/", "state-transfer/"],
 };

@@ -2,7 +2,7 @@
 pragma solidity 0.8.7;
 
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { FxBaseChildTunnel } from "../tunnel/FxBaseChildTunnel.sol";
+import { FxBaseChildTunnel } from "./FxBaseChildTunnel.sol";
 
 /**
  * @title FxStateChildTunnel
