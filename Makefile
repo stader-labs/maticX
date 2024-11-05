@@ -60,8 +60,8 @@ SEPOLIA_MANAGER := 0x369B31971250859d3AD37E7cEDCF42AA5CF2C4F4
 SEPOLIA_TREASURY := 0xdeb90df43BBa8FC0e2C08C54dC0F48cfc694F896
 
 # Amoy contract addresses
-AMOY_MATIC_X :=
-AMOY_CHILD_POOL :=
+AMOY_MATIC_X := 0xFD837d45dd6Af18D039122301C3331D4A4307351
+AMOY_CHILD_POOL := 0x54a994B66FA7eA7160D6281002B56a041db0b5a5
 AMOY_FX_CHILD := 0xE5930336866d0388f0f745A2d9207C7781047C0f
 AMOY_FX_STATE_CHILD_TUNNEL := 0xDC5e26af83c1694A655beBe22689f12A42573d94
 AMOY_MANAGER := 0x8C6B3eE457b193A49794df466957441b4AccD102
@@ -197,6 +197,12 @@ verify-maticx-ethereum:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_MATIC_X)
 verify-maticx-polygon:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_MATIC_X)
+
+# Verify the ChildPool contract
+verify-childpool-amoy:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_AMOY) --contract $(AMOY_CHILD_POOL)
+verify-childpool-polygon:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_CHILD_POOL)
 
 # Verify the FxStateRootTunnel contract
 verify-fxstateroottunnel-sepolia:
