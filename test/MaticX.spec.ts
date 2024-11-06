@@ -1,3 +1,4 @@
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
 	loadFixture,
 	reset,
@@ -191,7 +192,9 @@ describe("MaticX", function () {
 		};
 	}
 
-	async function impersonateAccount(address: string) {
+	async function impersonateAccount(
+		address: string
+	): Promise<SignerWithAddress> {
 		setBalance(address, ethers.parseEther("10000"));
 		return await ethers.getImpersonatedSigner(address);
 	}
