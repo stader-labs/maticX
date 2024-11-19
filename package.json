@@ -58,6 +58,6 @@
 		"solhint-community": "^4.0.0",
 		"solhint-plugin-prettier": "^0.1.0",
 		"typescript": "^5.5.4",
-		"typescript-eslint": "^8.7.0"
+		"typescript-eslint": "^8.14.0"
 	}
 }
