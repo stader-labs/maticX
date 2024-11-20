@@ -32,20 +32,20 @@ HARDHAT_TREASURY := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 HARDHAT_INSTANT_POOL_OWNER := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
 # Localhost contract addresses
-LOCALHOST_VALIDATOR_REGISTRY :=
-LOCALHOST_MATIC_X :=
-LOCALHOST_CHILD_POOL :=
-LOCALHOST_STAKE_MANAGER :=
-LOCALHOST_CHECKPOINT_MANAGER :=
-LOCALHOST_FX_ROOT :=
-LOCALHOST_FX_CHILD :=
-LOCALHOST_FX_STATE_ROOT_TUNNEL :=
-LOCALHOST_FX_STATE_CHILD_TUNNEL :=
-LOCALHOST_MATIC_TOKEN :=
-LOCALHOST_POL_TOKEN :=
-LOCALHOST_MANAGER :=
-LOCALHOST_TREASURY :=
-LOCALHOST_INSTANT_POOL_OWNER :=
+LOCALHOST_VALIDATOR_REGISTRY := 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+LOCALHOST_MATIC_X := 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9
+LOCALHOST_CHILD_POOL := 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853
+LOCALHOST_STAKE_MANAGER := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+LOCALHOST_CHECKPOINT_MANAGER := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+LOCALHOST_FX_ROOT := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+LOCALHOST_FX_CHILD := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+LOCALHOST_FX_STATE_ROOT_TUNNEL := 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
+LOCALHOST_FX_STATE_CHILD_TUNNEL := 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
+LOCALHOST_MATIC_TOKEN := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+LOCALHOST_POL_TOKEN := 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+LOCALHOST_MANAGER := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+LOCALHOST_TREASURY := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+LOCALHOST_INSTANT_POOL_OWNER := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
 # Sepolia contract addresses
 SEPOLIA_VALIDATOR_REGISTRY := 0xE98fc808E8aE8025a1D17d6F4Fbc3Df226788438
@@ -98,7 +98,7 @@ all: hardhat
 
 hardhat: deploy-validatorregistry-hardhat deploy-childpool-hardhat deploy-fxstateroottunnel-hardhat deploy-fxstatechildtunnel-hardhat
 
-localhost: deploy-validatorregistry-localhost deploy-childpool-localhost deploy-fxstateroottunnel-localhost deploy-fxstatechildtunnel-localhost
+localhost: deploy-validatorregistry-localhost deploy-maticx-localhost deploy-fxstateroottunnel-localhost deploy-fxstatechildtunnel-localhost deploy-childpool-localhost
 
 # Deploy the ValidatorRegistry contract
 deploy-validatorregistry-hardhat:
@@ -123,6 +123,30 @@ deploy-maticx-ethereum:
 	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_ETHEREUM) --validator-registry $(ETHEREUM_VALIDATOR_REGISTRY) --stake-manager $(ETHEREUM_STAKE_MANAGER) --matic-token $(ETHEREUM_MATIC_TOKEN) --manager $(ETHEREUM_MANAGER) --treasury $(ETHEREUM_TREASURY)
 deploy-maticx-polygon:
 	$(BIN_HARDHAT) deploy:u-child-erc20 --network $(NETWORK_POLYGON) --name "Liquid Staking Matic (PoS)" --symbol "MaticX" --child-chain-manager $(POLYGON_MANAGER)
+
+# Deploy an implementation of the MaticX contract
+deployimplementation-maticx-localhost:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_LOCALHOST) --name MaticX
+deployimplementation-maticx-sepolia:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_SEPOLIA) --name MaticX
+deployimplementation-maticx-ethereum:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_ETHEREUM) --name MaticX
+
+# Deploy an implementation of the ValidatorRegistry contract
+deployimplementation-validatorregistry-localhost:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_LOCALHOST) --name ValidatorRegistry
+deployimplementation-validatorregistry-sepolia:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_SEPOLIA) --name ValidatorRegistry
+deployimplementation-validatorregistry-ethereum:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_ETHEREUM) --name ValidatorRegistry
+
+# Deploy an implementation of the ChildPool contract
+deployimplementation-childpool-localhost:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_LOCALHOST) --name ChildPool
+deployimplementation-childpool-amoy:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_AMOY) --name ChildPool
+deployimplementation-childpool-polygon:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_POLYGON) --name ChildPool
 
 # Deploy the ChildPool contract
 deploy-childpool-hardhat:
