@@ -1,5 +1,6 @@
 import { TASK_CLEAN, TASK_COMPILE } from "hardhat/builtin-tasks/task-names";
 import { task, types } from "hardhat/config";
+import { getSigner } from "../utils/account";
 import { isLocalNetwork, Network } from "../utils/network";
 
 interface TaskParams {
@@ -34,19 +35,31 @@ task("upgrade-contract")
 			const networkName = network.name as Network;
 			console.log(`Network name: ${networkName}`);
 
-			await run(TASK_CLEAN);
+			if (!isLocalNetwork(networkName)) {
+				await run(TASK_CLEAN);
+			}
 			await run(TASK_COMPILE);
 
+			const signer = await getSigner(
+				ethers,
+				network.provider,
+				network.config.from
+			);
 			const adjustedContractName = isLocalNetwork(networkName)
 				? `${contractName}Mock`
 				: contractName;
-			const ContractFactory =
-				await ethers.getContractFactory(adjustedContractName);
+			const ContractFactory = await ethers.getContractFactory(
+				adjustedContractName,
+				signer
+			);
 
 			const contract = await upgrades.upgradeProxy(
 				contractAddress,
 				ContractFactory,
-				{ unsafeSkipStorageCheck: unsafe }
+				{
+					kind: "transparent",
+					unsafeSkipStorageCheck: unsafe,
+				}
 			);
 			await contract.waitForDeployment();
 
