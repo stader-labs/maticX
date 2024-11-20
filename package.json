@@ -14,7 +14,7 @@
 		"gas": "REPORT_GAS=true npm run test",
 		"size": "hardhat size-contracts",
 		"clean": "hardhat clean && rm -rf coverage cache crytic-{corpus,export} mochaOutput.json testMatrix.json",
-		"node": "hardat node",
+		"node": "hardhat node",
 		"analyze": "slitherin .",
 		"analyze:ci": "slitherin . --skip-clean --ignore-compile"
 	},
