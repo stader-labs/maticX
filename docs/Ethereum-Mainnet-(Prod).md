@@ -1,6 +1,4 @@
-# Deployment Information
-
-## Ethereum Mainnet (Prod)
+## Deployment Information
 
 ### ProxyAdmin
 
@@ -59,7 +57,3 @@
 ### Treasury
 
 -   Address: [0x01422247a1d15BB4FcF91F5A077Cf25BA6460130](https://etherscan.io/address/0x01422247a1d15BB4FcF91F5A077Cf25BA6460130)
-
-### Root Deployer
-
--   Address: [0x75db63125A4f04E59A1A2Ab4aCC4FC1Cd5Daddd5](https://etherscan.io/address/0x75db63125A4f04E59A1A2Ab4aCC4FC1Cd5Daddd5)

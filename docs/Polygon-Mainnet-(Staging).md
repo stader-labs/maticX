@@ -1,6 +1,4 @@
-# Deployment Information
-
-## Polygon Mainnet (Prod)
+## Deployment Information
 
 ### MaticX
 
