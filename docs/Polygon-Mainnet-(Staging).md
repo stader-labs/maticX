@@ -10,12 +10,13 @@
 
 ### Child Pool
 
--   Proxy address: [](https://polygonscan.com/address/)
--   Implementation address: [](https://polygonscan.com/address/)
+-   Proxy address: [0x86182711ee76085444FD66E8a4d58A15f9b6EfAC](https://polygonscan.com/address/0x86182711ee76085444FD66E8a4d58A15f9b6EfAC)
+-   Implementation address: [0x16D7D971Fe6D98E235E20Ef304f7f811429c6329](https://polygonscan.com/address/0x16D7D971Fe6D98E235E20Ef304f7f811429c6329)
+-   Proxy admin address: [0x62FAfFA589a8a1a797E41079A86235Cf3Bb82A4D](https://polygonscan.com/address/0x62FAfFA589a8a1a797E41079A86235Cf3Bb82A4D)
 
 ### Fx State Child Tunnel
 
--   Address: [](https://polygonscan.com/address/)
+-   Address: [0x976BdbC06B84349C003A4C7Afeb2bAbdfd689bAa](https://polygonscan.com/address/0x976BdbC06B84349C003A4C7Afeb2bAbdfd689bAa)
 
 ### Fx Child
 
