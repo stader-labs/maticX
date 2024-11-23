@@ -37,10 +37,7 @@ task("deploy-implementation")
 
 			const implementationAddress = await upgrades.deployImplementation(
 				ContractFactory,
-				{
-					kind: "transparent",
-					verifySourceCode: true,
-				}
+				{ kind: "transparent" }
 			);
 			console.log(
 				`${contractName} Implementation deployed at ${implementationAddress}`
