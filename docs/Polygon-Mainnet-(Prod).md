@@ -1,6 +1,4 @@
-# Deployment Information
-
-## Polygon Mainnet (Prod)
+## Deployment Information
 
 ### Proxy Admin
 
@@ -39,7 +37,3 @@
 ### Treasury
 
 -   Address: [0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67](https://polygonscan.com/address/0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67)
-
-### Root Deployer
-
--   Address: [0x75db63125A4f04E59A1A2Ab4aCC4FC1Cd5Daddd5](https://polygonscan.com/address/0x75db63125A4f04E59A1A2Ab4aCC4FC1Cd5Daddd5)

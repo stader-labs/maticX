@@ -1,6 +1,4 @@
-# Deployment Information
-
-## Amoy Testnet
+## Deployment Information
 
 ### MaticX
 
@@ -27,9 +25,5 @@
 -   Address: [0x8C6B3eE457b193A49794df466957441b4AccD102](https://amoy.polygonscan.com/address/0x8C6B3eE457b193A49794df466957441b4AccD102)
 
 ### Treasury
-
--   Address: [0x8C6B3eE457b193A49794df466957441b4AccD102](https://amoy.polygonscan.com/address/0x8C6B3eE457b193A49794df466957441b4AccD102)
-
-### Root Deployer
 
 -   Address: [0x8C6B3eE457b193A49794df466957441b4AccD102](https://amoy.polygonscan.com/address/0x8C6B3eE457b193A49794df466957441b4AccD102)

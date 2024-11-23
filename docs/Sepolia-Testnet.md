@@ -1,6 +1,4 @@
-# Deployment Information
-
-## Sepolia Testnet
+## Deployment Information
 
 ### ProxyAdmin
 

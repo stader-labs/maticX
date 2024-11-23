@@ -1,6 +1,4 @@
-# Deployment Information
-
-## Ethereum Mainnet (Staging)
+## Deployment Information
 
 ### Validator Registry
 
