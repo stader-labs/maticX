@@ -80,6 +80,18 @@ ETHEREUM_PROD_POL_TOKEN := 0x455e53CBB86018Ac2B8092FdCd39d8444aFFC3F6
 ETHEREUM_PROD_MANAGER := 0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67
 ETHEREUM_PROD_TREASURY := 0x01422247a1d15BB4FcF91F5A077Cf25BA6460130
 
+# Ethereum (Staging) contract addresses
+ETHEREUM_STAGING_VALIDATOR_REGISTRY := 0xcEbaFD96Df8a1Cc63ee77770296F14B68089Ab04
+ETHEREUM_STAGING_MATIC_X := 0xD22dd194B8ec2abEeeFAC36a69cd8898FB6C43b3
+ETHEREUM_STAGING_STAKE_MANAGER := 0x5e3ef299fddf15eaa0432e6e66473ace8c13d908
+ETHEREUM_STAGING_CHECKPOINT_MANAGER := 0x86e4dc95c7fbdbf52e33d563bbdb00823894c287
+ETHEREUM_STAGING_FX_ROOT := 0xfe5e5D361b2ad62c541bAb87C45a0B9B018389a2
+ETHEREUM_STAGING_FX_STATE_ROOT_TUNNEL := 
+ETHEREUM_STAGING_MATIC_TOKEN := 0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0
+ETHEREUM_STAGING_POL_TOKEN := 0x455e53CBB86018Ac2B8092FdCd39d8444aFFC3F6
+ETHEREUM_STAGING_MANAGER := 0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F
+ETHEREUM_STAGING_TREASURY := 0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F
+
 # Polygon (Prod) contract addresses
 POLYGON_PROD_MATIC_X := 0xfa68FB4628DFF1028CFEc22b4162FCcd0d45efb6
 POLYGON_PROD_CHILD_POOL := 0xfd225C9e6601C9d38d8F98d8731BF59eFcF8C0E3
@@ -88,6 +100,15 @@ POLYGON_PROD_FX_STATE_CHILD_TUNNEL := 0x97E58a6950D86d751082D5e1d350e74c19047570
 POLYGON_PROD_MANAGER := 0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67
 POLYGON_PROD_TREASURY := 0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67
 POLYGON_PROD_INSTANT_POOL_OWNER := 0x51358004cFe135E64453d7F6a0dC433CAba09A2a
+
+# Polygon (Staging) contract addresses
+POLYGON_STAGING_MATIC_X := 0x797Ea002716E9a91F764721bBf3C4F34548B87F8
+POLYGON_STAGING_CHILD_POOL := 0x86182711ee76085444FD66E8a4d58A15f9b6EfAC
+POLYGON_STAGING_FX_CHILD := 0x8397259c983751DAf40400790063935a11afa28a
+POLYGON_STAGING_FX_STATE_CHILD_TUNNEL := 0x976BdbC06B84349C003A4C7Afeb2bAbdfd689bAa
+POLYGON_STAGING_MANAGER := 0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F
+POLYGON_STAGING_TREASURY := 0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F
+POLYGON_STAGING_INSTANT_POOL_OWNER := 0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F
 
 # Contract paths
 CONTRACT_PATH_VALIDATOR_REGISTRY := contracts/ValidatorRegistry.sol
@@ -109,6 +130,8 @@ deploy-validatorregistry-sepolia:
 	$(BIN_HARDHAT) deploy:validator-registry --network $(NETWORK_SEPOLIA) --stake-manager $(SEPOLIA_STAKE_MANAGER) --matic-token $(SEPOLIA_MATIC_TOKEN) --matic-x $(SEPOLIA_MATIC_X) --manager $(SEPOLIA_MANAGER)
 deploy-validatorregistry-ethereum-prod:
 	$(BIN_HARDHAT) deploy:validator-registry --network $(NETWORK_ETHEREUM) --stake-manager $(ETHEREUM_PROD_STAKE_MANAGER) --matic-token $(ETHEREUM_PROD_MATIC_TOKEN) --matic-x $(ETHEREUM_PROD_MATIC_X) --manager $(ETHEREUM_PROD_MANAGER)
+deploy-validatorregistry-ethereum-staging:
+	$(BIN_HARDHAT) deploy:validator-registry --network $(NETWORK_ETHEREUM) --stake-manager $(ETHEREUM_STAGING_STAKE_MANAGER) --matic-token $(ETHEREUM_STAGING_MATIC_TOKEN) --matic-x $(ETHEREUM_STAGING_MATIC_X) --manager $(ETHEREUM_STAGING_MANAGER)
 
 # Deploy the MaticX contract
 deploy-maticx-hardhat:
@@ -121,8 +144,12 @@ deploy-maticx-amoy:
 	$(BIN_HARDHAT) deploy:u-child-erc20 --network $(NETWORK_AMOY) --name "Liquid Staking Matic (PoS)" --symbol "MaticX" --child-chain-manager $(AMOY_MANAGER)
 deploy-maticx-ethereum-prod:
 	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_ETHEREUM) --validator-registry $(ETHEREUM_PROD_VALIDATOR_REGISTRY) --stake-manager $(ETHEREUM_PROD_STAKE_MANAGER) --matic-token $(ETHEREUM_PROD_MATIC_TOKEN) --manager $(ETHEREUM_PROD_MANAGER) --treasury $(ETHEREUM_PROD_TREASURY)
+deploy-maticx-ethereum-staging:
+	$(BIN_HARDHAT) deploy:matic-x --network $(NETWORK_ETHEREUM) --validator-registry $(ETHEREUM_STAGING_VALIDATOR_REGISTRY) --stake-manager $(ETHEREUM_STAGING_STAKE_MANAGER) --matic-token $(ETHEREUM_STAGING_MATIC_TOKEN) --manager $(ETHEREUM_STAGING_MANAGER) --treasury $(ETHEREUM_STAGING_TREASURY)
 deploy-maticx-polygon-prod:
 	$(BIN_HARDHAT) deploy:u-child-erc20 --network $(NETWORK_POLYGON) --name "Liquid Staking Matic (PoS)" --symbol "MaticX" --child-chain-manager $(POLYGON_PROD_MANAGER)
+deploy-maticx-polygon-staging:
+	$(BIN_HARDHAT) deploy:u-child-erc20 --network $(NETWORK_POLYGON) --name "Liquid Staking Matic (PoS)" --symbol "MaticX" --child-chain-manager $(POLYGON_STAGING_MANAGER)
 
 # Deploy an implementation of the MaticX contract
 deployimplementation-maticx-localhost:
@@ -130,6 +157,8 @@ deployimplementation-maticx-localhost:
 deployimplementation-maticx-sepolia:
 	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_SEPOLIA) --name MaticX
 deployimplementation-maticx-ethereum-prod:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_ETHEREUM) --name MaticX
+deployimplementation-maticx-ethereum-staging:
 	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_ETHEREUM) --name MaticX
 
 # Deploy an implementation of the ValidatorRegistry contract
@@ -139,6 +168,8 @@ deployimplementation-validatorregistry-sepolia:
 	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_SEPOLIA) --name ValidatorRegistry
 deployimplementation-validatorregistry-ethereum-prod:
 	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_ETHEREUM) --name ValidatorRegistry
+deployimplementation-validatorregistry-ethereum-staging:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_ETHEREUM) --name ValidatorRegistry
 
 # Deploy an implementation of the ChildPool contract
 deployimplementation-childpool-localhost:
@@ -146,6 +177,8 @@ deployimplementation-childpool-localhost:
 deployimplementation-childpool-amoy:
 	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_AMOY) --name ChildPool
 deployimplementation-childpool-polygon-prod:
+	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_POLYGON) --name ChildPool
+deployimplementation-childpool-polygon-staging:
 	$(BIN_HARDHAT) deploy-implementation --network $(NETWORK_POLYGON) --name ChildPool
 
 # Deploy the ChildPool contract
@@ -157,6 +190,8 @@ deploy-childpool-amoy:
 	$(BIN_HARDHAT) deploy:child-pool --network $(NETWORK_AMOY) --fx-state-child-tunnel $(AMOY_FX_STATE_CHILD_TUNNEL) --matic-x $(AMOY_MATIC_X) --manager $(AMOY_MANAGER) --instant-pool-owner $(AMOY_INSTANT_POOL_OWNER) --treasury $(AMOY_TREASURY)
 deploy-childpool-polygon-prod:
 	$(BIN_HARDHAT) deploy:child-pool --network $(NETWORK_POLYGON) --fx-state-child-tunnel $(POLYGON_PROD_FX_STATE_CHILD_TUNNEL) --matic-x $(POLYGON_PROD_MATIC_X) --manager $(POLYGON_PROD_MANAGER) --instant-pool-owner $(POLYGON_PROD_INSTANT_POOL_OWNER) --treasury $(POLYGON_PROD_TREASURY)
+deploy-childpool-polygon-staging:
+	$(BIN_HARDHAT) deploy:child-pool --network $(NETWORK_POLYGON) --fx-state-child-tunnel $(POLYGON_STAGING_FX_STATE_CHILD_TUNNEL) --matic-x $(POLYGON_STAGING_MATIC_X) --manager $(POLYGON_STAGING_MANAGER) --instant-pool-owner $(POLYGON_STAGING_INSTANT_POOL_OWNER) --treasury $(POLYGON_STAGING_TREASURY)
 
 # Deploy the FxStateRootTunnel contract
 deploy-fxstateroottunnel-hardhat:
@@ -167,6 +202,8 @@ deploy-fxstateroottunnel-sepolia:
 	$(BIN_HARDHAT) deploy:fx-state-root-tunnel --network $(NETWORK_SEPOLIA) --checkpoint-manager $(SEPOLIA_CHECKPOINT_MANAGER) --fx-root $(SEPOLIA_FX_ROOT) --matic-x $(SEPOLIA_MATIC_X)
 deploy-fxstateroottunnel-ethereum-prod:
 	$(BIN_HARDHAT) deploy:fx-state-root-tunnel --network $(NETWORK_ETHEREUM) --checkpoint-manager $(ETHEREUM_PROD_CHECKPOINT_MANAGER) --fx-root $(ETHEREUM_PROD_FX_ROOT) --matic-x $(ETHEREUM_PROD_MATIC_X)
+deploy-fxstateroottunnel-ethereum-staging:
+	$(BIN_HARDHAT) deploy:fx-state-root-tunnel --network $(NETWORK_ETHEREUM) --checkpoint-manager $(ETHEREUM_STAGING_CHECKPOINT_MANAGER) --fx-root $(ETHEREUM_STAGING_FX_ROOT) --matic-x $(ETHEREUM_STAGING_MATIC_X)
 
 # Deploy the FxStateChildTunnel contract
 deploy-fxstatechildtunnel-hardhat:
@@ -177,18 +214,24 @@ deploy-fxstatechildtunnel-amoy:
 	$(BIN_HARDHAT) deploy:fx-state-child-tunnel --network $(NETWORK_AMOY) --fx-child $(AMOY_FX_CHILD)
 deploy-fxstatechildtunnel-polygon-prod:
 	$(BIN_HARDHAT) deploy:fx-state-child-tunnel --network $(NETWORK_POLYGON) --fx-child $(POLYGON_PROD_FX_CHILD)
+deploy-fxstatechildtunnel-polygon-staging:
+	$(BIN_HARDHAT) deploy:fx-state-child-tunnel --network $(NETWORK_POLYGON) --fx-child $(POLYGON_STAGING_FX_CHILD)
 
 # Initialize v2 the ValidatorRegistry contract
 initializev2-validatorregistry-sepolia:
 	$(BIN_HARDHAT) initialize-v2:validator-registry --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_VALIDATOR_REGISTRY) --pol-token $(SEPOLIA_POL_TOKEN)
 initializev2-validatorregistry-ethereum-prod:
 	$(BIN_HARDHAT) initialize-v2:validator-registry --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_VALIDATOR_REGISTRY) --pol-token $(ETHEREUM_PROD_POL_TOKEN)
+initializev2-validatorregistry-ethereum-staging:
+	$(BIN_HARDHAT) initialize-v2:validator-registry --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_STAGING_VALIDATOR_REGISTRY) --pol-token $(ETHEREUM_STAGING_POL_TOKEN)
 
 # Initialize v2 the MaticX contract
 initializev2-maticx-sepolia:
 	$(BIN_HARDHAT) initialize-v2:matic-x --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_MATIC_X) --pol-token $(SEPOLIA_POL_TOKEN)
 initializev2-maticx-ethereum-prod:
 	$(BIN_HARDHAT) initialize-v2:matic-x --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_MATIC_X) --pol-token $(ETHEREUM_PROD_POL_TOKEN)
+initializev2-maticx-ethereum-staging:
+	$(BIN_HARDHAT) initialize-v2:matic-x --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_STAGING_MATIC_X) --pol-token $(ETHEREUM_STAGING_POL_TOKEN)
 
 # Upgrade the ValidatorRegistry contract
 upgrade-validatorregistry-localhost:
@@ -197,6 +240,8 @@ upgrade-validatorregistry-sepolia:
 	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_SEPOLIA) --name ValidatorRegistry --contract $(SEPOLIA_VALIDATOR_REGISTRY)
 upgrade-validatorregistry-ethereum-prod:
 	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name ValidatorRegistry --contract $(ETHEREUM_PROD_VALIDATOR_REGISTRY)
+upgrade-validatorregistry-ethereum-staging:
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name ValidatorRegistry --contract $(ETHEREUM_STAGING_VALIDATOR_REGISTRY)
 
 # Upgrade the MaticX contract
 upgrade-maticx-localhost:
@@ -205,12 +250,16 @@ upgrade-maticx-sepolia:
 	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_SEPOLIA) --name MaticX --contract $(SEPOLIA_MATIC_X) --unsafe true
 upgrade-maticx-ethereum-prod:
 	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_PROD_MATIC_X) --unsafe true
+upgrade-maticx-ethereum-staging:
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_STAGING_MATIC_X) --unsafe true
 
 # Verify the ValidatorRegistry contract
 verify-validatorregistry-sepolia:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_VALIDATOR_REGISTRY)
 verify-validatorregistry-ethereum-prod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_VALIDATOR_REGISTRY)
+verify-validatorregistry-ethereum-staging:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_STAGING_VALIDATOR_REGISTRY)
 
 # Verify the MaticX contract
 verify-maticx-sepolia:
@@ -219,38 +268,52 @@ verify-maticx-amoy:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_AMOY) --contract $(AMOY_MATIC_X)
 verify-maticx-ethereum-prod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_MATIC_X)
+verify-maticx-ethereum-staging:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_STAGING_MATIC_X)
 verify-maticx-polygon-prod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_PROD_MATIC_X)
+verify-maticx-polygon-staging:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_STAGING_MATIC_X)
 
 # Verify the ChildPool contract
 verify-childpool-amoy:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_AMOY) --contract $(AMOY_CHILD_POOL)
 verify-childpool-polygon-prod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_PROD_CHILD_POOL)
+verify-childpool-polygon-staging:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_STAGING_CHILD_POOL)
 
 # Verify the FxStateRootTunnel contract
 verify-fxstateroottunnel-sepolia:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_FX_STATE_ROOT_TUNNEL) "$(SEPOLIA_CHECKPOINT_MANAGER)" "$(SEPOLIA_FX_ROOT)" "$(SEPOLIA_MATIC_X)"
 verify-fxstateroottunnel-ethereum-prod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_FX_STATE_ROOT_TUNNEL) "$(ETHEREUM_PROD_CHECKPOINT_MANAGER)" "$(ETHEREUM_PROD_FX_ROOT)" "$(ETHEREUM_PROD_MATIC_X)"
+verify-fxstateroottunnel-ethereum-staging:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_STAGING_FX_STATE_ROOT_TUNNEL) "$(ETHEREUM_STAGING_CHECKPOINT_MANAGER)" "$(ETHEREUM_STAGING_FX_ROOT)" "$(ETHEREUM_STAGING_MATIC_X)"
 
 # Verify the FxStateChildTunnel contract
 verify-fxstatechildtunnel-amoy:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_AMOY) --contract $(AMOY_FX_STATE_CHILD_TUNNEL) "$(AMOY_FX_CHILD)"
 verify-fxstatechildtunnel-polygon-prod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_PROD_FX_STATE_CHILD_TUNNEL) "$(POLYGON_PROD_FX_CHILD)"
+verify-fxstatechildtunnel-polygon-staging:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_STAGING_FX_STATE_CHILD_TUNNEL) "$(POLYGON_STAGING_FX_CHILD)"
 
 # Import the ValidatorRegistry contract
 import-validatorregistry-sepolia:
 	$(BIN_HARDHAT) import-contract --network $(NETWORK_SEPOLIA) --name ValidatorRegistry --contract $(SEPOLIA_VALIDATOR_REGISTRY)
 import-validatorregistry-ethereum-prod:
 	$(BIN_HARDHAT) import-contract --network $(NETWORK_ETHEREUM) --name ValidatorRegistry --contract $(ETHEREUM_PROD_VALIDATOR_REGISTRY)
+import-validatorregistry-ethereum-staging:
+	$(BIN_HARDHAT) import-contract --network $(NETWORK_ETHEREUM) --name ValidatorRegistry --contract $(ETHEREUM_STAGING_VALIDATOR_REGISTRY)
 
 # Import the MaticX contract
 import-maticx-sepolia:
 	$(BIN_HARDHAT) import-contract --network $(NETWORK_SEPOLIA) --name MaticX --contract $(SEPOLIA_MATIC_X)
 import-maticx-ethereum-prod:
 	$(BIN_HARDHAT) import-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_PROD_MATIC_X)
+import-maticx-ethereum-staging:
+	$(BIN_HARDHAT) import-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_STAGING_MATIC_X)
 
 # Analyze contracts with mythril
 analyze-mytrhil-validatorregistry:
