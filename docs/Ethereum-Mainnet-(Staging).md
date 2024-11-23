@@ -10,8 +10,9 @@
 
 ### MaticX
 
--   Proxy address: [](https://etherscan.io/address/)
--   Implementation address: [](https://etherscan.io/address/)
+-   Proxy address: [0xD22dd194B8ec2abEeeFAC36a69cd8898FB6C43b3](https://etherscan.io/address/0xD22dd194B8ec2abEeeFAC36a69cd8898FB6C43b3)
+-   Implementation address: [0x9167CAd7D69daF5E1BA02D2efc9C89043B21e80f](https://etherscan.io/address/0x9167CAd7D69daF5E1BA02D2efc9C89043B21e80f)
+-   Proxy admin address: [0xC7c319e04Bf69f8F5387d3A7a79d842f750bAde5](https://etherscan.io/address/0xC7c319e04Bf69f8F5387d3A7a79d842f750bAde5)
 
 ### Stake Manager
 
