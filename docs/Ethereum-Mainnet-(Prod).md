@@ -1,6 +1,6 @@
 # Deployment Information
 
-## Ethereum Mainnet
+## Ethereum Mainnet (Prod)
 
 ### ProxyAdmin
 
