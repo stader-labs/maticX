@@ -1,5 +1,5 @@
 ## Deployment Information
-
+ 
 ### ProxyAdmin
 
 -   Address: [0xFD837d45dd6Af18D039122301C3331D4A4307351](https://sepolia.etherscan.io/address/0xFD837d45dd6Af18D039122301C3331D4A4307351)
@@ -52,6 +52,6 @@
 
 -   Address: [0xdeb90df43BBa8FC0e2C08C54dC0F48cfc694F896](https://sepolia.etherscan.io/address/0xdeb90df43BBa8FC0e2C08C54dC0F48cfc694F896)
 
-### Root Deployer
+### Deployer
 
 -   Address: [0x8C6B3eE457b193A49794df466957441b4AccD102](https://sepolia.etherscan.io/address/0x8C6B3eE457b193A49794df466957441b4AccD102)

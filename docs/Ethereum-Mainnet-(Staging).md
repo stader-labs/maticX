@@ -49,3 +49,7 @@
 ### Treasury
 
 -   Address: [0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F](https://etherscan.io/address/0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F)
+
+### Deployer
+
+-   Address: [0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F](https://etherscan.io/address/0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F)
