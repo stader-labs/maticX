@@ -6,7 +6,7 @@ import { isLocalNetwork, Network } from "../utils/network";
 interface TaskParams {
 	validatorRegistry: string;
 	stakeManager: string;
-	maticToken: string;
+	matic: string;
 	manager: string;
 	treasury: string;
 }
@@ -26,8 +26,8 @@ task("deploy:matic-x")
 		types.string
 	)
 	.addParam<string>(
-		"maticToken",
-		"Address of the MaticToken contract",
+		"matic",
+		"Address of the Matic contract",
 		undefined,
 		types.string
 	)
@@ -48,7 +48,7 @@ task("deploy:matic-x")
 			{
 				validatorRegistry: validatorRegistryAddress,
 				stakeManager: stakeManagerAddress,
-				maticToken: maticTokenAddress,
+				matic: maticAddress,
 				manager: managerAddress,
 				treasury: treasuryAddress,
 			}: TaskParams,
@@ -60,8 +60,8 @@ task("deploy:matic-x")
 			if (!ethers.isAddress(stakeManagerAddress)) {
 				throw new Error("Invalid StakeManager address");
 			}
-			if (!ethers.isAddress(maticTokenAddress)) {
-				throw new Error("Invalid MaticToken address");
+			if (!ethers.isAddress(maticAddress)) {
+				throw new Error("Invalid Matic address");
 			}
 			if (!ethers.isAddress(managerAddress)) {
 				throw new Error("Invalid Manager address");
@@ -89,7 +89,7 @@ task("deploy:matic-x")
 				[
 					validatorRegistryAddress,
 					stakeManagerAddress,
-					maticTokenAddress,
+					maticAddress,
 					managerAddress,
 					treasuryAddress,
 				],
