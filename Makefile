@@ -121,6 +121,11 @@ CONTRACT_PATH_VALIDATOR_REGISTRY := contracts/ValidatorRegistry.sol
 CONTRACT_PATH_MATIC_X := contracts/MaticX.sol
 CONTRACT_PATH_CHILD_POOL := contracts/ChildPool.sol
 
+# Contract data
+VALIDATOR_REGISTRY_VERSION := 2
+MATIC_X_VERSION := 2
+MATIC_X_FEE_PERCENT := 1100
+
 all: hardhat
 
 hardhat: deploy-validatorregistry-hardhat deploy-childpool-hardhat deploy-fxstateroottunnel-hardhat deploy-fxstatechildtunnel-hardhat
@@ -321,16 +326,22 @@ initializev2-maticx-ethereum-prod:
 initializev2-maticx-ethereum-staging:
 	$(BIN_HARDHAT) initialize-v2:matic-x --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_STAGING_MATIC_X) --pol $(ETHEREUM_STAGING_POL)
 
-# Validate environment deployment
-validatedeployment-testnet: validateparentdeployment-sepolia validatechilddeployment-amoy
-
 # Validate the parent deployment
 validateparentdeployment-sepolia:
-	$(BIN_HARDHAT) validate-parent-deployment --network $(NETWORK_SEPOLIA) --validator-registry $(SEPOLIA_VALIDATOR_REGISTRY) --matic-x $(SEPOLIA_MATIC_X) --fx-state-root-tunnel $(SEPOLIA_FX_STATE_ROOT_TUNNEL) --fx-state-child-tunnel $(AMOY_FX_STATE_CHILD_TUNNEL) --stake-manager $(SEPOLIA_STAKE_MANAGER) --checkpoint-manager $(SEPOLIA_CHECKPOINT_MANAGER) --fx-root $(SEPOLIA_FX_ROOT) --matic $(SEPOLIA_MATIC) --pol $(SEPOLIA_POL) --manager $(SEPOLIA_MANAGER) --treasury $(SEPOLIA_TREASURY) --deployer $(SEPOLIA_DEPLOYER)
+	$(BIN_HARDHAT) validate-parent-deployment --network $(NETWORK_SEPOLIA) --validator-registry $(SEPOLIA_VALIDATOR_REGISTRY) --matic-x $(SEPOLIA_MATIC_X) --fx-state-root-tunnel $(SEPOLIA_FX_STATE_ROOT_TUNNEL) --fx-state-child-tunnel $(AMOY_FX_STATE_CHILD_TUNNEL) --stake-manager $(SEPOLIA_STAKE_MANAGER) --checkpoint-manager $(SEPOLIA_CHECKPOINT_MANAGER) --fx-root $(SEPOLIA_FX_ROOT) --matic $(SEPOLIA_MATIC) --pol $(SEPOLIA_POL) --manager $(SEPOLIA_MANAGER) --treasury $(SEPOLIA_TREASURY) --deployer $(SEPOLIA_DEPLOYER) --matic-x-version $(MATIC_X_VERSION) --validator-registry-version $(VALIDATOR_REGISTRY_VERSION) --fee-percent $(MATIC_X_FEE_PERCENT)
+validateparentdeployment-ethereum-staging:
+	$(BIN_HARDHAT) validate-parent-deployment --network $(NETWORK_ETHEREUM) --validator-registry $(ETHEREUM_STAGING_VALIDATOR_REGISTRY) --matic-x $(ETHEREUM_STAGING_MATIC_X) --fx-state-root-tunnel $(ETHEREUM_STAGING_FX_STATE_ROOT_TUNNEL) --fx-state-child-tunnel $(POLYGON_STAGING_FX_STATE_CHILD_TUNNEL) --stake-manager $(ETHEREUM_STAGING_STAKE_MANAGER) --checkpoint-manager $(ETHEREUM_STAGING_CHECKPOINT_MANAGER) --fx-root $(ETHEREUM_STAGING_FX_ROOT) --matic $(ETHEREUM_STAGING_MATIC) --pol $(ETHEREUM_STAGING_POL) --manager $(ETHEREUM_STAGING_MANAGER) --treasury $(ETHEREUM_STAGING_TREASURY) --deployer $(ETHEREUM_STAGING_DEPLOYER) --matic-x-version $(MATIC_X_VERSION) --validator-registry-version $(VALIDATOR_REGISTRY_VERSION) --fee-percent $(MATIC_X_FEE_PERCENT)
 
 # Validate the child deployment
 validatechilddeployment-amoy:
 	$(BIN_HARDHAT) validate-child-deployment --network $(NETWORK_AMOY) --child-pool $(AMOY_CHILD_POOL) --matic-x $(AMOY_MATIC_X) --fx-state-child-tunnel $(AMOY_FX_STATE_CHILD_TUNNEL) --fx-state-root-tunnel $(SEPOLIA_FX_STATE_ROOT_TUNNEL) --fx-child $(AMOY_FX_CHILD) --manager $(AMOY_MANAGER) --treasury $(AMOY_TREASURY) --instant-pool-owner $(AMOY_INSTANT_POOL_OWNER) --deployer $(AMOY_DEPLOYER)
+validatechilddeployment-polygon-staging:
+	$(BIN_HARDHAT) validate-child-deployment --network $(NETWORK_ETHEREUM) --child-pool $(POLYGON_STAGING_CHILD_POOL) --matic-x $(POLYGON_STAGING_MATIC_X) --fx-state-child-tunnel $(POLYGON_STAGING_FX_STATE_CHILD_TUNNEL) --fx-state-root-tunnel $(ETHEREUM_STAGING_FX_STATE_ROOT_TUNNEL) --fx-child $(POLYGON_STAGING_FX_CHILD) --manager $(POLYGON_STAGING_MANAGER) --treasury $(POLYGON_STAGING_TREASURY) --instant-pool-owner $(POLYGON_STAGING_INSTANT_POOL_OWNER) --deployer $(POLYGON_STAGING_DEPLOYER)
+
+# Validate environment deployment
+validatedeployment-testnet: validateparentdeployment-sepolia validatechilddeployment-amoy
+
+validatedeployment-staging: validateparentdeployment-ethereum-staging validatechilddeployment-polygon-staging
 
 # Analyze contracts with mythril
 analyze-mytrhil-validatorregistry:

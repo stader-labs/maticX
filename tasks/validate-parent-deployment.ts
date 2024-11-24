@@ -19,7 +19,12 @@ interface TaskParams {
 	manager: string;
 	treasury: string;
 	deployer: string;
+	maticXVersion: string;
+	validatorRegistryVersion: string;
+	feePercent: string;
 }
+
+type VersionedContract = MaticX | ValidatorRegistry;
 
 type AccessControlledContract = FxStateRootTunnel | MaticX | ValidatorRegistry;
 
@@ -92,6 +97,24 @@ task("validate-parent-deployment")
 		undefined,
 		types.string
 	)
+	.addParam<string>(
+		"maticXVersion",
+		"Version of the MaticX contract",
+		undefined,
+		types.string
+	)
+	.addParam<string>(
+		"validatorRegistryVersion",
+		"Version of the ValidatorRegistry contract",
+		undefined,
+		types.string
+	)
+	.addParam<string>(
+		"feePercent",
+		"Fee percent on MaticX contract",
+		undefined,
+		types.string
+	)
 	.setAction(
 		async (
 			{
@@ -107,6 +130,9 @@ task("validate-parent-deployment")
 				manager: managerAddress,
 				treasury: treasuryAddress,
 				deployer: deployerAddress,
+				maticXVersion,
+				validatorRegistryVersion,
+				feePercent,
 			}: TaskParams,
 			{ ethers, network, run }
 		) => {
@@ -146,6 +172,9 @@ task("validate-parent-deployment")
 			if (!ethers.isAddress(deployerAddress)) {
 				throw new Error("Invalid Deployer address");
 			}
+			if (!feePercent) {
+				throw new Error("Zero fee percent");
+			}
 
 			const networkName = network.name as Network;
 			console.log(`Network name: ${networkName}`);
@@ -160,6 +189,7 @@ task("validate-parent-deployment")
 				maticAddress,
 				polAddress,
 				managerAddress,
+				validatorRegistryVersion,
 			});
 
 			await run("validate-parent-deployment:matic-x", {
@@ -171,6 +201,8 @@ task("validate-parent-deployment")
 				polAddress,
 				managerAddress,
 				treasuryAddress,
+				feePercent,
+				maticXVersion,
 			});
 
 			await run("validate-parent-deployment:fx-state-root-tunnel", {
@@ -192,6 +224,7 @@ subtask("validate-parent-deployment:validator-registry")
 	.addParam<string>("maticAddress")
 	.addParam<string>("polAddress")
 	.addParam<string>("managerAddress")
+	.addParam<string>("validatorRegistryVersion")
 	.setAction(
 		async (
 			{
@@ -201,6 +234,7 @@ subtask("validate-parent-deployment:validator-registry")
 				maticAddress,
 				polAddress,
 				managerAddress,
+				validatorRegistryVersion,
 			},
 			{ ethers }
 		) => {
@@ -208,6 +242,13 @@ subtask("validate-parent-deployment:validator-registry")
 			const validatorRegistry = await ethers.getContractAt(
 				"ValidatorRegistry",
 				validatorRegistryAddress
+			);
+
+			await validateVersion(
+				validatorRegistry,
+				"ValidatorRegistry",
+				validatorRegistryAddress,
+				validatorRegistryVersion
 			);
 
 			await validateAccessControl(
@@ -258,6 +299,8 @@ subtask("validate-parent-deployment:matic-x")
 	.addParam<string>("polAddress")
 	.addParam<string>("managerAddress")
 	.addParam<string>("treasuryAddress")
+	.addParam<string>("feePercent")
+	.addParam<string>("maticXVersion")
 	.setAction(
 		async (
 			{
@@ -269,11 +312,20 @@ subtask("validate-parent-deployment:matic-x")
 				polAddress,
 				managerAddress,
 				treasuryAddress,
+				feePercent,
+				maticXVersion,
 			},
 			{ ethers }
 		) => {
 			console.log("MaticX validation started");
 			const maticX = await ethers.getContractAt("MaticX", maticXAddress);
+
+			await validateVersion(
+				maticX,
+				"MaticX",
+				maticXAddress,
+				maticXVersion
+			);
 
 			await validateAccessControl(
 				maticX,
@@ -324,6 +376,12 @@ subtask("validate-parent-deployment:matic-x")
 				);
 			}
 
+			const currentFeePecent = await maticX.feePercent();
+			if (currentFeePecent.toString() !== feePercent) {
+				throw new Error(
+					`Call setFeePercent(${feePercent}) on MaticX(${maticXAddress})`
+				);
+			}
 			console.log("MaticX validation finished\n");
 		}
 	);
@@ -411,6 +469,20 @@ async function validateAccessControl(
 	if (!hasRole) {
 		throw new Error(
 			`Call grantRole(${defaultAdminRole} ${defaultAdminAddress}) on ${contractName}(${contractAddress})`
+		);
+	}
+}
+
+async function validateVersion(
+	contract: VersionedContract,
+	contractName: string,
+	contractAddress: string,
+	version: string
+) {
+	const currentVersion = await contract.version();
+	if (currentVersion !== version) {
+		throw new Error(
+			`Call setVersion(${version}) on ${contractName}(${contractAddress})`
 		);
 	}
 }
