@@ -24,7 +24,7 @@ interface TaskParams {
 type AccessControlledContract = FxStateRootTunnel | MaticX | ValidatorRegistry;
 
 task("validate-parent-deployment")
-	.setDescription("Validate deployment")
+	.setDescription("Validate parent deployment")
 	.addParam<string>(
 		"validatorRegistry",
 		"ValidatorRegistry contract address",

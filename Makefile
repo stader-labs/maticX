@@ -321,8 +321,16 @@ initializev2-maticx-ethereum-prod:
 initializev2-maticx-ethereum-staging:
 	$(BIN_HARDHAT) initialize-v2:matic-x --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_STAGING_MATIC_X) --pol $(ETHEREUM_STAGING_POL)
 
+# Validate environment deployment
+validatedeployment-testnet: validateparentdeployment-sepolia validatechilddeployment-amoy
+
+# Validate the parent deployment
 validateparentdeployment-sepolia:
 	$(BIN_HARDHAT) validate-parent-deployment --network $(NETWORK_SEPOLIA) --validator-registry $(SEPOLIA_VALIDATOR_REGISTRY) --matic-x $(SEPOLIA_MATIC_X) --fx-state-root-tunnel $(SEPOLIA_FX_STATE_ROOT_TUNNEL) --fx-state-child-tunnel $(AMOY_FX_STATE_CHILD_TUNNEL) --stake-manager $(SEPOLIA_STAKE_MANAGER) --checkpoint-manager $(SEPOLIA_CHECKPOINT_MANAGER) --fx-root $(SEPOLIA_FX_ROOT) --matic $(SEPOLIA_MATIC) --pol $(SEPOLIA_POL) --manager $(SEPOLIA_MANAGER) --treasury $(SEPOLIA_TREASURY) --deployer $(SEPOLIA_DEPLOYER)
+
+# Validate the child deployment
+validatechilddeployment-amoy:
+	$(BIN_HARDHAT) validate-child-deployment --network $(NETWORK_AMOY) --child-pool $(AMOY_CHILD_POOL) --matic-x $(AMOY_MATIC_X) --fx-state-child-tunnel $(AMOY_FX_STATE_CHILD_TUNNEL) --fx-state-root-tunnel $(SEPOLIA_FX_STATE_ROOT_TUNNEL) --fx-child $(AMOY_FX_CHILD) --manager $(AMOY_MANAGER) --treasury $(AMOY_TREASURY) --instant-pool-owner $(AMOY_INSTANT_POOL_OWNER) --deployer $(AMOY_DEPLOYER)
 
 # Analyze contracts with mythril
 analyze-mytrhil-validatorregistry:
