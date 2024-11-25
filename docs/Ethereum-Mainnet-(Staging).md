@@ -1,5 +1,9 @@
 ## Deployment Information
 
+### TimelockController
+
+-   Address: [0x420d319efe3Dd573Ccf3219dDdf60C83902B9f10](https://etherscan.io/address/0x420d319efe3Dd573Ccf3219dDdf60C83902B9f10)
+
 ### Validator Registry
 
 -   Proxy address: [0xcEbaFD96Df8a1Cc63ee77770296F14B68089Ab04](https://etherscan.io/address/0xcEbaFD96Df8a1Cc63ee77770296F14B68089Ab04)
@@ -19,7 +23,7 @@
 
 ### Fx State Root Tunnel
 
--   Address: [0x40FB804Cc07302b89EC16a9f8d040506f64dFe29](https://etherscan.io/address/0x40FB804Cc07302b89EC16a9f8d040506f64dFe29)
+-   Address: [0xcD7AdBBF3030AFFa7766606c5EA9E016141422Ca](https://etherscan.io/address/0xcD7AdBBF3030AFFa7766606c5EA9E016141422Ca)
 
 ### Checkpoint Manager
 
@@ -44,11 +48,11 @@
 
 ### Manager
 
--   Address: [0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F](https://etherscan.io/address/0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F)
+-   Address: [0xf9CBb2BF3f14c9F6De3F16fc0da4bAaDa25ebDC7](https://etherscan.io/address/0xf9CBb2BF3f14c9F6De3F16fc0da4bAaDa25ebDC7)
 
 ### Treasury
 
--   Address: [0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F](https://etherscan.io/address/0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F)
+-   Address: [0xf9CBb2BF3f14c9F6De3F16fc0da4bAaDa25ebDC7](https://etherscan.io/address/0xf9CBb2BF3f14c9F6De3F16fc0da4bAaDa25ebDC7)
 
 ### Deployer
 
