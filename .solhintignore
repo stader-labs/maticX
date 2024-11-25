@@ -8,7 +8,6 @@ contracts/ChildPool.sol
 contracts/interfaces/IChildPool.sol
 contracts/libraries/
 contracts/mocks/
-contracts/state-transfer/
 crytic-corpus/
 crytic-export/
 node_modules/

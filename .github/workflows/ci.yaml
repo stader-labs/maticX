@@ -73,5 +73,4 @@ jobs:
             !artifacts/contracts/interfaces/
             !artifacts/contracts/libraries/
             !artifacts/contracts/mocks/
-            !artifacts/contracts/state-transfer/
           retention-days: 30

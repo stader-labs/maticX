@@ -2,8 +2,8 @@
 pragma solidity 0.8.7;
 
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { IRateProvider } from "../interfaces/IRateProvider.sol";
-import { IFxStateChildTunnel } from "../interfaces/IFxStateChildTunnel.sol";
+import { IRateProvider } from "./interfaces/IRateProvider.sol";
+import { IFxStateChildTunnel } from "./interfaces/IFxStateChildTunnel.sol";
 
 /**
  * @title RateProvider

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.7;
 
-import "../state-transfer/FxBaseChildTunnel.sol";
+import "../FxBaseChildTunnel.sol";
 
 contract FxRootMock {
 	uint256 stateId;
