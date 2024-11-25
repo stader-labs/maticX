@@ -4,6 +4,10 @@
 
 -   Address: [0xFD837d45dd6Af18D039122301C3331D4A4307351](https://sepolia.etherscan.io/address/0xFD837d45dd6Af18D039122301C3331D4A4307351)
 
+### TimelockController
+
+-   Address: [0x5039f9ccD7D8166fbc6F06C10975869ab9E8D108](https://sepolia.etherscan.io/address/0x5039f9ccD7D8166fbc6F06C10975869ab9E8D108)
+
 ### Validator Registry
 
 -   Proxy address: [0xE98fc808E8aE8025a1D17d6F4Fbc3Df226788438](https://sepolia.etherscan.io/address/0xE98fc808E8aE8025a1D17d6F4Fbc3Df226788438)

@@ -45,10 +45,21 @@ task("verify-contract")
 			await run(TASK_CLEAN);
 			await run(TASK_COMPILE);
 
+			const preparedConstructorArguments: (string | string[])[] = [];
+			for (const argument of constructorArguments) {
+				preparedConstructorArguments.push(
+					typeof argument === "string" &&
+						argument[0] === "[" &&
+						argument[argument.length - 1] === "]"
+						? [argument.slice(1, -1)]
+						: argument
+				);
+			}
+
 			await run("verify:verify", {
 				address: contractAddress,
 				contract: contractPath,
-				constructorArguments,
+				constructorArguments: preparedConstructorArguments,
 				force: true,
 			});
 		}
