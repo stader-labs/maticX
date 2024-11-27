@@ -5,6 +5,7 @@ artifacts/
 cache/
 coverage/
 contracts/ChildPool.sol
+contracts/FxBaseRootTunnel.sol
 contracts/interfaces/IChildPool.sol
 contracts/libraries/
 contracts/mocks/
