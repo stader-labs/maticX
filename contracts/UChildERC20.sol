@@ -9,6 +9,7 @@ import { ERC20PermitUpgradeable } from "@openzeppelin/contracts-upgradeable/toke
 import { IChildToken } from "./interfaces/IChildToken.sol";
 
 contract UChildERC20 is
+	Initializable,
 	ContextUpgradeable,
 	AccessControlUpgradeable,
 	ERC20Upgradeable,
