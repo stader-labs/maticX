@@ -6,6 +6,7 @@ import "./deploy-matic-x";
 import "./deploy-timelock-controller";
 import "./deploy-u-child-erc20";
 import "./deploy-validator-registry";
+import "./generate-initializev2-calldata-matic-x";
 import "./import-contract";
 import "./initialize-v2-matic-x";
 import "./initialize-v2-validator-registry";
