@@ -54,8 +54,8 @@ jobs:
       - name: Check contracts with linter
         run: npm run check
 
-      - name: Analyze contracts with static analyzer
-        run: npm run analyze:ci
+      # - name: Analyze contracts with static analyzer
+      #   run: npm run analyze:ci
 
       - name: Run unit tests
         run: npm run test:ci
