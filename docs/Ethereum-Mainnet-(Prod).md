@@ -12,13 +12,11 @@
 
 - Proxy address: [0xf556442D5B77A4B0252630E15d8BbE2160870d77](https://etherscan.io/address/0xf556442D5B77A4B0252630E15d8BbE2160870d77)
 - Implementation address: [0x0a7f554AbFBD710D9CDFB7Cf88217a91acA7457D](https://etherscan.io/address/0x0a7f554AbFBD710D9CDFB7Cf88217a91acA7457D)
-  <!-- -   Implementation address: [0xaC72d5A7078F5E6B1661c0c4fe036573c771e568](https://etherscan.io/address/0xaC72d5A7078F5E6B1661c0c4fe036573c771e568) -->
 
 ### MaticX
 
 - Proxy address: [0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645](https://etherscan.io/address/0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645)
 - Implementation address: [0x5a78f4BD60C92FCbbf1C941Bc1136491D2896b35](https://etherscan.io/address/0x5a78f4BD60C92FCbbf1C941Bc1136491D2896b35)
-  <!-- -   Implementation address: [0x801e30fD56b43641CcB7724b31F2401004B2609c](https://etherscan.io/address/0x801e30fD56b43641CcB7724b31F2401004B2609c) -->
 
 ### Stake Manager
 
