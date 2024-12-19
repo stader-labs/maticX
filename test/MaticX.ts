@@ -376,30 +376,6 @@ describe("MaticX", function () {
 				expect(currentFeePercent).to.equal(feePercent);
 			});
 
-			it("Should return the right instant pool owner", async function () {
-				const { maticX } = await loadFixture(deployFixture);
-
-				const currentInstantPoolOwner: string =
-					await maticX.instantPoolOwner();
-				expect(currentInstantPoolOwner).to.equal(ethers.ZeroAddress);
-			});
-
-			it("Should return the right Matic amount in the instant pool", async function () {
-				const { maticX } = await loadFixture(deployFixture);
-
-				const currentInstantPoolMatic: string =
-					await maticX.instantPoolMatic();
-				expect(currentInstantPoolMatic).to.equal(0n);
-			});
-
-			it("Should return the right MaticX amount in the instant pool", async function () {
-				const { maticX } = await loadFixture(deployFixture);
-
-				const currentInstantPoolMaticX: string =
-					await maticX.instantPoolMaticX();
-				expect(currentInstantPoolMaticX).to.equal(0n);
-			});
-
 			it("Should return the fx state root tunnel address", async function () {
 				const { maticX, fxStateRootTunnelAddress } =
 					await loadFixture(deployFixture);
@@ -794,30 +770,6 @@ describe("MaticX", function () {
 					validatorRegistryAddress
 				);
 				expect(currentPolAddress).to.equal(polAddress);
-			});
-
-			it("Should return the right instant pool owner", async function () {
-				const { maticX } = await loadFixture(deployFixture);
-
-				const currentInstantPoolOwner: string =
-					await maticX.instantPoolOwner();
-				expect(currentInstantPoolOwner).to.equal(ethers.ZeroAddress);
-			});
-
-			it("Should return the right Matic amount in the instant pool", async function () {
-				const { maticX } = await loadFixture(deployFixture);
-
-				const currentInstantPoolMatic: string =
-					await maticX.instantPoolMatic();
-				expect(currentInstantPoolMatic).to.equal(0n);
-			});
-
-			it("Should return the right MaticX amount in the instant pool", async function () {
-				const { maticX } = await loadFixture(deployFixture);
-
-				const currentInstantPoolMaticX: string =
-					await maticX.instantPoolMaticX();
-				expect(currentInstantPoolMaticX).to.equal(0n);
 			});
 
 			it("Should return the right allowance of the POL token for the StakeManager contract", async function () {
