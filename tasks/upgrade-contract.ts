@@ -6,26 +6,15 @@ import { isLocalNetwork, Network } from "../utils/network";
 interface TaskParams {
 	name: string;
 	contract: string;
-	unsafe: boolean;
 }
 
 task("upgrade-contract")
 	.setDescription("Upgrade a contract")
 	.addParam<string>("name", "Contract name", undefined, types.string)
 	.addParam<string>("contract", "Contract address", undefined, types.string)
-	.addOptionalParam<boolean>(
-		"unsafe",
-		"Is unsafe upgrade",
-		false,
-		types.boolean
-	)
 	.setAction(
 		async (
-			{
-				name: contractName,
-				contract: contractAddress,
-				unsafe,
-			}: TaskParams,
+			{ name: contractName, contract: contractAddress }: TaskParams,
 			{ ethers, upgrades, network, run }
 		) => {
 			if (!ethers.isAddress(contractAddress)) {
@@ -56,10 +45,7 @@ task("upgrade-contract")
 			const contract = await upgrades.upgradeProxy(
 				contractAddress,
 				ContractFactory,
-				{
-					kind: "transparent",
-					unsafeSkipStorageCheck: unsafe,
-				}
+				{ kind: "transparent" }
 			);
 			await contract.waitForDeployment();
 

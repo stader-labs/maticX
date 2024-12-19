@@ -265,13 +265,13 @@ upgrade-validatorregistry-ethereum-prod:
 
 # Upgrade the MaticX contract
 upgrade-maticx-localhost:
-	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_LOCALHOST) --name MaticX --contract $(LOCALHOST_MATIC_X) --unsafe true
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_LOCALHOST) --name MaticX --contract $(LOCALHOST_MATIC_X)
 upgrade-maticx-sepolia:
-	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_SEPOLIA) --name MaticX --contract $(SEPOLIA_MATIC_X) --unsafe true
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_SEPOLIA) --name MaticX --contract $(SEPOLIA_MATIC_X)
 upgrade-maticx-ethereum-preprod:
-	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_PREPROD_MATIC_X) --unsafe true
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_PREPROD_MATIC_X)
 upgrade-maticx-ethereum-prod:
-	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_PROD_MATIC_X) --unsafe true
+	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_PROD_MATIC_X)
 
 # Verify the ValidatorRegistry proxy contract
 verify-validatorregistry-sepolia:
