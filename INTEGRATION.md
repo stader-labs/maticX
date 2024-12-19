@@ -2,8 +2,8 @@
 
 Deployment addresses can be found at:
 
--   Mainnet: [mainnet-deployment-info.json](mainnet-deployment-info.json)
--   Testnet: [testnet-deployment-info.json](testnet-deployment-info.json)
+- Mainnet: [mainnet-deployment-info.json](mainnet-deployment-info.json)
+- Testnet: [testnet-deployment-info.json](testnet-deployment-info.json)
 
 ## Ethereum
 
