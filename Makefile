@@ -75,8 +75,9 @@ AMOY_DEPLOYER := 0x8C6B3eE457b193A49794df466957441b4AccD102
 
 # Ethereum (Preprod) contract addresses
 ETHEREUM_PREPROD_VALIDATOR_REGISTRY := 0xcEbaFD96Df8a1Cc63ee77770296F14B68089Ab04
+ETHEREUM_PREPROD_VALIDATOR_REGISTRY_IMPLEMENTATION := 0xF841Ae2C0fd78268e3B3dab3F3C54Ab3CFDD37c7
 ETHEREUM_PREPROD_MATIC_X := 0xD22dd194B8ec2abEeeFAC36a69cd8898FB6C43b3
-ETHEREUM_PREPROD_MATIC_X_IMPLEMENTATION := 0x801e30fD56b43641CcB7724b31F2401004B2609c
+ETHEREUM_PREPROD_MATIC_X_IMPLEMENTATION := 0xA5Fdb8D80621AA2DE1Ac5600EF9997cb88D1fEA0
 ETHEREUM_PREPROD_FX_STATE_ROOT_TUNNEL := 0xcD7AdBBF3030AFFa7766606c5EA9E016141422Ca
 ETHEREUM_PREPROD_TIMELOCK_CONTROLLER := 0x420d319efe3Dd573Ccf3219dDdf60C83902B9f10
 ETHEREUM_PREPROD_STAKE_MANAGER := 0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908
@@ -90,8 +91,9 @@ ETHEREUM_PREPROD_DEPLOYER := 0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F
 
 # Ethereum (Prod) contract addresses
 ETHEREUM_PROD_VALIDATOR_REGISTRY := 0xf556442D5B77A4B0252630E15d8BbE2160870d77
+ETHEREUM_PROD_VALIDATOR_REGISTRY_IMPLEMENTATION := 0x0a7f554AbFBD710D9CDFB7Cf88217a91acA7457D
 ETHEREUM_PROD_MATIC_X := 0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645
-ETHEREUM_PROD_MATIC_X_IMPLEMENTATION := 0x801e30fD56b43641CcB7724b31F2401004B2609c
+ETHEREUM_PROD_MATIC_X_IMPLEMENTATION := 0x5a78f4BD60C92FCbbf1C941Bc1136491D2896b35
 ETHEREUM_PROD_FX_STATE_ROOT_TUNNEL := 0x40FB804Cc07302b89EC16a9f8d040506f64dFe29
 ETHEREUM_PROD_TIMELOCK_CONTROLLER := 0x20Ea6f63de406040E1e4B67aD98E84A0Eb3778Be
 ETHEREUM_PROD_STAKE_MANAGER := 0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908
@@ -271,7 +273,7 @@ upgrade-maticx-ethereum-preprod:
 upgrade-maticx-ethereum-prod:
 	$(BIN_HARDHAT) upgrade-contract --network $(NETWORK_ETHEREUM) --name MaticX --contract $(ETHEREUM_PROD_MATIC_X) --unsafe true
 
-# Verify the ValidatorRegistry contract
+# Verify the ValidatorRegistry proxy contract
 verify-validatorregistry-sepolia:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_VALIDATOR_REGISTRY)
 verify-validatorregistry-ethereum-preprod:
@@ -279,19 +281,31 @@ verify-validatorregistry-ethereum-preprod:
 verify-validatorregistry-ethereum-prod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_VALIDATOR_REGISTRY)
 
-# Verify the MaticX contract
+# Verify the ValidatorRegistry implementation contract
+verify-validatorregistryimplementation-ethereum-preprod:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PREPROD_VALIDATOR_REGISTRY_IMP)
+verify-validatorregistryimplementation-ethereum-prod:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_VALIDATOR_REGISTRY)
+
+# Verify the MaticX proxy contract
 verify-maticx-sepolia:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_SEPOLIA) --contract $(SEPOLIA_MATIC_X)
 verify-maticx-amoy:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_AMOY) --contract $(AMOY_MATIC_X)
-verify-maticx-ethereum-prod:
-	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_MATIC_X)
 verify-maticx-ethereum-preprod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PREPROD_MATIC_X)
+verify-maticx-ethereum-prod:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_MATIC_X)
 verify-maticx-polygon-preprod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_PREPROD_MATIC_X)
 verify-maticx-polygon-prod:
 	$(BIN_HARDHAT) verify-contract --network $(NETWORK_POLYGON) --contract $(POLYGON_PROD_MATIC_X)
+
+# Verify the MaticX implementation contract
+verify-maticximplementation-ethereum-preprod:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PREPROD_MATIC_X_IMPLEMENTATION)
+verify-maticximplementation-ethereum-prod:
+	$(BIN_HARDHAT) verify-contract --network $(NETWORK_ETHEREUM) --contract $(ETHEREUM_PROD_MATIC_X_IMPLEMENTATION)
 
 # Verify the ChildPool contract
 verify-childpool-amoy:
