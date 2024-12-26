@@ -1243,8 +1243,12 @@ describe("ValidatorRegistry", function () {
 				const { validatorRegistry, manager } =
 					await loadFixture(deployFixture);
 
-				const [, , initialMaticXAddress]: [string, string, string] =
-					await validatorRegistry.getContracts();
+				const [, , initialMaticXAddress]: [
+					string,
+					string,
+					string,
+					string,
+				] = await validatorRegistry.getContracts();
 				await (
 					validatorRegistry.connect(manager) as ValidatorRegistry
 				).setMaticX(maticXAddress);
@@ -1253,8 +1257,12 @@ describe("ValidatorRegistry", function () {
 					validatorRegistry.connect(manager) as ValidatorRegistry
 				).setMaticX(maticXAddress);
 
-				const [, , currentMaticXAddress]: [string, string, string] =
-					await validatorRegistry.getContracts();
+				const [, , currentMaticXAddress]: [
+					string,
+					string,
+					string,
+					string,
+				] = await validatorRegistry.getContracts();
 				expect(currentMaticXAddress).not.to.equal(initialMaticXAddress);
 				expect(currentMaticXAddress).to.equal(maticXAddress);
 			});
