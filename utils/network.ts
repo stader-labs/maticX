@@ -18,7 +18,7 @@ export enum Network {
 export function getProviderUrl(
 	network: Network,
 	provider: Provider,
-	apiKey?: string
+	apiKey: string
 ): string {
 	if (network === Network.Localhost) {
 		return "http://127.0.0.1:8545";
@@ -57,22 +57,17 @@ export function getProviderUrl(
 		},
 	};
 
-	const apiVersions: Record<Provider, number> = {
+	const apiVersions: Record<Provider, number | undefined> = {
 		[Provider.Alchemy]: 2,
 		[Provider.Infura]: 3,
-		[Provider.Ankr]: 0,
+		[Provider.Ankr]: undefined,
 	};
 
 	const urlParts = [urls[network][provider]];
-	if (apiVersions[provider] !== 0) {
+	if (typeof apiVersions[provider] !== "undefined") {
 		urlParts.push(`v${apiVersions[provider]}`);
 	}
-	if (
-		[Provider.Alchemy, Provider.Infura].includes(provider) &&
-		typeof apiKey !== "undefined"
-	) {
-		urlParts.push(apiKey);
-	}
+	urlParts.push(apiKey);
 
 	return urlParts.join("/");
 }

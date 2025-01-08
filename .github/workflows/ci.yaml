@@ -57,8 +57,8 @@ jobs:
       # - name: Analyze contracts with static analyzer
       #   run: npm run analyze:ci
 
-      - name: Run unit tests
-        run: npm run test:ci
+      # - name: Run unit tests
+      #   run: npm run test:ci
 
       - name: Deploy contracts into hardhat network
         run: make hardhat

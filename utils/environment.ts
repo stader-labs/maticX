@@ -19,7 +19,7 @@ interface EnvironmentSchema {
 	DEPLOYER_ADDRESS: string;
 }
 
-const API_KEY_REGEX = /^[0-9A-Za-z_-]{32}$/;
+const API_KEY_REGEX = /^[0-9A-Za-z_-]{32,64}$/;
 const MNEMONIC_REGEX = /^([a-z ]+){12,24}$/;
 const ADDRESS_REGEX = /^0x[0-9A-Fa-f]{40}$/;
 
