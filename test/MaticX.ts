@@ -139,23 +139,23 @@ describe("MaticX", function () {
 
 		// ERC20 transfers
 		for (const staker of stakers) {
-			await matic
+			await pol
 				.connect(polygonTreasury)
 				.transfer(staker.address, tripleStakeAmount);
 		}
 
-		const polygonTreasuryBalance = await matic.balanceOf(
+		const polygonTreasuryBalance = await pol.balanceOf(
 			polygonTreasury.address
 		);
-		await matic
+		await pol
 			.connect(polygonTreasury)
 			.approve(polygonMigrationAddress, polygonTreasuryBalance);
 		await polygonMigration
 			.connect(polygonTreasury)
-			.migrate(polygonTreasuryBalance / 2n);
+			.unmigrate(polygonTreasuryBalance / 2n);
 
 		for (const staker of stakers) {
-			await pol
+			await matic
 				.connect(polygonTreasury)
 				.transfer(staker.address, tripleStakeAmount);
 		}
