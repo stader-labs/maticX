@@ -5,8 +5,10 @@ on:
     branches:
       - "**"
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
+    env:
+      ETHEREUM_API_KEY: ${{ secrets.ETHEREUM_API_KEY }}
     strategy:
       matrix:
         node-version: ["20.15.x"]
@@ -54,11 +56,12 @@ jobs:
       - name: Check contracts with linter
         run: npm run check
 
-      # - name: Analyze contracts with static analyzer
-      #   run: npm run analyze:ci
+      - name: Analyze contracts with static analyzer
+        if: false
+        run: npm run analyze:ci
 
-      # - name: Run unit tests
-      #   run: npm run test:ci
+      - name: Run unit tests
+        run: npm run test:ci
 
       - name: Deploy contracts into hardhat network
         run: make hardhat
