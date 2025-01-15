@@ -7,7 +7,7 @@
 ### Validator Registry
 
 - Proxy address: [0xcEbaFD96Df8a1Cc63ee77770296F14B68089Ab04](https://etherscan.io/address/0xcEbaFD96Df8a1Cc63ee77770296F14B68089Ab04)
-- Implementation address: [0xF841Ae2C0fd78268e3B3dab3F3C54Ab3CFDD37c7](https://etherscan.io/address/0xF841Ae2C0fd78268e3B3dab3F3C54Ab3CFDD37c7)
+- Implementation address: [0xaC72d5A7078F5E6B1661c0c4fe036573c771e568](https://etherscan.io/address/0xaC72d5A7078F5E6B1661c0c4fe036573c771e568)
 - Proxy admin address: [0x5cEB726baBE01776D47b25247f16Cc8Ca439A8F0](https://etherscan.io/address/0x5cEB726baBE01776D47b25247f16Cc8Ca439A8F0)
 
 ### MaticX
