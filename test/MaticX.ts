@@ -31,7 +31,7 @@ describe("MaticX", function () {
 	const stakeAmount = ethers.parseUnits("100", 18);
 	const tripleStakeAmount = stakeAmount * 3n;
 	const version = "2";
-	const feePercent = 500n; // 5%
+	const feePercent = 1_100n; // 10%
 	const maxFeePercent = 1_500n; // 15%
 	const basisPoints = 10_000n;
 
@@ -2253,7 +2253,7 @@ describe("MaticX", function () {
 					preferredDepositValidatorId,
 				} = await loadFixture(deployFixture);
 
-				const stakeAmount = 19n;
+				const stakeAmount = 9n;
 				await pol
 					.connect(polygonTreasury)
 					.transfer(maticXAddress, stakeAmount);
@@ -2373,7 +2373,7 @@ describe("MaticX", function () {
 					.connect(polygonTreasury)
 					.transfer(maticXAddress, stakeAmount);
 
-				const feeAmount = (stakeAmount * 5n) / 100n;
+				const feeAmount = (stakeAmount * 11n) / 100n;
 				const netStakeAmount = stakeAmount - feeAmount;
 				const treasuryAddress: string = await maticX.treasury();
 
@@ -2399,7 +2399,7 @@ describe("MaticX", function () {
 					preferredDepositValidatorId,
 				} = await loadFixture(deployFixture);
 
-				const stakeAmount = 19n;
+				const stakeAmount = 9n;
 				await matic
 					.connect(polygonTreasury)
 					.transfer(maticXAddress, stakeAmount);
@@ -2433,7 +2433,7 @@ describe("MaticX", function () {
 
 				const treasuryAddress: string = await maticX.treasury();
 
-				const feeAmount = (stakeAmount * 5n) / 100n;
+				const feeAmount = (stakeAmount * 11n) / 100n;
 				const netStakeAmount = stakeAmount - feeAmount;
 
 				const promise = (
