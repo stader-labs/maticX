@@ -33,7 +33,7 @@ pycryptodome==3.21.0
 pyunormalize==16.0.0
 referencing==0.35.1
 regex==2024.11.6
-requests==2.32.3
+requests==2.32.4
 rlp==4.0.1
 rpds-py==0.22.3
 setuptools==75.8.0
