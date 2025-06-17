@@ -28,7 +28,7 @@ packaging==24.2
 parsimonious==0.10.0
 prettytable==3.12.0
 propcache==0.2.1
-protobuf==5.29.3
+protobuf==5.29.5
 pycryptodome==3.21.0
 pyunormalize==16.0.0
 referencing==0.35.1
