@@ -27,7 +27,7 @@ eth-typing==3.5.2
 eth-utils==2.3.2
 ethereum_input_decoder==0.2.2
 filelock==3.16.1
-fonttools==4.55.3
+fonttools==4.61.0
 hexbytes==0.2.3
 humanfriendly==10.0
 identify==2.6.5
