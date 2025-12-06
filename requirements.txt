@@ -42,7 +42,7 @@ slitherin==0.7.2
 solc-select==1.0.4
 toolz==1.0.0
 typing_extensions==4.12.2
-urllib3==2.3.0
+urllib3==2.6.0
 wcwidth==0.2.13
 web3==6.20.3
 websockets==14.1
