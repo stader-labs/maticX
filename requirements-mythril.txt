@@ -82,7 +82,7 @@ transaction==5.0
 trie==2.2.0
 typing_extensions==4.12.2
 urllib3==2.3.0
-virtualenv==20.28.1
+virtualenv==20.36.1
 z3-solver==4.12.5.0
 zope.deferredimport==5.0
 zope.interface==7.2
