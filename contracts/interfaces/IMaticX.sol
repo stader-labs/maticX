@@ -114,8 +114,8 @@ interface IMaticX is IERC20Upgradeable {
 	/// @return Amount of minted MaticX shares
 	function submitPOL(uint256 _amount) external returns (uint256);
 
-	/// @notice Registers a user's request to withdraw an amount of POL tokens.
-	/// @param _amount - Amount of POL tokens
+	/// @notice Registers a user's request to withdraw by burning MaticX shares.
+	/// @param _amount - Amount of MaticX shares to burn
 	function requestWithdraw(uint256 _amount) external;
 
 	/// @notice Claims POL tokens from a validator share and sends them to the

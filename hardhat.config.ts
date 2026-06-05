@@ -127,7 +127,8 @@ const config: HardhatUserConfig = {
 		],
 	},
 	mocha: {
-		reporter: process.env.CI ? "dot" : "nyan",
+		reporter:
+			process.env.MOCHA_REPORTER || (process.env.CI ? "dot" : "nyan"),
 		timeout: "1h",
 	},
 	etherscan: {

@@ -1709,7 +1709,7 @@ describe("MaticX", function () {
 
 	describe("Claim a withdrawal", function () {
 		describe("Negative", function () {
-			it("Should revert with the right error if paused", async function () {
+			it("Should not be paused-gated (sunset: users can always claim pre-existing withdrawals)", async function () {
 				const { maticX, manager, stakerA } =
 					await loadFixture(deployFixture);
 
@@ -1718,7 +1718,9 @@ describe("MaticX", function () {
 				const promise = (
 					maticX.connect(stakerA) as MaticX
 				).claimWithdrawal(0n);
-				await expect(promise).to.be.revertedWith("Pausable: paused");
+				await expect(promise).to.be.revertedWith(
+					"Withdrawal request does not exist"
+				);
 			});
 
 			it("Should return the right error if claiming too early", async function () {

@@ -16,6 +16,7 @@ import { IMaticX } from "./interfaces/IMaticX.sol";
 /// @title MaticX contract
 /// @notice MaticX is the main contract that manages staking and unstaking of
 /// POL tokens for users.
+// solhint-disable-next-line max-states-count
 contract MaticX is
 	IMaticX,
 	ERC20Upgradeable,
@@ -31,6 +32,8 @@ contract MaticX is
 	uint256 private constant NOT_ENTERED = 1;
 	uint256 private constant ENTERED = 2;
 
+	uint256 public constant TERMINAL_RATE_PRECISION = 1e18;
+
 	IValidatorRegistry private validatorRegistry;
 	IStakeManager private stakeManager;
 	IERC20Upgradeable private maticToken;
@@ -44,6 +47,64 @@ contract MaticX is
 	IFxStateRootTunnel public override fxStateRootTunnel;
 	IERC20Upgradeable private polToken;
 	uint256 private reentrancyGuardStatus;
+
+	/// ---------------------- Sunset storage (v3) -----------------------------
+	bool public recallInitiated;
+	bool public recallComplete;
+	bool public terminalRateLocked;
+	bool public instantRedeemEnabled;
+	bool public assetCustodied;
+
+	uint256 public preFinalizeRate;
+	uint256 public terminalRate;
+	uint256 public sweepToCustodyTimestamp;
+
+	mapping(address => uint256) public assetRecallNonces;
+
+	/// ---------------------- Sunset errors -----------------------------------
+	error TerminalRateAlreadyLocked();
+	error TerminalRateNotLocked();
+	error EmptyContract();
+	error InsufficientRecalledBalance();
+	error AmountInPolZero();
+	error CustodyDelayNotElapsed();
+	error ZeroAddress();
+	error ZeroAmount();
+	error UnpauseLockedAfterRecall();
+	error RecallAlreadyInitiated();
+	error RecallNotInitiated();
+	error RecallClaimsNotComplete();
+	error RecallAlreadyComplete();
+	error ZeroCustodyDelay();
+	error AssetCustodied();
+
+	/// ---------------------- Sunset events -----------------------------------
+	event AssetRecallInitiated(
+		address indexed validatorShare,
+		uint256 nonce,
+		uint256 stake
+	);
+	event AssetRecallCompleted(
+		uint256 polBalance,
+		uint256 supplyAtFreeze,
+		uint256 terminalRate
+	);
+	event TerminalRatePushedToL2(
+		uint256 supplyAtPush,
+		uint256 polBalanceAtPush
+	);
+	event InstantRedeemToggled(address indexed by, bool enabled);
+	event InstantClaimed(
+		address indexed user,
+		uint256 amountInMaticX,
+		uint256 amountInPol
+	);
+	event SweptToCustody(
+		address indexed asset,
+		address indexed custody,
+		uint256 amount
+	);
+	event SetCustodyDelay(uint256 newSweepToCustodyTimestamp);
 
 	/// ------------------------------ Modifiers -------------------------------
 
@@ -202,13 +263,20 @@ contract MaticX is
 		return amountToMint;
 	}
 
-	/// @notice Registers a user's request to withdraw an amount of POL tokens.
-	/// @param _amount - Amount of POL tokens
+	/// @notice Registers a user's request to withdraw by burning MaticX shares.
+	/// @param _amount - Amount of MaticX shares to burn
 	// slither-disable-next-line reentrancy-no-eth
 	function requestWithdraw(
 		uint256 _amount
-	) external override nonReentrant whenNotPaused {
+	) external override nonReentrant {
 		require(_amount > 0, "Invalid amount");
+
+		if (instantRedeemEnabled) {
+			_instantClaim(_amount);
+			return;
+		}
+
+		require(!paused(), "Pausable: paused");
 
 		(
 			uint256 amountToWithdraw,
@@ -307,9 +375,7 @@ contract MaticX is
 	/// @notice Claims POL tokens from a validator share and sends them to the
 	/// user.
 	/// @param _idx - Array index of the user's withdrawal request
-	function claimWithdrawal(
-		uint256 _idx
-	) external override nonReentrant whenNotPaused {
+	function claimWithdrawal(uint256 _idx) external override nonReentrant {
 		WithdrawalRequest[] storage userRequests = userWithdrawalRequests[
 			msg.sender
 		];
@@ -491,6 +557,151 @@ contract MaticX is
 		);
 	}
 
+	/// ------------------------------ Sunset ----------------------------------
+
+	/// @notice Unstakes the full stake from every registered validator.
+	function bulkUnstakeAllValidators() external onlyRole(DEFAULT_ADMIN_ROLE) {
+		require(paused(), "Pause first");
+		if (recallInitiated) revert RecallAlreadyInitiated();
+
+		// Snapshot pre-recall rate so oracle does not drift toward zero
+		// as vouchers move into the withdraw pool.
+		recallInitiated = true;
+		uint256 supplySnap = totalSupply();
+		preFinalizeRate = supplySnap == 0
+			? 0
+			: (getTotalStakeAcrossAllValidators() * TERMINAL_RATE_PRECISION) /
+				supplySnap;
+
+		uint256[] memory validatorIds = validatorRegistry.getValidators();
+		uint256 validatorCount = validatorIds.length;
+
+		for (uint256 i = 0; i < validatorCount; ) {
+			address vs = stakeManager.getValidatorContract(validatorIds[i]);
+			(uint256 stake, ) = IValidatorShare(vs).getTotalStake(
+				address(this)
+			);
+
+			if (stake > 0) {
+				IValidatorShare(vs).sellVoucher_newPOL(
+					stake,
+					type(uint256).max
+				);
+				uint256 nonce = IValidatorShare(vs).unbondNonces(address(this));
+				assetRecallNonces[vs] = nonce;
+				emit AssetRecallInitiated(vs, nonce, stake);
+			}
+
+			unchecked {
+				++i;
+			}
+		}
+	}
+
+	/// @notice Claims all pending unbond nonces from `bulkUnstakeAllValidators`.
+	/// Retryable: nonces clear only on successful claim.
+	function claimAssetRecallNonces() external onlyRole(DEFAULT_ADMIN_ROLE) {
+		if (!recallInitiated) revert RecallNotInitiated();
+		if (recallComplete) revert RecallAlreadyComplete();
+		recallComplete = true;
+
+		uint256[] memory validatorIds = validatorRegistry.getValidators();
+		uint256 validatorCount = validatorIds.length;
+
+		for (uint256 i = 0; i < validatorCount; ) {
+			address vs = stakeManager.getValidatorContract(validatorIds[i]);
+			uint256 nonce = assetRecallNonces[vs];
+			if (nonce != 0) {
+				IValidatorShare(vs).unstakeClaimTokens_newPOL(nonce);
+				delete assetRecallNonces[vs];
+			}
+
+			unchecked {
+				++i;
+			}
+		}
+	}
+
+	/// @notice Freezes the MATICx -> POL exchange rate. One-shot.
+	function finalizeTerminalRate() external onlyRole(DEFAULT_ADMIN_ROLE) {
+		if (!recallComplete) revert RecallClaimsNotComplete();
+		if (terminalRateLocked) revert TerminalRateAlreadyLocked();
+		terminalRateLocked = true;
+
+		uint256 polBalance = polToken.balanceOf(address(this));
+		uint256 supply = totalSupply();
+		if (polBalance == 0 || supply == 0) revert EmptyContract();
+
+		terminalRate = (polBalance * TERMINAL_RATE_PRECISION) / supply;
+
+		emit AssetRecallCompleted(polBalance, supply, terminalRate);
+	}
+
+	/// @notice Pushes (totalSupply, polBalance) to the L2 ChildPool.
+	function pushTerminalRateToL2() external onlyRole(DEFAULT_ADMIN_ROLE) {
+		if (!terminalRateLocked) revert TerminalRateNotLocked();
+		uint256 supply = totalSupply();
+		uint256 polBalance = polToken.balanceOf(address(this));
+		fxStateRootTunnel.sendMessageToChild(abi.encode(supply, polBalance));
+		emit TerminalRatePushedToL2(supply, polBalance);
+	}
+
+	/// @notice Enables or disables instant redemption.
+	/// @param _enabled - Whether instant redemption is enabled
+	function setInstantRedeemEnabled(
+		bool _enabled
+	) external onlyRole(DEFAULT_ADMIN_ROLE) {
+		if (!terminalRateLocked) revert TerminalRateNotLocked();
+		instantRedeemEnabled = _enabled;
+		emit InstantRedeemToggled(msg.sender, _enabled);
+	}
+
+	/// @dev Burns `_amount` MATICx from caller and sends POL at the terminal
+	/// rate from recalled balance. Routed via requestWithdraw once
+	/// instantRedeemEnabled is set.
+	function _instantClaim(uint256 _amount) private {
+		if (assetCustodied) revert AssetCustodied();
+
+		(uint256 amountInPol, , ) = _convertMaticXToPOL(_amount);
+		if (amountInPol == 0) revert AmountInPolZero();
+		if (polToken.balanceOf(address(this)) < amountInPol) {
+			revert InsufficientRecalledBalance();
+		}
+
+		_burn(msg.sender, _amount);
+		polToken.safeTransfer(msg.sender, amountInPol);
+
+		emit InstantClaimed(msg.sender, _amount, amountInPol);
+	}
+
+	/// @notice Sweeps the full balance of `_asset` to `_custody`. Callable
+	/// only after `sweepToCustodyTimestamp`. Disables sunset claims.
+	/// @param _asset - Token to sweep
+	/// @param _custody - Address to receive the swept tokens
+	function sweepToCustody(
+		address _asset,
+		address _custody
+	) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
+		if (!terminalRateLocked) revert TerminalRateNotLocked();
+		assetCustodied = true;
+		if (
+			sweepToCustodyTimestamp == 0 ||
+			block.timestamp < sweepToCustodyTimestamp
+		) {
+			revert CustodyDelayNotElapsed();
+		}
+		if (_asset == address(0) || _custody == address(0)) {
+			revert ZeroAddress();
+		}
+
+		uint256 bal = IERC20Upgradeable(_asset).balanceOf(address(this));
+		if (bal == 0) revert ZeroAmount();
+
+		IERC20Upgradeable(_asset).safeTransfer(_custody, bal);
+
+		emit SweptToCustody(_asset, _custody, bal);
+	}
+
 	/// ------------------------------ Setters ---------------------------------
 
 	/// @notice Sets a fee percent where 1 = 0.01%.
@@ -498,7 +709,13 @@ contract MaticX is
 	// slither-disable-next-line reentrancy-eth
 	function setFeePercent(
 		uint16 _feePercent
-	) external override nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
+	)
+		external
+		override
+		nonReentrant
+		whenNotPaused
+		onlyRole(DEFAULT_ADMIN_ROLE)
+	{
 		require(_feePercent <= MAX_FEE_PERCENT, "Fee percent is too high");
 
 		uint256[] memory validatorIds = validatorRegistry.getValidators();
@@ -527,11 +744,22 @@ contract MaticX is
 		emit SetTreasury(_treasury);
 	}
 
+	/// @notice Sets the sweep window.
+	/// @param _custodyDelay - Seconds from now until sweep becomes callable
+	function setCustodyDelay(
+		uint256 _custodyDelay
+	) external onlyRole(DEFAULT_ADMIN_ROLE) {
+		if (_custodyDelay == 0) revert ZeroCustodyDelay();
+		sweepToCustodyTimestamp = block.timestamp + _custodyDelay;
+		emit SetCustodyDelay(sweepToCustodyTimestamp);
+	}
+
 	/// @notice Sets the address of the validator registry.
 	/// @param _validatorRegistry - Address of the validator registry
 	function setValidatorRegistry(
 		address _validatorRegistry
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+		if (recallInitiated) revert RecallAlreadyInitiated();
 		require(
 			_validatorRegistry != address(0),
 			"Zero validator registry address"
@@ -546,6 +774,7 @@ contract MaticX is
 	function setFxStateRootTunnel(
 		address _fxStateRootTunnel
 	) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+		if (recallInitiated) revert RecallAlreadyInitiated();
 		require(
 			_fxStateRootTunnel != address(0),
 			"Zero fx state root tunnel address"
@@ -566,8 +795,12 @@ contract MaticX is
 		emit SetVersion(_version);
 	}
 
-	/// @notice Toggles the paused status of this contract.
+	/// @notice Toggles the paused status of this contract. Cannot unpause
+	/// once `recallInitiated` is true.
 	function togglePause() external override onlyRole(DEFAULT_ADMIN_ROLE) {
+		if (recallInitiated && paused()) {
+			revert UnpauseLockedAfterRecall();
+		}
 		paused() ? _unpause() : _pause();
 	}
 
@@ -605,7 +838,19 @@ contract MaticX is
 		uint256 _balance
 	) private view returns (uint256, uint256, uint256) {
 		uint256 totalShares = totalSupply();
-		totalShares = totalShares == 0 ? 1 : totalShares;
+		if (totalShares == 0) totalShares = 1;
+
+		if (terminalRateLocked || recallInitiated) {
+			uint256 rate = terminalRateLocked ? terminalRate : preFinalizeRate;
+			if (rate == 0) rate = 1;
+			uint256 totalPooled = (totalShares * rate) /
+				TERMINAL_RATE_PRECISION;
+			return (
+				(_balance * rate) / TERMINAL_RATE_PRECISION,
+				totalShares,
+				totalPooled
+			);
+		}
 
 		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
 		if (totalPooledAmount == 0) {
@@ -649,7 +894,19 @@ contract MaticX is
 		uint256 _balance
 	) private view returns (uint256, uint256, uint256) {
 		uint256 totalShares = totalSupply();
-		totalShares = totalShares == 0 ? 1 : totalShares;
+		if (totalShares == 0) totalShares = 1;
+
+		if (terminalRateLocked || recallInitiated) {
+			uint256 rate = terminalRateLocked ? terminalRate : preFinalizeRate;
+			if (rate == 0) rate = 1;
+			uint256 totalPooled = (totalShares * rate) /
+				TERMINAL_RATE_PRECISION;
+			return (
+				(_balance * TERMINAL_RATE_PRECISION) / rate,
+				totalShares,
+				totalPooled
+			);
+		}
 
 		uint256 totalPooledAmount = getTotalStakeAcrossAllValidators();
 		if (totalPooledAmount == 0) {

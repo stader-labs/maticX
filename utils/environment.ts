@@ -19,7 +19,7 @@ interface EnvironmentSchema {
 	DEPLOYER_ADDRESS: string;
 }
 
-const API_KEY_REGEX = /^[0-9A-Za-z_-]{32,64}$/;
+const API_KEY_REGEX = /^[0-9A-Za-z_-]{21,64}$/;
 const MNEMONIC_REGEX = /^([a-z ]+){12,24}$/;
 const ADDRESS_REGEX = /^0x[0-9A-Fa-f]{40}$/;
 
@@ -109,7 +109,9 @@ export function extractEnvironmentVariables(): EnvironmentSchema {
 		})
 		.validate(process.env);
 	if (error) {
-		throw new Error(error.annotate());
+		// Avoid `error.annotate()` — it dumps the full env (incl. secrets).
+		const keys = error.details.map((d) => d.path.join(".")).join(", ");
+		throw new Error(`Invalid environment variables: ${keys}`);
 	}
 	return envVars;
 }
