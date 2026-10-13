@@ -27,7 +27,7 @@ contract MaticX is
 	using StringsUpgradeable for string;
 
 	bytes32 public constant BOT = keccak256("BOT");
-	uint256 private constant MAX_FEE_PERCENT = 1_500; // 15%
+	uint256 private constant MAX_FEE_PERCENT = 10_000; // 100%
 	uint256 private constant BASIS_POINTS = 10_000;
 	uint256 private constant NOT_ENTERED = 1;
 	uint256 private constant ENTERED = 2;

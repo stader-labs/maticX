@@ -32,7 +32,7 @@ describe("MaticX", function () {
 	const tripleStakeAmount = stakeAmount * 3n;
 	const version = "2";
 	const feePercent = 1_100n; // 10%
-	const maxFeePercent = 1_500n; // 15%
+	const maxFeePercent = 10_000n; // 100%
 	const basisPoints = 10_000n;
 
 	async function deployFixture(callMaticXInitializeV2 = true) {
@@ -2778,6 +2778,50 @@ describe("MaticX", function () {
 					.withArgs(preferredDepositValidatorId, netStakeAmount)
 					.and.to.emit(maticX, "DistributeFees")
 					.withArgs(treasuryAddress, feeAmount);
+			});
+
+			it("Should send the whole reward to the treasury and stake nothing if the fee percent is 100%", async function () {
+				const {
+					maticX,
+					maticXAddress,
+					pol,
+					polygonTreasury,
+					manager,
+					bot,
+					preferredDepositValidatorId,
+				} = await loadFixture(deployFixture);
+
+				await (maticX.connect(manager) as MaticX).setFeePercent(
+					maxFeePercent
+				);
+				const currentFeePercent: bigint = await maticX.feePercent();
+				expect(currentFeePercent).to.equal(maxFeePercent);
+
+				await pol
+					.connect(polygonTreasury)
+					.transfer(maticXAddress, stakeAmount);
+
+				const treasuryAddress: string = await maticX.treasury();
+				const initialTreasuryBalance: bigint =
+					await pol.balanceOf(treasuryAddress);
+
+				const promise = (
+					maticX.connect(bot) as MaticX
+				).stakeRewardsAndDistributeFees(preferredDepositValidatorId);
+				await expect(promise)
+					.to.emit(maticX, "DistributeFees")
+					.withArgs(treasuryAddress, stakeAmount)
+					.and.to.emit(maticX, "StakeRewards")
+					.withArgs(preferredDepositValidatorId, 0n);
+
+				const currentTreasuryBalance: bigint =
+					await pol.balanceOf(treasuryAddress);
+				expect(
+					currentTreasuryBalance - initialTreasuryBalance
+				).to.equal(stakeAmount);
+				const maticXBalance: bigint =
+					await pol.balanceOf(maticXAddress);
+				expect(maticXBalance).to.equal(0n);
 			});
 		});
 	});
