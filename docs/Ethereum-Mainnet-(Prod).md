@@ -18,12 +18,13 @@
 
 - Proxy address: [0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645](https://etherscan.io/address/0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645)
 - Old implementation address: [0x5a78f4BD60C92FCbbf1C941Bc1136491D2896b35](https://etherscan.io/address/0x5a78f4BD60C92FCbbf1C941Bc1136491D2896b35)
-- New implementation address: [0xA5Fdb8D80621AA2DE1Ac5600EF9997cb88D1fEA0](https://etherscan.io/address/0xA5Fdb8D80621AA2DE1Ac5600EF9997cb88D1fEA0)
+- Previous implementation address: [0xA5Fdb8D80621AA2DE1Ac5600EF9997cb88D1fEA0](https://etherscan.io/address/0xA5Fdb8D80621AA2DE1Ac5600EF9997cb88D1fEA0)
+- Current implementation address: [0x14e947119d1672A965c719153ED6Ebf7A70eA50D](https://etherscan.io/address/0x14e947119d1672A965c719153ED6Ebf7A70eA50D)
 
 ### Stake Manager
 
 - Proxy address: [0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908](https://etherscan.io/address/0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908)
-- Implementation address: [0xbA9Ac3C9983a3e967f0f387c75cCbD38Ad484963](https://etherscan.io/address/0xbA9Ac3C9983a3e967f0f387c75cCbD38Ad484963)
+- Implementation address: [0x428D1067b33B2bCa826cF66344dbEcBd5AA6506e](https://etherscan.io/address/0x428D1067b33B2bCa826cF66344dbEcBd5AA6506e)
 
 ### Fx State Root Tunnel
 
@@ -48,7 +49,7 @@
 ### Polygon Migration
 
 - Proxy address: [0x29e7DF7b6A1B2b07b731457f499E1696c60E2C4e](https://etherscan.io/address/0x29e7DF7b6A1B2b07b731457f499E1696c60E2C4e)
-- Implementation address: [0x550B7CDaC6F5a0d9e840505c3Df74aC045530446](https://etherscan.io/address/0x550B7CDaC6F5a0d9e840505c3Df74aC045530446)
+- Implementation address: [0xB037347ef306db3b41aB0b250F891887039d9231](https://etherscan.io/address/0xB037347ef306db3b41aB0b250F891887039d9231)
 
 ### Manager
 

@@ -20,7 +20,7 @@
 
 ### Fx Child
 
-- Address: [0x8397259c983751DAf40400790063935a11afa28a](https://amoy.polygonscan.com/address/0x8397259c983751DAf40400790063935a11afa28a)
+- Address: [0x8397259c983751DAf40400790063935a11afa28a](https://polygonscan.com/address/0x8397259c983751DAf40400790063935a11afa28a)
 
 ### Rate Provider
 
@@ -36,4 +36,4 @@
 
 ### Treasury
 
-- Address: [0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67](https://polygonscan.com/address/0x80A43dd35382C4919991C5Bca7f46Dd24Fde4C67)
+- Address: [0x51358004cFe135E64453d7F6a0dC433CAba09A2a](https://polygonscan.com/address/0x51358004cFe135E64453d7F6a0dC433CAba09A2a)

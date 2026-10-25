@@ -18,7 +18,7 @@
 
 ### Fx Child
 
-- Address: [0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F](https://amoy.polygonscan.com/address/0x6FCBE6C2d6f6c890fD0cC5b0288E2D474D90BB1F)
+- Address: [0x8397259c983751DAf40400790063935a11afa28a](https://polygonscan.com/address/0x8397259c983751DAf40400790063935a11afa28a)
 
 ### Manager
 
